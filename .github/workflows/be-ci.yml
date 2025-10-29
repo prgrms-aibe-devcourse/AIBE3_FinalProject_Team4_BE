@@ -2,9 +2,9 @@ name: be-ci
 
 on:
   push:
-    branches: [ "dev", "feat/**" ]        # dev 또는 feat/* 브랜치에 push 시 실행
+    branches: [ "develop", "feat/**" ]        # dev 또는 feat/* 브랜치에 push 시 실행
   pull_request:
-    branches: [ "dev", "feat/**" ]        # dev 또는 feat/* 브랜치에 PR 시 실행
+    branches: [ "develop" ]        # dev 또는 feat/* 브랜치에 PR 시 실행
     paths:
       - "**"
       - ".github/workflows/be-ci.yml"
