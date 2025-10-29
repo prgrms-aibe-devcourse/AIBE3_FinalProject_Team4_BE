@@ -12,6 +12,7 @@ jobs:
 
     env:
       SPRING_PROFILES_ACTIVE: ci
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       # 1️⃣ 저장소 체크아웃
