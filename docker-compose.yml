@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # ------------------
+  # MySQL (개발용)
+  # ------------------
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123414
+      MYSQL_DATABASE: next5_db
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=caching_sha2_password
+    networks:
+      - next5-net
+
+  # ------------------
+  # Redis (개발용)
+  # ------------------
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - next5-net
+
+  # ------------------
+  # Spring Boot (배포용 주석 처리)
+  # ------------------
+  # spring:
+  #   build: .
+  #   container_name: hotsix-spring
+  #   depends_on:
+  #     - mysql
+  #     - redis
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: prod
+  #     SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hotsix_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+  #     SPRING_DATASOURCE_USERNAME: root
+  #     SPRING_DATASOURCE_PASSWORD: root123414
+  #     SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  #     SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  #     SPRING_JPA_SHOW_SQL: "true"
+  #     SPRING_CACHE_TYPE: redis
+  #     SPRING_REDIS_HOST: redis
+  #     SPRING_REDIS_PORT: 6379
+  #     SPRING_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD}
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - hotsix-net
+
+volumes:
+  mysql_data:
+
+networks:
+  next5-net:
