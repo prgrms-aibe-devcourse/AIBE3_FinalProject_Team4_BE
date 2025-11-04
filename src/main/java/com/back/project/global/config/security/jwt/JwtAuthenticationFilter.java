@@ -1,4 +1,4 @@
-package com.back.global.config.security.jwt;
+package com.back.project.global.config.security.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

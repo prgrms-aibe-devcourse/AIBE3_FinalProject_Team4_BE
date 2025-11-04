@@ -1,4 +1,4 @@
-package com.back.global.config.security.jwt;
+package com.back.project.global.config.security.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

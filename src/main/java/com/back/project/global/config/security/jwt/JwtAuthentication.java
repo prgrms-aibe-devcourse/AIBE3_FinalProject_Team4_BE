@@ -1,4 +1,4 @@
-package com.back.global.config.security.jwt;
+package com.back.project.global.config.security.jwt;
 
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

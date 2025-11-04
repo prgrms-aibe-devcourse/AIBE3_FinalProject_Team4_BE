@@ -1,6 +1,6 @@
-package com.back.global.config;
+package com.back.project.global.config;
 
-import com.back.global.config.security.jwt.JwtTokenProvider;
+import com.back.project.global.config.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
