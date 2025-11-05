@@ -6,6 +6,7 @@ import com.back.domain.user.user.dto.UserLoginRequestDto;
 import com.back.domain.user.user.dto.UserLoginResponseDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/auth")
 public class UserController {
     private final UserService userService;
+    private final Rq rq;
 
     @PostMapping("/signup")
     public RsData<UserDto> join(@Valid @RequestBody UserJoinRequestDto dto) {
@@ -36,11 +38,22 @@ public class UserController {
                 new UserLoginResponseDto(new UserDto(user), user.getApiKey())
         );
     }
+//    // 헤더에서 직접 Authorization 값을 받아오는 방식
+//    @GetMapping("/me")
+//    public RsData<UserDto> me(@RequestHeader("Authorization") String authorization) {
+//        String apiKey = authorization.replace("Bearer ", "");
+//        User user = userService.getUserByApiKey(apiKey);
+//        return new RsData<>(
+//                "200-1",
+//                "사용자 정보입니다.",
+//                new UserDto(user)
+//        );
+//    }
 
+    // Rq 클래스를 활용하는 방식
     @GetMapping("/me")
-    public RsData<UserDto> me(@RequestHeader("Authorization") String authorization) {
-        String apiKey = authorization.replace("Bearer ", "");
-        User user = userService.getUserByApiKey(apiKey);
+    public RsData<UserDto> me() {
+        User user = rq.getActor();
         return new RsData<>(
                 "200-1",
                 "사용자 정보입니다.",
