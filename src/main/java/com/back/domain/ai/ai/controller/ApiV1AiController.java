@@ -1,5 +1,6 @@
 package com.back.domain.ai.ai.controller;
 
+import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -18,11 +19,13 @@ public class ApiV1AiController {
     private final ChatClient huggingfaceChatClient;
 
     @GetMapping("/ai")
-    String generation(String userInput) {
-        return this.openAiChatClient.prompt()
+    public RsData<String> generation(String userInput) {
+        String result = this.openAiChatClient.prompt()
                 .options(OpenAiChatOptions.builder().model("gpt-4o-mini").build())
                 .user(userInput)
                 .call()
                 .content();
+
+        return RsData.successOf(result);
     }
 }
