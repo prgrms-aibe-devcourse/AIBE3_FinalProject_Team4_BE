@@ -1,3 +1,10 @@
+import org.gradle.kotlin.dsl.annotationProcessor
+import org.gradle.kotlin.dsl.compileOnly
+import org.gradle.kotlin.dsl.developmentOnly
+import org.gradle.kotlin.dsl.implementation
+import org.gradle.kotlin.dsl.testImplementation
+import org.gradle.kotlin.dsl.testRuntimeOnly
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.7"
@@ -66,6 +73,15 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+        // Elasticsearch
+        implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
+        //tsid
+        implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
+        // Docker Compose
+        developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+
 
     // Spring AI
     implementation(platform("org.springframework.ai:spring-ai-bom:1.0.3"))
