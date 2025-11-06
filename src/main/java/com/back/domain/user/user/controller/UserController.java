@@ -8,6 +8,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -32,12 +33,27 @@ public class UserController {
     @PostMapping("/login")
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
+
+        rq.setCookie("apiKey", user.getApiKey());
+
         return new RsData<>(
                 "200-1",
                 "로그인 되었습니다.",
                 new UserLoginResponseDto(new UserDto(user), user.getApiKey())
         );
     }
+
+    @DeleteMapping("/logout")
+    public RsData<Void> logout(HttpServletResponse response) {
+        rq.deleteCookie("apiKey");
+
+        return new RsData<>(
+                "200-1",
+                "로그아웃 되었습니다."
+        );
+    }
+
+
 //    // 헤더에서 직접 Authorization 값을 받아오는 방식
 //    @GetMapping("/me")
 //    public RsData<UserDto> me(@RequestHeader("Authorization") String authorization) {
