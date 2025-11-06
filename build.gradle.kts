@@ -69,14 +69,9 @@ dependencies {
         testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
         // Spring AI
+        implementation(platform("org.springframework.ai:spring-ai-bom:1.0.3"))
         implementation("org.springframework.ai:spring-ai-starter-model-openai")
         implementation("org.springframework.ai:spring-ai-starter-model-huggingface")
-    }
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:1.0.3")
     }
 }
 
