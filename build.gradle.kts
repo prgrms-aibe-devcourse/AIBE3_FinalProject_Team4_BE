@@ -1,3 +1,10 @@
+import org.gradle.kotlin.dsl.annotationProcessor
+import org.gradle.kotlin.dsl.compileOnly
+import org.gradle.kotlin.dsl.developmentOnly
+import org.gradle.kotlin.dsl.implementation
+import org.gradle.kotlin.dsl.testImplementation
+import org.gradle.kotlin.dsl.testRuntimeOnly
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.7"
@@ -30,7 +37,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.projectlombok:lombok")
     compileOnly("org.projectlombok:lombok")
@@ -47,20 +53,15 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
-    // Mail
-    implementation("org.springframework.boot:spring-boot-starter-mail")
-
     // JWT
-    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     // MySQL / H2
     runtimeOnly("com.mysql:mysql-connector-j:8.3.0")
     runtimeOnly("com.h2database:h2")
 
-    //test
-    testImplementation("org.mockito:mockito-junit-jupiter")
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("com.fasterxml.jackson.core:jackson-databind")
@@ -73,13 +74,13 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    // Elasticsearch
-    implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
-    //tsid
-    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    // Docker Compose
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+        // Elasticsearch
+        implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
+        //tsid
+        implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
+        // Docker Compose
+        developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
 
     // Spring AI
