@@ -2,6 +2,7 @@ package com.back.global.rq;
 
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
+import com.back.global.exception.AuthException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,7 +25,7 @@ public class Rq {
         // 헤더에 Authorization이 존재하면 사용하고
         if (headerAuthorization != null && !headerAuthorization.isBlank()) {
             if(!headerAuthorization.startsWith("Bearer ")) {
-                throw new RuntimeException("유효하지 않은 Authorization 헤더입니다.");
+                throw new AuthException("401-2", "유효하지 않은 Authorization 헤더입니다.");
             }
             apiKey = headerAuthorization.substring("Bearer".length()).trim();
         } else {    // 존재하지 않으면 쿠키에서 apiKey를 찾음
@@ -36,7 +37,7 @@ public class Rq {
         }
 
         if (apiKey.isBlank()) {
-            throw new RuntimeException("로그인 후 사용해주세요");
+            throw new AuthException("401-1", "로그인 후 사용해주세요");
         }
 
         return userService.getUserByApiKey(apiKey);
