@@ -24,8 +24,6 @@ repositories {
     mavenCentral()
 }
 
-extra["springAiVersion"] = "1.0.3"
-
 dependencies {
     dependencies {
         // Spring 기본
@@ -78,7 +76,7 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+        mavenBom("org.springframework.ai:spring-ai-bom:1.0.3")
     }
 }
 
