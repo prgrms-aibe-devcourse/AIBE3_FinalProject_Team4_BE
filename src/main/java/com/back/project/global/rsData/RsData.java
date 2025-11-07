@@ -1,18 +1,13 @@
-package com.back.project.global.rsdata;
+package com.back.project.global.rsData;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import org.springframework.lang.NonNull;
 
-@Getter
-@AllArgsConstructor
-public class RsData<T> {
-    private String resultCode;
-    @JsonIgnore
-    private int statusCode;
-    private String msg;
-    private T data;
-
+public record RsData<T>(
+        @NonNull String resultCode,
+        @JsonIgnore int statusCode,
+        @NonNull String msg,
+        @NonNull T data) {
     public RsData(String resultCode, String msg) {
         this(resultCode, msg, null);
     }
