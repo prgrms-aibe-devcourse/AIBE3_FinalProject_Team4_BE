@@ -1,33 +1,37 @@
 package com.back.domain.blog.blog.controller;
 
-import com.back.domain.blog.blog.dto.BlogResponse;
+import com.back.domain.blog.blog.dto.BlogDto;
+import com.back.domain.blog.blog.dto.BlogWriteReqDto;
 import com.back.domain.blog.blog.service.BlogService;
+import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogController {
     private final BlogService blogService;
-
-    @GetMapping
-    public ResponseEntity<List<BlogResponse>> readAll() {
-        return ResponseEntity.ok(blogService.finAll().stream()
-                .map(post -> new BlogResponse(post.getId(), post.getTitle(), post.getContent()))
-                .toList());
-    }
+//    private final Rq rq;
 
     @PostMapping("/write")
-    public String write() {
-        blogService.write("테스트 제목", "테스트 내용");
-        return "작성완료";
+    @Operation(summary = "블로그 글 작성")
+    public RsData<BlogDto> write(
+            @Valid @RequestBody BlogWriteReqDto request
+    ) {
+        // User actor = rq.getActor();
+
+        return new RsData<>("200-1", "블로그 글 작성이 완료되었습니다.");
     }
+
+    @GetMapping("/{id}")
+    public RsData<BlogDto> getItem(@PathVariable Long id) {
+        // User actor = rq.getActor();
+        BlogDto dto = blogService.getItem(id);
+        return new RsData<>("200-2", "블로그 글 조회가 완료되었습니다.", dto);
+    }
+
 
 }
