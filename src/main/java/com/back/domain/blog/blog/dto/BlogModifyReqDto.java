@@ -4,8 +4,8 @@ import jakarta.validation.Valid;
 
 import java.util.List;
 
-public record BlogWriteReqDto(
-        @Valid BlogWriteDto blog,
+public record BlogModifyReqDto(
+        @Valid BlogModifyDto blog,
         List<Long> hashtagIds
 ) {
 }

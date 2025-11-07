@@ -1,7 +1,7 @@
 package com.back.domain.blog.blog.dto;
 
-import com.back.domain.blog.blog.entity.Blog;
-import com.back.domain.blog.hashtag.dto.BlogHashtagDto;
+import com.back.domain.blog.blogdoc.document.BlogDoc;
+import com.back.domain.blog.hashtag.BlogHashtag;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,7 +12,7 @@ public record BlogDto(
         String content,
 //        UserDto author,
         String thumbnailUrl,
-        List<BlogHashtagDto> hashtags,
+        List<BlogHashtag> hashtags,
         String status,
         Integer viewCount,
         Integer likeCount,
@@ -23,30 +23,29 @@ public record BlogDto(
 //        List<CommentDto> comments,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        Integer relatedShorlogCount,
         Object[] sortValues
 ) {
-    public BlogDto(Blog blog) {
+    public BlogDto(BlogDoc blogDoc, Boolean isLiked, Boolean isBookmarked, Object[] sortValues) {
         this(
-                blog.getId(),
-                blog.getTitle(),
-                blog.getContent(),
-                blog.getThumbnailUrl(),
-                blog.getBlogHashtags().stream()
-                        .filter(blogHashtag -> blogHashtag.getHashtag() != null)
-                        .map(blogHashtag -> new BlogHashtagDto(blogHashtag.getHashtag())).toList(),
-                blog.getStatus().name(),
-                blog.getViewCount(),
-                blog.getLikeCount(),
-                blog.getBookmarkCount(),
-                null,
-                null,
-                blog.getCommentCount(),
-//                blog.getComments().stream().map(CommentDto::new).toList(),
-                blog.getCreatedAt(),
-                blog.getModifiedAt(),
-                null,
-                null
+                blogDoc.getId() != null ? Long.parseLong(blogDoc.getId()) : null,
+                blogDoc.getTitle(),
+                blogDoc.getContent(),
+//                new UserDto(blogDoc.getUserId(), blogDoc.getUserName(), blogDoc
+//                        .getUserProfileImage()),
+                blogDoc.getThumbnailImage(),
+                blogDoc.getHashtags(),
+                blogDoc.getStatus(),
+                blogDoc.getViewCount(),
+                blogDoc.getLikeCount(),
+                blogDoc.getBookmarkCount(),
+                isLiked,
+                isBookmarked,
+                blogDoc.getCommentCount(),
+//                blogDoc.getComments().stream().map(CommentDto::new).toList(),
+                blogDoc.getCreatedAt(),
+                blogDoc.getUpdatedAt(),
+                sortValues
         );
     }
+
 }

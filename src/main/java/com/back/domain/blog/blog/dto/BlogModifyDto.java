@@ -2,7 +2,7 @@ package com.back.domain.blog.blog.dto;
 
 import com.back.domain.blog.blog.entity.BlogStatus;
 
-public record BlogWriteDto(
+public record BlogModifyDto(
         String title,
         String content,
         String summary,
