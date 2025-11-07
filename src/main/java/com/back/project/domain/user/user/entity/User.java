@@ -16,6 +16,7 @@ public class User extends BaseEntity {
     private String username;
     private String email;
     private String password;
+    private String profileimgurl;
 
     @Column(name = "tts_token", nullable = false, columnDefinition = "INT DEFAULT 100")
     @Builder.Default
