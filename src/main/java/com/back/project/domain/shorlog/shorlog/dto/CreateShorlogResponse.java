@@ -16,7 +16,7 @@ public class CreateShorlogResponse {
     private Long id;
     private Long userId;
     private String username;
-    private String profileImageUrl;
+    private String profileImgUrl;
     private String content;
     private String thumbnailUrl;
     private String thumbnailType;
@@ -28,7 +28,7 @@ public class CreateShorlogResponse {
                 .id(shorlog.getId())
                 .userId(shorlog.getUser().getId())
                 .username(shorlog.getUser().getUsername())
-                .profileImageUrl(shorlog.getUser().getProfileimgurl())
+                .profileImgUrl(shorlog.getUser().getProfileimgurl())
                 .content(shorlog.getContent())
                 .thumbnailUrl(shorlog.getThumbnailUrl())
                 .thumbnailType(shorlog.getThumbnailType())
