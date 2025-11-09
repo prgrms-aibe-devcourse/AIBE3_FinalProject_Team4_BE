@@ -1,14 +1,15 @@
 package com.back.domain.ai.ai.controller;
 
+import com.back.domain.ai.ai.dto.AiAssistReqBody;
+import com.back.domain.ai.ai.service.AiService;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,22 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/ais")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name="ApiV1AiController", description = "API AI 컨트롤러")
+@Tag(name = "ApiV1AiController", description = "API AI 컨트롤러")
 public class ApiV1AiController {
-    @Qualifier("openAiChatClient")
-    private final ChatClient openAiChatClient;
-    @Qualifier("huggingfaceChatClient")
-    private final ChatClient huggingfaceChatClient;
+    private final AiService aiService;
 
-    @GetMapping
-    @Operation(summary = "ai api 연결 테스트")
-    public RsData<String> generation(String userInput) {
-        String result = this.openAiChatClient.prompt()
-                .options(OpenAiChatOptions.builder().model("gpt-4o-mini").build())
-                .user(userInput)
-                .call()
-                .content();
-
-        return RsData.successOf(result);
+    @PostMapping
+    @Operation(summary = "제목 추천")
+    public RsData<?> assist(@RequestBody @Validated AiAssistReqBody req) {
+        return RsData.successOf(aiService.generate(req));
     }
 }
