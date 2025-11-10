@@ -9,6 +9,9 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -48,7 +51,7 @@ public class AiService {
 
     Prompt prompt;
 
-    public Object generate(AiAssistReqBody req) {
+    public Mono<?> generate(AiAssistReqBody req) {
         String command = switch (req.mode().getValue()) {
             case "title" ->
                     "제목 추천: 주어진 블로그의 본문을 분석하여, 독자의 클릭을 유도하는 매력적인 제목 3개를 JSON 형식(키: titles)으로 추출해 주세요. 설명이나 추가적인 문장은 일절 포함하지 말고, 순수한 JSON 객체만 출력해야 합니다."
@@ -91,29 +94,60 @@ public class AiService {
         };
     }
 
-    private AiTitleResBody generateTitle() {
+    public Flux<String> chat(AiAssistReqBody req) {
+        String command = "답변은 System Message의 규칙에 따라 마크다운 형식으로 구조화해야 합니다.\n\n";
+
+        UserMessage userMessage = UserMessage.builder()
+                .text(command)
+                .text("--- 질문: " + req.message() + "\n\n")
+                .text("--- 블로그 본문: " + req.content())
+                .build();
+
+        prompt = Prompt.builder()
+                .messages(List.of(systemMessage, userMessage))
+                .chatOptions(options)
+                .build();
+
         return openAiChatClient.prompt(prompt)
-                .call()
-                .entity(AiTitleResBody.class);
+                .stream()
+                .content();
     }
 
-    private AiHashtagResBody generateHashtag() {
-        return openAiChatClient.prompt(prompt)
-                .call()
-                .entity(AiHashtagResBody.class);
+    private Mono<AiTitleResBody> generateTitle() {
+        return Mono.fromCallable(() ->
+                        openAiChatClient.prompt(prompt)
+                                .call()
+                                .entity(AiTitleResBody.class)
+                )
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Mono<AiHashtagResBody> generateHashtag() {
+        return Mono.fromCallable(() ->
+                        openAiChatClient.prompt(prompt)
+                                .call()
+                                .entity(AiHashtagResBody.class)
+                )
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
-    private AiKeywordResBody generateKeyword() {
-        return openAiChatClient.prompt(prompt)
-                .call()
-                .entity(AiKeywordResBody.class);
+    private Mono<AiKeywordResBody> generateKeyword() {
+        return Mono.fromCallable(() ->
+                        openAiChatClient.prompt(prompt)
+                                .call()
+                                .entity(AiKeywordResBody.class)
+                )
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
-    private AiContentResBody generateContent() {
-        return openAiChatClient.prompt(prompt)
-                .call()
-                .entity(AiContentResBody.class);
+    private Mono<AiContentResBody> generateContent() {
+        return Mono.fromCallable(() ->
+                        openAiChatClient.prompt(prompt)
+                                .call()
+                                .entity(AiContentResBody.class)
+                )
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }
