@@ -3,6 +3,8 @@ package com.back.global.config.security.jwt;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -39,7 +41,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith((SecretKey) signingKey).build().parse(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
@@ -50,20 +52,12 @@ public class JwtTokenProvider {
         if (!validateToken(token)) {
             throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
-        String subject = Jwts.parserBuilder()
+        String subject = Jwts.parser()
                 .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
         return Long.parseLong(subject);
-    }
-
-    public Long getTokenExpiry(String token) {
-        if (!validateToken(token)) {
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
-        }
-        return Jwts.parserBuilder().setSigningKey(signingKey).build()
-                .parseClaimsJws(token).getBody().getExpiration().getTime();
     }
 }

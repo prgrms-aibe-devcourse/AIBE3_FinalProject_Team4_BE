@@ -34,8 +34,8 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     compileOnly("org.projectlombok:lombok")
 
-    // HTTP Client
-    implementation("org.apache.httpcomponents.client5:httpclient5")
+        // HTTP Client
+        implementation("org.apache.httpcomponents.client5:httpclient5")
 
     // .env 파일 지원
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
@@ -46,10 +46,10 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
-    // JWT
-    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+        // JWT
+        implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+        runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+        runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     // MySQL / H2
     runtimeOnly("com.mysql:mysql-connector-j:8.3.0")

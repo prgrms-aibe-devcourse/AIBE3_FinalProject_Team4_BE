@@ -6,17 +6,20 @@ import com.back.domain.user.user.dto.UserLoginRequestDto;
 import com.back.domain.user.user.dto.UserLoginResponseDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
+import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class UserController {
+    private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final Rq rq;
 
@@ -34,18 +37,22 @@ public class UserController {
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
-        rq.setCookie("apiKey", user.getApiKey());
+//        String accessToken = userService.generateAccessToken(user);
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), "");
+
+        rq.setCookie("refreshToken", user.getRefreshToken());
+        rq.setCookie("accessToken", accessToken);
 
         return new RsData<>(
                 "200-1",
                 "로그인 되었습니다.",
-                new UserLoginResponseDto(new UserDto(user), user.getApiKey())
+                new UserLoginResponseDto(new UserDto(user), user.getRefreshToken(), accessToken)
         );
     }
 
     @DeleteMapping("/logout")
     public RsData<Void> logout(HttpServletResponse response) {
-        rq.deleteCookie("apiKey");
+        rq.deleteCookie("refreshToken");
 
         return new RsData<>(
                 "200-1",
@@ -53,23 +60,20 @@ public class UserController {
         );
     }
 
-
-//    // 헤더에서 직접 Authorization 값을 받아오는 방식
-//    @GetMapping("/me")
-//    public RsData<UserDto> me(@RequestHeader("Authorization") String authorization) {
-//        String apiKey = authorization.replace("Bearer ", "");
-//        User user = userService.getUserByApiKey(apiKey);
-//        return new RsData<>(
-//                "200-1",
-//                "사용자 정보입니다.",
-//                new UserDto(user)
-//        );
-//    }
-
     // Rq 클래스를 활용하는 방식
     @GetMapping("/me")
     public RsData<UserDto> me() {
         User user = rq.getActor();
+        return new RsData<>(
+                "200-1",
+                "사용자 정보입니다.",
+                new UserDto(user)
+        );
+    }
+
+    @GetMapping("/me2")
+    public RsData<UserDto> me2(Authentication auth) {
+        User user = userService.getUserById((Long) auth.getPrincipal());
         return new RsData<>(
                 "200-1",
                 "사용자 정보입니다.",
