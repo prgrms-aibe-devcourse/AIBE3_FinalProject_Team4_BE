@@ -1,11 +1,9 @@
 package com.back.project.domain.shorlog.shorlog.controller;
 
-import com.back.project.global.rsData.RsData;
-import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogRequest;
-import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogResponse;
-import com.back.project.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
-import com.back.project.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
+import com.back.project.domain.shorlog.shorlog.dto.*;
 import com.back.project.domain.shorlog.shorlog.service.ShorlogService;
+import com.back.project.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Shorlog", description = "쇼로그 API")
 @RestController
 @RequestMapping("/api/v1/shorlog")
 @RequiredArgsConstructor
@@ -57,5 +56,22 @@ public class ShorlogController {
             @RequestParam(defaultValue = "0") int page
     ) {
         return ResponseEntity.ok(RsData.successOf(shorlogService.getMyShorlogs(userId, sort, page)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RsData<UpdateShorlogResponse>> updateShorlog(
+            @RequestAttribute("userId") Long userId,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateShorlogRequest request
+    ) {
+        return ResponseEntity.ok(RsData.successOf(shorlogService.updateShorlog(userId, id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<RsData<DeleteShorlogResponse>> deleteShorlog(
+            @RequestAttribute("userId") Long userId,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(RsData.successOf(shorlogService.deleteShorlog(userId, id)));
     }
 }

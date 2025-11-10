@@ -4,8 +4,11 @@ import com.back.project.domain.shared.hashtag.entity.Hashtag;
 import com.back.project.domain.shared.hashtag.service.HashtagService;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogRequest;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogResponse;
+import com.back.project.domain.shorlog.shorlog.dto.DeleteShorlogResponse;
 import com.back.project.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
 import com.back.project.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
+import com.back.project.domain.shorlog.shorlog.dto.UpdateShorlogRequest;
+import com.back.project.domain.shorlog.shorlog.dto.UpdateShorlogResponse;
 import com.back.project.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.project.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.project.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
@@ -114,6 +117,34 @@ public class ShorlogService {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             return ShorlogFeedResponse.from(shorlog, hashtags);
         });
+    }
+
+    @Transactional
+    public UpdateShorlogResponse updateShorlog(Long userId, Long shorlogId, UpdateShorlogRequest request) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+
+        if (!shorlog.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("작성자만 수정할 수 있습니다.");
+        }
+
+        shorlog.update(request.getContent(), request.getThumbnailUrl(), request.getThumbnailType());
+        shorlogHashtagRepository.deleteByShorlogId(shorlogId);
+        List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
+        return UpdateShorlogResponse.from(shorlog, hashtagNames);
+    }
+
+    @Transactional
+    public DeleteShorlogResponse deleteShorlog(Long userId, Long shorlogId) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+
+        if (!shorlog.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
+        }
+
+        shorlogRepository.delete(shorlog);
+        return DeleteShorlogResponse.of(shorlogId);
     }
 
     private List<String> saveHashtags(Shorlog shorlog, List<String> hashtagNames) {
