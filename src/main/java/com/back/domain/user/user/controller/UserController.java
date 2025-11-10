@@ -52,6 +52,7 @@ public class UserController {
     @DeleteMapping("/logout")
     public RsData<Void> logout() {
         rq.deleteCookie("accessToken");
+        rq.deleteCookie("refreshToken");
 
         return new RsData<>(
                 "200-1",

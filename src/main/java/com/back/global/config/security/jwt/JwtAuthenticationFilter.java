@@ -27,7 +27,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if(req.getRequestURI().startsWith("/swagger-ui") ||
                 req.getRequestURI().startsWith("/v3/api-docs") ||
                 req.getRequestURI().startsWith("/api/v1/auth/signup") ||
-                req.getRequestURI().startsWith("/api/v1/auth/login")
+                req.getRequestURI().startsWith("/api/v1/auth/login") ||
+                req.getRequestURI().startsWith("/api/v1/auth/logout")
         ) {
             chain.doFilter(req, res);
             return;
