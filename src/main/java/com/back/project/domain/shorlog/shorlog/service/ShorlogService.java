@@ -4,7 +4,6 @@ import com.back.project.domain.shared.hashtag.entity.Hashtag;
 import com.back.project.domain.shared.hashtag.service.HashtagService;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogRequest;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogResponse;
-import com.back.project.domain.shorlog.shorlog.dto.DeleteShorlogResponse;
 import com.back.project.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
 import com.back.project.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
 import com.back.project.domain.shorlog.shorlog.dto.UpdateShorlogRequest;
@@ -135,7 +134,7 @@ public class ShorlogService {
     }
 
     @Transactional
-    public DeleteShorlogResponse deleteShorlog(Long userId, Long shorlogId) {
+    public void deleteShorlog(Long userId, Long shorlogId) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
                 .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
 
@@ -144,7 +143,6 @@ public class ShorlogService {
         }
 
         shorlogRepository.delete(shorlog);
-        return DeleteShorlogResponse.of(shorlogId);
     }
 
     private List<String> saveHashtags(Shorlog shorlog, List<String> hashtagNames) {

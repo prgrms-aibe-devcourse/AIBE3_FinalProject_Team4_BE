@@ -68,10 +68,11 @@ public class ShorlogController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<RsData<DeleteShorlogResponse>> deleteShorlog(
+    public ResponseEntity<RsData<Void>> deleteShorlog(
             @RequestAttribute("userId") Long userId,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.deleteShorlog(userId, id)));
+        shorlogService.deleteShorlog(userId, id);
+        return ResponseEntity.ok(new RsData<>("200-1", "쇼로그가 삭제되었습니다."));
     }
 }
