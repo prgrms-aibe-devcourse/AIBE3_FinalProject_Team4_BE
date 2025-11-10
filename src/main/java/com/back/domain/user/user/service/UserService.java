@@ -10,12 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private final AuthTokenService authTokenService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -50,10 +47,6 @@ public class UserService {
     public User getUserRefreshToken(String refreshToken) {
         return userRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new AuthException("401-1", "유효하지 않은 refreshToken 입니다."));
-    }
-
-    public Map<String, Object> getPayload(String accessToken) {
-        return authTokenService.payload(accessToken);
     }
 
     public void checkPassword(User user, String password) {

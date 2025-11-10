@@ -30,11 +30,6 @@ public class User extends BaseEntity{
     @Column(unique = true)
     private String refreshToken;         // refreshToken
 
-    public User(long id, String username) {
-        this.id = id;
-        this.username = username;
-    }
-
     // 필수 가입 정보만 받는 생성자
     public User(String email, String username, String password) {
         this.email = email;

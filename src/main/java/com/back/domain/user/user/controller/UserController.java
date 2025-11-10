@@ -37,7 +37,6 @@ public class UserController {
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
-//        String accessToken = userService.generateAccessToken(user);
         String accessToken = jwtTokenProvider.generateToken(user.getId(), "");
 
         rq.setCookie("refreshToken", user.getRefreshToken());
@@ -60,19 +59,8 @@ public class UserController {
         );
     }
 
-    // Rq 클래스를 활용하는 방식
     @GetMapping("/me")
-    public RsData<UserDto> me() {
-        User user = rq.getActor();
-        return new RsData<>(
-                "200-1",
-                "사용자 정보입니다.",
-                new UserDto(user)
-        );
-    }
-
-    @GetMapping("/me2")
-    public RsData<UserDto> me2(Authentication auth) {
+    public RsData<UserDto> me(Authentication auth) {
         User user = userService.getUserById((Long) auth.getPrincipal());
         return new RsData<>(
                 "200-1",
