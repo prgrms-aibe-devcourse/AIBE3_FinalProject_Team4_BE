@@ -88,4 +88,16 @@ public class GlobalExceptionHandler {
                 BAD_REQUEST
         );
     }
+
+    // IllegalArgumentException 처리 (해시태그 검증 등)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<RsData<Void>> handle(IllegalArgumentException e) {
+        return new ResponseEntity<>(
+                new RsData<>(
+                        "400-1",
+                        e.getMessage()
+                ),
+                BAD_REQUEST
+        );
+    }
 }
