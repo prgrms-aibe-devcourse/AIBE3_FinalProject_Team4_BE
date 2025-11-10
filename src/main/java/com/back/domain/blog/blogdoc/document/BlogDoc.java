@@ -1,6 +1,6 @@
 package com.back.domain.blog.blogdoc.document;
 
-import com.back.domain.blog.hashtag.BlogHashtag;
+import com.back.domain.blog.hashtag.entity.BlogHashtag;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
