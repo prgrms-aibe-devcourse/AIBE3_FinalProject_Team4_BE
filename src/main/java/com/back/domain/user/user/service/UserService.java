@@ -30,6 +30,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public User login(UserLoginRequestDto dto) {
         User user = userRepository.findByUsername(dto.username())
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."));
@@ -39,16 +40,13 @@ public class UserService {
         return user;
     }
 
+    @Transactional(readOnly = true)
     public User getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
     }
 
-    public User getUserRefreshToken(String refreshToken) {
-        return userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new AuthException("401-1", "유효하지 않은 refreshToken 입니다."));
-    }
-
+    @Transactional
     public void checkPassword(User user, String password) {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new AuthException("401-1", "비밀번호가 일치하지 않습니다.");

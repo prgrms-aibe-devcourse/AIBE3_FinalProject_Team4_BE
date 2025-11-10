@@ -1,5 +1,8 @@
 package com.back.global.config.security.jwt;
 
+import com.back.domain.user.refreshToken.entity.RefreshToken;
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
+import com.back.global.rq.Rq;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -17,6 +20,8 @@ import java.util.Optional;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final Rq rq;
 
     @Override
     protected void doFilterInternal(HttpServletRequest req,
@@ -35,17 +40,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
 
-        String accessToken = getTokenFromRequest(req, res);
-        if (accessToken != null) {
-            if (jwtProvider.validateToken(accessToken)) {
-                Long userId = jwtProvider.getUserId(accessToken);
-                JwtAuthentication authentication = new JwtAuthentication(userId);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
+        String accessToken = getTokenFromCookie("accessToken", req);
+        String refreshToken = getTokenFromCookie("refreshToken", req);
+
+        // 헤더에서 액세스 토큰 확인
+        if(checkHeaderToken(req) != null) {
+            accessToken = checkHeaderToken(req);
+        }
+
+        // 액세스 토큰이 유효한 경우 그대로 인증 처리
+        if (accessToken != null && jwtProvider.validateToken(accessToken)) {
+            Long userId = jwtProvider.getUserId(accessToken);
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthentication(userId));
+        } //  액세스 토큰이 유효하지 않은 경우 리프레시 토큰 검사
+        else if (refreshToken != null && jwtProvider.validateToken(refreshToken)) {
+
+            // 1. 리프레시 토큰이 유효하지 않은 경우
+            RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByToken(refreshToken);
+            if (storedRefreshToken == null || storedRefreshToken.isExpired()) {
                 SecurityContextHolder.clearContext();
-                handleCustomAuthError(res, "유효하지 않은 토큰입니다.");
+                handleCustomAuthError(res, "리프레시 토큰이 유효하지 않거나 만료되었습니다. 다시 로그인 해주세요.");
                 return;
             }
+
+            // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
+            Long userId = jwtProvider.getUserId(refreshToken);
+            String newAccessToken = jwtProvider.generateToken(userId, "ROLE_USER");
+            rq.setCookie("accessToken", newAccessToken);
+            SecurityContextHolder.getContext().setAuthentication(new JwtAuthentication(userId));
         } else {
             SecurityContextHolder.clearContext();
             handleCustomAuthError(res, "토큰 정보가 없습니다.");
@@ -55,35 +77,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         chain.doFilter(req, res);
     }
 
-    private String getTokenFromRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String accessToken;
-        // 헤더에서 토큰 가져오기
+    // 헤더에서 토큰 확인
+    private String checkHeaderToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null) {
-            if (!bearerToken.startsWith("Bearer ")) {
-                handleCustomAuthError(response, "잘못된 토큰 형식입니다.");
-            }
-            accessToken = bearerToken.substring(7);
-        } else {    // 쿠키에서 토큰 가져오기
-            accessToken = Optional
-                    .ofNullable(request.getCookies())
-                    .flatMap(
-                            cookies ->
-                                    Arrays.stream(request.getCookies())
-                                            .filter(cookie -> cookie.getName().equals("accessToken"))
-                                            .map(Cookie::getValue)
-                                            .findFirst()
-                    )
-                    .orElse("");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
         }
-
-        if (!accessToken.isEmpty()) {
-            return accessToken;
-        } else {
-            return null;
-        }
+        return null;
     }
 
+    // 쿠키에서 토큰 확인
+    private String getTokenFromCookie(String cookieName, HttpServletRequest request){
+        return Optional
+                .ofNullable(request.getCookies())
+                .flatMap(
+                        cookies ->
+                                Arrays.stream(request.getCookies())
+                                        .filter(cookie -> cookieName.equals(cookie.getName()))
+                                        .map(Cookie::getValue)
+                                        .findFirst()
+                )
+                .orElse(null);
+    }
+
+    // 인증 오류 처리
     private void handleCustomAuthError(HttpServletResponse res, String message) throws IOException {
         res.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 응답 상태를 401로 설정
         res.setContentType("application/json;charset=UTF-8");   // 응답 콘텐츠 타입 설정

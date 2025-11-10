@@ -27,15 +27,11 @@ public class User extends BaseEntity{
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별
 
-    @Column(unique = true)
-    private String refreshToken;         // refreshToken
-
     // 필수 가입 정보만 받는 생성자
     public User(String email, String username, String password) {
         this.email = email;
         this.username = username;
         this.password = password;
-        this.refreshToken = UUID.randomUUID().toString();
     }
 
     // 추가 가입 정보까지 받는 생성자, 추후 확장 가능성 고려
@@ -48,6 +44,5 @@ public class User extends BaseEntity{
         this.bio = null;            //가입 시 기본 자기소개는 null
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
-        this.refreshToken = UUID.randomUUID().toString();
     }
 }

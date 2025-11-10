@@ -1,5 +1,6 @@
 package com.back.domain.user.user.controller;
 
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.domain.user.user.dto.UserDto;
 import com.back.domain.user.user.dto.UserJoinRequestDto;
 import com.back.domain.user.user.dto.UserLoginRequestDto;
@@ -9,7 +10,6 @@ import com.back.domain.user.user.service.UserService;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
+    private final RefreshTokenService refreshTokenService;
     private final Rq rq;
 
     @PostMapping("/signup")
@@ -37,15 +38,18 @@ public class UserController {
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
-        String accessToken = jwtTokenProvider.generateToken(user.getId(), "");
-
-        rq.setCookie("refreshToken", user.getRefreshToken());
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), "ROLE_USER");
         rq.setCookie("accessToken", accessToken);
+
+        refreshTokenService.deleteRefreshTokenByUserId(user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        refreshTokenService.saveRefreshToken(user.getId(), refreshToken);
+        rq.setCookie("refreshToken", refreshToken);
 
         return new RsData<>(
                 "200-1",
                 "로그인 되었습니다.",
-                new UserLoginResponseDto(new UserDto(user), user.getRefreshToken(), accessToken)
+                new UserLoginResponseDto(new UserDto(user), refreshToken, accessToken)
         );
     }
 

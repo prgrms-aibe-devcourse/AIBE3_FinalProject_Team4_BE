@@ -1,7 +1,9 @@
 package com.back.global.config;
 
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.global.config.security.jwt.JwtAuthenticationFilter;
 import com.back.global.config.security.jwt.JwtTokenProvider;
+import com.back.global.rq.Rq;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +27,12 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final Rq rq;
+
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(jwtProvider, refreshTokenService, rq);
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -43,7 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/signup", "api/v1/auth/login", "api/v1/auth/logout").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
