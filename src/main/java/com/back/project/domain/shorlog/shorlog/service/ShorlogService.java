@@ -4,6 +4,8 @@ import com.back.project.domain.shared.hashtag.entity.Hashtag;
 import com.back.project.domain.shared.hashtag.service.HashtagService;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogRequest;
 import com.back.project.domain.shorlog.shorlog.dto.CreateShorlogResponse;
+import com.back.project.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
+import com.back.project.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
 import com.back.project.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.project.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.project.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
@@ -11,6 +13,9 @@ import com.back.project.domain.shorlog.shorloghashtag.repository.ShorlogHashtagR
 import com.back.project.domain.user.user.entity.User;
 import com.back.project.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +33,12 @@ public class ShorlogService {
     private final UserRepository userRepository;
 
     private static final int MAX_HASHTAGS = 10;
+    private static final int FEED_PAGE_SIZE = 30;
 
     @Transactional
     public CreateShorlogResponse createShorlog(Long userId, CreateShorlogRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException());
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
         Shorlog shorlog = Shorlog.builder()
                 .user(user)
@@ -46,6 +52,68 @@ public class ShorlogService {
         List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
 
         return CreateShorlogResponse.from(savedShorlog, hashtagNames);
+    }
+
+    @Transactional
+    public ShorlogDetailResponse getShorlog(Long id) {
+        Shorlog shorlog = shorlogRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+
+        // (Atomic Update)
+        shorlogRepository.incrementViewCount(id);
+
+        List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
+
+        shorlog.incrementViewCount();
+
+        return ShorlogDetailResponse.from(shorlog, hashtags);
+    }
+
+     // 격자형 피드 조회 (전체, AI 추천)
+     // TODO: AI 추천 알고리즘 연동 (5번 이지연)
+    public Page<ShorlogFeedResponse> getFeed(int page) {
+        Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
+        Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreateDateDesc(pageable);
+
+        return shorlogs.map(shorlog -> {
+            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
+            return ShorlogFeedResponse.from(shorlog, hashtags);
+        });
+    }
+
+     // 팔로잉 피드 조회 (최신순만)
+     // TODO: Follow 테이블 연동 (1번 주권영)
+    public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {
+        // TODO: 실제 팔로잉 목록 조회 (임시로 빈 리스트)
+        List<Long> followingUserIds = List.of(); // 임시
+
+        if (followingUserIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
+        Page<Shorlog> shorlogs = shorlogRepository.findByFollowingUsers(followingUserIds, pageable);
+
+        return shorlogs.map(shorlog -> {
+            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
+            return ShorlogFeedResponse.from(shorlog, hashtags);
+        });
+    }
+
+    public Page<ShorlogFeedResponse> getMyShorlogs(Long userId, String sort, int page) {
+        Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
+        Page<Shorlog> shorlogs;
+
+        switch (sort.toLowerCase()) {
+            case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
+            case "views" -> shorlogs = shorlogRepository.findByUserIdOrderByViewCountDesc(userId, pageable);
+            default -> shorlogs = shorlogRepository.findByUserIdOrderByCreateDateDesc(userId, pageable);
+        }
+
+        return shorlogs.map(shorlog -> {
+            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
+            return ShorlogFeedResponse.from(shorlog, hashtags);
+        });
     }
 
     private List<String> saveHashtags(Shorlog shorlog, List<String> hashtagNames) {
@@ -74,9 +142,3 @@ public class ShorlogService {
                 .toList();
     }
 }
-
-
-
-
-
-
