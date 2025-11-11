@@ -25,7 +25,7 @@ public class ShorlogFeedResponse {
         return ShorlogFeedResponse.builder()
                 .id(shorlog.getId())
                 .thumbnailUrl(shorlog.getThumbnailUrl())
-                .profileImgUrl(shorlog.getUser().getProfileimgurl())
+                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .username(shorlog.getUser().getUsername())
                 .hashtags(hashtags)
                 .likeCount(0) // TODO: 좋아요 기능 구현 후

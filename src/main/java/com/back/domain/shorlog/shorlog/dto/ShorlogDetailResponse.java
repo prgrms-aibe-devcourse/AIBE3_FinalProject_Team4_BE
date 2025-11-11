@@ -36,7 +36,7 @@ public class ShorlogDetailResponse {
                 .userId(shorlog.getUser().getId())
                 .username(shorlog.getUser().getUsername())
                 .nickname(shorlog.getUser().getNickname())
-                .profileImgUrl(shorlog.getUser().getProfileimgurl())
+                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .content(shorlog.getContent())
                 .thumbnailUrl(shorlog.getThumbnailUrl())
                 .thumbnailType(shorlog.getThumbnailType())
