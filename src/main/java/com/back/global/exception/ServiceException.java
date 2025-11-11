@@ -1,13 +1,18 @@
 package com.back.global.exception;
 
-import lombok.Getter;
+import com.back.global.rsData.RsData;
 
-@Getter
 public class ServiceException extends RuntimeException {
-    private final ErrorCase errorCase;
+    private final String resultCode;
+    private final String msg;
 
-    public ServiceException(ErrorCase errorCase) {
-        super(errorCase.getMessage());
-        this.errorCase = errorCase;
+    public ServiceException(String resultCode, String msg) {
+        super(resultCode + " : " + msg);
+        this.resultCode = resultCode;
+        this.msg = msg;
+    }
+
+    public RsData<Void> getRsData() {
+        return new RsData<>(resultCode, msg, null);
     }
 }
