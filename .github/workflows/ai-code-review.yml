@@ -253,33 +253,41 @@ jobs:
           MAX_TOKENS: ${{ env.MAX_TOKENS }}
         run: |
           set -euo pipefail
-          
-          # MAX_TOKENS 숫자 변환
+            
           MAX_TOKENS_NUMBER=$(echo $MAX_TOKENS | tr -d "'")
           MODEL=${{ steps.model.outputs.model }}
-          
+            
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
             --arg usr "$(cat user.txt)" \
             --argjson mt $MAX_TOKENS_NUMBER \
             '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens:$mt, temperature:0.2}')
-
+            
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -d "$PAYLOAD"
           )
-
+            
           echo "$RESP" > llm_response.json
-
-          # 오류 확인
+            
+          # quota 초과 체크
+          if jq -e '.error.code == "insufficient_quota"' llm_response.json >/dev/null 2>&1; then
+            echo "⚠️ OpenAI API quota exceeded"
+            echo "💬 Please check your OpenAI account plan or usage."
+            echo "QUOTA_EXCEEDED=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+            
+          # 일반 에러 체크
           if jq -e '.error' llm_response.json >/dev/null 2>&1; then
-            echo "⚠️ OpenAI API error detected:"
+            echo "⚠️ OpenAI API returned an error:"
             jq '.error' llm_response.json
+            echo "API_ERROR=true" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-
+            
           jq -r '.choices[0].message.content // "⚠️ Model returned empty response"' < llm_response.json > llm_content.txt
 
       - name: Comment PR
@@ -287,15 +295,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=${{ steps.shas.outputs.pr }}
-
-          {
-            echo "### 🤖 AI Code Review"
-            echo "<details><summary>View results</summary>"
-            echo ""
-            cat llm_content.txt
-            echo ""
-            echo "</details>"
-          } > comment.txt
-
+            
+          if [[ "${{ steps.llm.outputs.QUOTA_EXCEEDED }}" == "true" ]]; then
+            echo "### ⚠️ AI Code Review skipped"
+            echo "OpenAI API quota exceeded. Please check your account plan or usage."
+            echo "<PR_COMMENT>" > comment.txt
+            echo "### ⚠️ AI Code Review skipped" >> comment.txt
+            echo "OpenAI API quota exceeded. Please check your account plan or usage." >> comment.txt
+          else
+            echo "### 🤖 AI Code Review" > comment.txt
+            echo "<details><summary>View results</summary>" >> comment.txt
+            cat llm_content.txt >> comment.txt
+            echo "</details>" >> comment.txt
+          fi
+            
           gh api repos/${{ github.repository }}/issues/$PR/comments \
             -f body="$(cat comment.txt)"
