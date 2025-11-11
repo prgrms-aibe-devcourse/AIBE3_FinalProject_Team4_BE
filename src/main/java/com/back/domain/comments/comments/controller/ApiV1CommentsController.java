@@ -29,7 +29,10 @@ public class ApiV1CommentsController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "댓글 작성 성공",
                             content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
-                    @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터")
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<CommentResponseDto> createComment(@Valid @RequestBody CommentCreateRequestDto req) {
@@ -42,7 +45,9 @@ public class ApiV1CommentsController {
             description = "게시글의 모든 댓글 및 대댓글을 조회합니다.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "조회 성공",
-                            content = @Content(schema = @Schema(implementation = CommentResponseDto.class)))
+                            content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
+                    @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<List<CommentResponseDto>> getCommentsByPost(@PathVariable Long postId) {
@@ -56,7 +61,12 @@ public class ApiV1CommentsController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "수정 성공",
                             content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
-                    @ApiResponse(responseCode = "403", description = "권한 없음")
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "403", description = "권한 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<CommentResponseDto> updateComment(
@@ -72,8 +82,12 @@ public class ApiV1CommentsController {
             summary = "댓글 삭제",
             description = "본인 댓글을 삭제합니다.",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "삭제 성공"),
-                    @ApiResponse(responseCode = "403", description = "권한 없음")
+                    @ApiResponse(responseCode = "200", description = "삭제 성공",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "403", description = "권한 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<Void> deleteComment(
@@ -83,7 +97,6 @@ public class ApiV1CommentsController {
         return commentsService.deleteComment(commentId, userId);
     }
 
-    // ✅ 댓글 좋아요
     @PostMapping("/{commentId}/like")
     @Operation(
             summary = "댓글 좋아요",
@@ -91,7 +104,10 @@ public class ApiV1CommentsController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "좋아요 성공",
                             content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
-                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음")
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<CommentResponseDto> likeComment(
@@ -101,7 +117,6 @@ public class ApiV1CommentsController {
         return commentsService.likeComment(commentId, userId);
     }
 
-    // ✅ 댓글 좋아요 취소
     @PostMapping("/{commentId}/unlike")
     @Operation(
             summary = "댓글 좋아요 취소",
@@ -109,7 +124,10 @@ public class ApiV1CommentsController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "좋아요 취소 성공",
                             content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
-                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음")
+                    @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터",
+                            content = @Content(schema = @Schema(implementation = RsData.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
     public RsData<CommentResponseDto> unlikeComment(
