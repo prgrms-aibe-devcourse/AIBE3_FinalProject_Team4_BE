@@ -58,11 +58,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } //  액세스 토큰이 유효하지 않은 경우 리프레시 토큰 검사
         else if (refreshToken != null && jwtProvider.validateToken(refreshToken)) {
 
+            Long userId = jwtProvider.getUserId(refreshToken);
+            RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByUserId(userId);
+
             // 1. 리프레시 토큰이 유효하지 않은 경우
-            RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByToken(refreshToken);
-            if (storedRefreshToken == null || storedRefreshToken.isExpired()) {
+            if (!storedRefreshToken.getToken().equals(refreshToken)) {
                 SecurityContextHolder.clearContext();
-                handleCustomAuthError(res, "리프레시 토큰이 유효하지 않거나 만료되었습니다. 다시 로그인 해주세요.");
+                handleCustomAuthError(res, "리프레시 토큰이 유효하지 않습니다. 다시 로그인 해주세요.");
                 return;
             }
 

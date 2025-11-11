@@ -27,6 +27,9 @@ public class UserService {
         userRepository.findByUsername(dto.username()).ifPresent(_user -> {
             throw new AuthException("400-2", "이미 가입된 아이디입니다.");
         });
+        userRepository.findByNickname(dto.nickname()).ifPresent(_user -> {
+            throw new AuthException("400-3", "이미 가입된 닉네임입니다.");
+        });
 
         String password = passwordEncoder.encode(dto.password());
         User user = new User(dto.email(), dto.username(), password, dto.nickname(), dto.dateOfBirth(), dto.gender());

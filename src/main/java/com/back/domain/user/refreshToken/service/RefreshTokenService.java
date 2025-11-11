@@ -2,6 +2,7 @@ package com.back.domain.user.refreshToken.service;
 
 import com.back.domain.user.refreshToken.entity.RefreshToken;
 import com.back.domain.user.refreshToken.repository.RefreshTokenRepository;
+import com.back.global.exception.AuthException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,18 +20,23 @@ public class RefreshTokenService {
 
     @Transactional
     public void saveRefreshToken(Long userId, String token) {
-        RefreshToken refreshToken = new RefreshToken(userId, token, new Date(System.currentTimeMillis() + refreshTokenExpireSeconds));
+        RefreshToken refreshToken = RefreshToken.builder()
+                .userId(userId)
+                .token(token)
+                .expiration(refreshTokenExpireSeconds)
+                .build();
         refreshTokenRepository.save(refreshToken);
     }
 
     @Transactional(readOnly = true)
-    public RefreshToken getRefreshTokenByToken(String token) {
-        return refreshTokenRepository.findByToken(token);
+    public RefreshToken getRefreshTokenByUserId(Long userId) {
+        return refreshTokenRepository.findById(userId)
+                .orElseThrow(() -> new AuthException("401-2", "리프레시 토큰이 존재하지 않습니다."));
     }
 
     @Transactional
     public void deleteRefreshTokenByUserId(Long userId) {
-        refreshTokenRepository.deleteByUserId(userId);
+        refreshTokenRepository.deleteById(userId);
     }
 
 }
