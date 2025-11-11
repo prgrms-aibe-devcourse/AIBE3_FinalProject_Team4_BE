@@ -35,9 +35,7 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
 
     Page<Shorlog> findByUserIdOrderByCreateDateAsc(Long userId, Pageable pageable);
 
-    Page<Shorlog> findByUserIdOrderByViewCountDesc(Long userId, Pageable pageable);
-
-     // 내 쇼로그 조회 (인기순 - 조회수 + 좋아요 종합 점수)
+    // 내 쇼로그 조회 (인기순 - 조회수 + 좋아요 종합 점수)
      // TODO: 좋아요 기능 추가 후 (viewCount + likeCount * 2) 정렬로 변경
     @Query("SELECT s FROM Shorlog s WHERE s.user.id = :userId ORDER BY s.viewCount DESC")
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);

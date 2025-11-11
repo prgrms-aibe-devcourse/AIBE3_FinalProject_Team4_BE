@@ -2,22 +2,31 @@ package com.back.domain.shorlog.shorlog.controller;
 
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
+import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
+import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "Shorlog", description = "쇼로그 API")
+import java.util.List;
+
+@Tag(name = "Shorlog", description = "숏로그 API")
 @RestController
 @RequestMapping("/api/v1/shorlog")
 @RequiredArgsConstructor
 public class ShorlogController {
 
     private final ShorlogService shorlogService;
+    private final ImageUploadService imageUploadService;
 
     @PostMapping
     public ResponseEntity<RsData<CreateShorlogResponse>> createShorlog(
@@ -74,5 +83,27 @@ public class ShorlogController {
     ) {
         shorlogService.deleteShorlog(userId, id);
         return ResponseEntity.ok(new RsData<>("200-1", "쇼로그가 삭제되었습니다."));
+    }
+
+    @PostMapping("/images/batch")
+    public ResponseEntity<RsData<List<UploadImageResponse>>> uploadImages(
+            @RequestAttribute("userId") Long userId,
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "aspectRatios", required = false) List<String> aspectRatios
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(RsData.successOf(imageUploadService.uploadImages(userId, files, aspectRatios)));
+    }
+
+    @GetMapping("/image/{filename}")
+    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
+        Resource resource = imageUploadService.loadImage(filename);
+        String contentType = imageUploadService.getContentType(filename);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(resource);
     }
 }

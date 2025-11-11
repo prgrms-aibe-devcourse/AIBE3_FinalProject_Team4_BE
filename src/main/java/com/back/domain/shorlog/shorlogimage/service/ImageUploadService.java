@@ -1,0 +1,260 @@
+package com.back.domain.shorlog.shorlogimage.service;
+
+import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
+import com.back.domain.shorlog.shorlogimage.entity.ShorlogImage;
+import com.back.domain.shorlog.shorlogimage.repository.ShorlogImageRepository;
+import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class ImageUploadService {
+
+    private final ShorlogImageRepository imageRepository;
+    private final UserRepository userRepository;
+
+    @Value("${file.upload.max-size:5242880}")
+    private long maxFileSize;
+
+    private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"};
+    private static final int MAX_WIDTH = 1080;
+    private static final int MAX_HEIGHT = 1350;
+
+    @Transactional
+    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<String> aspectRatios) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("파일은 최소 1개 이상 필요합니다.");
+        }
+
+        if (files.size() > 10) {
+            throw new IllegalArgumentException("파일은 최대 10개까지 업로드 가능합니다.");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
+
+        List<UploadImageResponse> responses = new ArrayList<>();
+
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            String aspectRatio = (aspectRatios != null && i < aspectRatios.size())
+                    ? aspectRatios.get(i)
+                    : "original";
+
+            validateFile(file);
+
+            String originalFilename = file.getOriginalFilename();
+            String extension = getFileExtension(originalFilename);
+            String savedFilename = generateUniqueFilename(extension);
+
+            try {
+                BufferedImage originalImage = ImageIO.read(file.getInputStream());
+                BufferedImage resizedImage = resizeImageByAspectRatio(originalImage, aspectRatio);
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(resizedImage, extension.equals("jpg") ? "jpeg" : extension, baos);
+                byte[] imageData = baos.toByteArray();
+
+                ShorlogImage image = ShorlogImage.builder()
+                        .user(user)
+                        .originalFilename(originalFilename)
+                        .savedFilename(savedFilename)
+                        .imageData(imageData)
+                        .fileSize((long) imageData.length)
+                        .contentType(file.getContentType())
+                        .referenceCount(0)
+                        .build();
+
+                ShorlogImage savedImage = imageRepository.save(image);
+                responses.add(UploadImageResponse.from(savedImage));
+
+            } catch (IOException e) {
+                throw new RuntimeException("파일 업로드 중 오류가 발생했습니다: " + originalFilename, e);
+            }
+        }
+
+        return responses;
+    }
+
+
+    public Resource loadImage(String filename) {
+        ShorlogImage image = imageRepository.findBySavedFilename(filename)
+                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
+
+        return new ByteArrayResource(image.getImageData());
+    }
+
+    public String getContentType(String filename) {
+        ShorlogImage image = imageRepository.findBySavedFilename(filename)
+                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
+
+        return image.getContentType();
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
+
+        if (file.getSize() > maxFileSize) {
+            throw new IllegalArgumentException("파일 크기는 5MB를 초과할 수 없습니다.");
+        }
+
+        String extension = getFileExtension(file.getOriginalFilename());
+        if (!List.of(ALLOWED_EXTENSIONS).contains(extension.toLowerCase())) {
+            throw new IllegalArgumentException("허용되지 않는 파일 형식입니다. (JPG, PNG, WEBP만 가능)");
+        }
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || !filename.contains(".")) {
+            throw new IllegalArgumentException("잘못된 파일명입니다.");
+        }
+        return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+    }
+
+    private String generateUniqueFilename(String extension) {
+        return UUID.randomUUID() + "." + extension;
+    }
+
+     // 비율에 따라 이미지 리사이징
+    private BufferedImage resizeImageByAspectRatio(BufferedImage originalImage, String aspectRatio) {
+        if (aspectRatio == null || aspectRatio.equalsIgnoreCase("original")) {
+            return resizeKeepingRatio(originalImage);
+        }
+
+        return switch (aspectRatio.toLowerCase()) {
+            case "1:1" -> resizeToSquare(originalImage);
+            case "4:5" -> resizeToCrop(originalImage, 1600, 2000);
+            case "16:9" -> resizeToCrop(originalImage, MAX_WIDTH, 1125);
+            default -> resizeKeepingRatio(originalImage);
+        };
+    }
+
+     // 비율 유지하며 리사이징 (original)
+    private BufferedImage resizeKeepingRatio(BufferedImage originalImage) {
+        int originalWidth = originalImage.getWidth();
+        int originalHeight = originalImage.getHeight();
+
+        if (originalWidth <= MAX_WIDTH && originalHeight <= MAX_HEIGHT) {
+            return originalImage;
+        }
+
+        double widthRatio = (double) MAX_WIDTH / originalWidth;
+        double heightRatio = (double) MAX_HEIGHT / originalHeight;
+        double ratio = Math.min(widthRatio, heightRatio);
+
+        int newWidth = (int) (originalWidth * ratio);
+        int newHeight = (int) (originalHeight * ratio);
+
+        return createResizedImage(originalImage, newWidth, newHeight);
+    }
+
+     // 정사각형으로 크롭 후 리사이징 (1:1)
+    private BufferedImage resizeToSquare(BufferedImage originalImage) {
+        return resizeToCrop(originalImage, MAX_WIDTH, MAX_WIDTH);
+    }
+
+
+     // 특정 비율로 크롭 후 리사이징
+    private BufferedImage resizeToCrop(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        int originalWidth = originalImage.getWidth();
+        int originalHeight = originalImage.getHeight();
+
+        double targetRatio = (double) targetWidth / targetHeight;
+        double originalRatio = (double) originalWidth / originalHeight;
+
+        int cropX = 0, cropY = 0, cropWidth = originalWidth, cropHeight = originalHeight;
+
+        if (originalRatio > targetRatio) {
+            cropWidth = (int) (originalHeight * targetRatio);
+            cropX = (originalWidth - cropWidth) / 2;
+        } else if (originalRatio < targetRatio) {
+            cropHeight = (int) (originalWidth / targetRatio);
+            cropY = (originalHeight - cropHeight) / 2;
+        }
+
+        BufferedImage croppedImage = originalImage.getSubimage(cropX, cropY, cropWidth, cropHeight);
+
+        return createResizedImage(croppedImage, targetWidth, targetHeight);
+    }
+
+     // 고품질 리사이징 수행
+    private BufferedImage createResizedImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = resizedImage.createGraphics();
+
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        graphics.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        graphics.dispose();
+
+        return resizedImage;
+    }
+
+    @Transactional
+    public void incrementImageReference(String imageUrl) {
+        String filename = extractFilenameFromUrl(imageUrl);
+        ShorlogImage image = imageRepository.findBySavedFilename(filename)
+                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
+        image.incrementReference();
+    }
+
+    @Transactional
+    public void decrementImageReference(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return;
+        }
+
+        String filename = extractFilenameFromUrl(imageUrl);
+        imageRepository.findBySavedFilename(filename).ifPresent(image -> {
+            image.decrementReference();
+            log.info("이미지 참조 감소: {} (현재 참조 수: {})", filename, image.getReferenceCount());
+        });
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 0 3 * * *")
+    public void cleanupUnusedImages() {
+        LocalDateTime expiryDate = LocalDateTime.now().minusDays(7);
+        List<ShorlogImage> unusedImages = imageRepository.findUnusedImages(expiryDate);
+
+        for (ShorlogImage image : unusedImages) {
+            imageRepository.delete(image);
+            log.info("미사용 이미지 삭제 완료: {}", image.getSavedFilename());
+        }
+
+        if (!unusedImages.isEmpty()) {
+            log.info("총 {}개의 미사용 이미지 정리 완료", unusedImages.size());
+        }
+    }
+
+    private String extractFilenameFromUrl(String imageUrl) {
+        return imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+    }
+}
+
