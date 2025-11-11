@@ -19,8 +19,7 @@ public class ShorlogDetailResponse {
     private String nickname;
     private String profileImgUrl;
     private String content;
-    private String thumbnailUrl;
-    private String thumbnailType;
+    private List<String> thumbnailUrls;
     private Integer viewCount;
     private Integer likeCount;
     private Integer bookmarkCount;
@@ -38,8 +37,7 @@ public class ShorlogDetailResponse {
                 .nickname(shorlog.getUser().getNickname())
                 .profileImgUrl(shorlog.getUser().getProfileimgurl())
                 .content(shorlog.getContent())
-                .thumbnailUrl(shorlog.getThumbnailUrl())
-                .thumbnailType(shorlog.getThumbnailType())
+                .thumbnailUrls(shorlog.getThumbnailUrlList())
                 .viewCount(shorlog.getViewCount())
                 .likeCount(0) // TODO: 좋아요 기능 구현 후
                 .bookmarkCount(0) // TODO: 북마크 기능 구현 후

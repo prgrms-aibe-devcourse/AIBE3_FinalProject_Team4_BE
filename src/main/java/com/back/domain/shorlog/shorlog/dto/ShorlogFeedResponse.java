@@ -13,7 +13,7 @@ import java.util.List;
 public class ShorlogFeedResponse {
 
     private Long id;
-    private String thumbnailUrl;
+    private String thumbnailUrl; // 피드에서는 첫 번째 섬네일만 표시
     private String profileImgUrl;
     private String username;
     private List<String> hashtags;
@@ -22,9 +22,14 @@ public class ShorlogFeedResponse {
     private String firstLine;
 
     public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags) {
+        List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
+        String firstThumbnail = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
+                ? thumbnailUrls.get(0)
+                : null;
+
         return ShorlogFeedResponse.builder()
                 .id(shorlog.getId())
-                .thumbnailUrl(shorlog.getThumbnailUrl())
+                .thumbnailUrl(firstThumbnail)
                 .profileImgUrl(shorlog.getUser().getProfileimgurl())
                 .username(shorlog.getUser().getUsername())
                 .hashtags(hashtags)
