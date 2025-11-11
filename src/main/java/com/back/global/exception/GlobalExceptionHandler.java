@@ -1,6 +1,7 @@
 package com.back.global.exception;
 
 import com.back.global.rsData.RsData;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,5 +64,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<RsData<Void>> handle(AuthException e) {
+        RsData<Void> rsData = e.getRsData();
+        return ResponseEntity.status(rsData.statusCode()).body(rsData);
     }
 }
