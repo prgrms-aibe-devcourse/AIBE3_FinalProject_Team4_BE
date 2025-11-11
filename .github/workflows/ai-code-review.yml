@@ -203,6 +203,7 @@ jobs:
           set -euo pipefail
           MODEL=${{ steps.model.outputs.model }}
 
+
           echo "🔍 Using model: $MODEL"
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
