@@ -1,5 +1,6 @@
 package com.back.global.config.security.jwt;
 
+import com.back.global.config.security.SecurityUser;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class JwtTokenProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String role) {
+    public String generateAccessToken(Long userId, String role) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("role", role)
@@ -59,5 +60,20 @@ public class JwtTokenProvider {
                 .getBody()
                 .getSubject();
         return Long.parseLong(subject);
+    }
+
+    public SecurityUser parseUserFromToken(String token) {
+        Claims claims  = Jwts.parser()
+                .verifyWith((SecretKey) signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        Long userId = Long.parseLong(claims.getSubject());
+        String email = claims.get("email", String.class);
+        String username = claims.get("username", String.class);
+        String nickname = claims.get("nickname", String.class);
+
+        return new SecurityUser(userId, email, username, nickname);
     }
 }

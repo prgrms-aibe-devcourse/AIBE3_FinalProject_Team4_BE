@@ -2,6 +2,7 @@ package com.back.global.config.security.jwt;
 
 import com.back.domain.user.refreshToken.entity.RefreshToken;
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rq.Rq;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,6 +10,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
@@ -49,8 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 액세스 토큰이 유효한 경우 그대로 인증 처리
         if (accessToken != null && jwtProvider.validateToken(accessToken)) {
-            Long userId = jwtProvider.getUserId(accessToken);
-            SecurityContextHolder.getContext().setAuthentication(new JwtAuthentication(userId));
+            SecurityUser securityUser = jwtProvider.parseUserFromToken(accessToken);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } //  액세스 토큰이 유효하지 않은 경우 리프레시 토큰 검사
         else if (refreshToken != null && jwtProvider.validateToken(refreshToken)) {
 
@@ -63,10 +67,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
-            Long userId = jwtProvider.getUserId(refreshToken);
-            String newAccessToken = jwtProvider.generateToken(userId, "ROLE_USER");
+            SecurityUser securityUser = jwtProvider.parseUserFromToken(refreshToken);
+            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), "ROLE_USER");
             rq.setCookie("accessToken", newAccessToken);
-            SecurityContextHolder.getContext().setAuthentication(new JwtAuthentication(userId));
+            Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } else {
             SecurityContextHolder.clearContext();
             handleCustomAuthError(res, "토큰 정보가 없습니다.");

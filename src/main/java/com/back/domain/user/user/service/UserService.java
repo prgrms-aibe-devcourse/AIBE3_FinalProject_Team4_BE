@@ -29,7 +29,7 @@ public class UserService {
         });
 
         String password = passwordEncoder.encode(dto.password());
-        User user = new User(dto.email(), dto.username(), password);
+        User user = new User(dto.email(), dto.username(), password, dto.nickname(), dto.dateOfBirth(), dto.gender());
         return userRepository.save(user);
     }
 
