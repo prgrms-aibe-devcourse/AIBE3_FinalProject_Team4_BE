@@ -1,4 +1,4 @@
-name: AI Code Review
+name: AI Code Review (Free Tier)
 
 on:
   pull_request:
@@ -12,8 +12,8 @@ permissions:
 
 env:
   MAX_TOKENS: '2000'
-  MAX_FILES: '40'
-  MAX_LINES: '1800'
+  MAX_FILES: '10'        # 무료 계정용으로 제한
+  MAX_LINES: '200'       # 무료 계정용으로 제한
   EXCLUDE_GLOBS: |
     **/node_modules/**
     **/build/**
@@ -88,30 +88,10 @@ jobs:
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "pr=$PR" >> "$GITHUB_OUTPUT"
 
-      - name: Decide Model
+      - name: Decide Model (Free Tier)
         id: model
         run: |
-          set -euo pipefail
-
-          MODEL="gpt-4o-mini"
-          PR=${{ steps.shas.outputs.pr }}
-
-          LABELS=$(gh pr view $PR --json labels --jq '.labels[].name')
-          if echo "$LABELS" | grep -qi "high-priority"; then
-            MODEL="gpt-4o"
-          fi
-
-          LINES=$(git diff --unified=0 "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" | grep -E '^(\+|\-)' | wc -l | tr -d ' ')
-          if (( LINES > 400 )); then
-            MODEL="gpt-4o"
-          fi
-
-          # Fallback 모델
-          MODEL="${MODEL:-gpt-3.5-turbo}"
-
-          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "model=gpt-3.5-turbo" >> "$GITHUB_OUTPUT"
 
       - name: Filter files
         id: files
@@ -164,8 +144,8 @@ jobs:
       - name: Build prompt
         run: |
           PR=${{ steps.shas.outputs.pr }}
-          
-                   {
+
+          {
             echo "당신은 **시니어 백엔드 아키텍트 겸 Java 코드 리뷰 전문가**입니다."
             echo "리뷰 대상은 Spring Boot 기반의 Java 백엔드 코드이며, 주요 기술 스택은 JPA, Hibernate, Spring Security, REST API, 그리고 테스트는 JUnit + Mockito입니다."
             echo "리뷰의 목표는 단순히 문제를 지적하는 것이 아니라, 개발자가 즉시 개선할 수 있도록 **정확한 원인 분석 → 실질적인 개선 방안 → 코드 예시**를 제공하는 것입니다."
@@ -253,41 +233,30 @@ jobs:
           MAX_TOKENS: ${{ env.MAX_TOKENS }}
         run: |
           set -euo pipefail
-            
+
           MAX_TOKENS_NUMBER=$(echo $MAX_TOKENS | tr -d "'")
           MODEL=${{ steps.model.outputs.model }}
-            
+
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
             --arg usr "$(cat user.txt)" \
             --argjson mt $MAX_TOKENS_NUMBER \
             '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens:$mt, temperature:0.2}')
-            
+
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -d "$PAYLOAD"
           )
-            
+
           echo "$RESP" > llm_response.json
-            
-          # quota 초과 체크
+
           if jq -e '.error.code == "insufficient_quota"' llm_response.json >/dev/null 2>&1; then
-            echo "⚠️ OpenAI API quota exceeded"
-            echo "💬 Please check your OpenAI account plan or usage."
             echo "QUOTA_EXCEEDED=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-            
-          # 일반 에러 체크
-          if jq -e '.error' llm_response.json >/dev/null 2>&1; then
-            echo "⚠️ OpenAI API returned an error:"
-            jq '.error' llm_response.json
-            echo "API_ERROR=true" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-            
+
           jq -r '.choices[0].message.content // "⚠️ Model returned empty response"' < llm_response.json > llm_content.txt
 
       - name: Comment PR
@@ -295,12 +264,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=${{ steps.shas.outputs.pr }}
-            
+
           if [[ "${{ steps.llm.outputs.QUOTA_EXCEEDED }}" == "true" ]]; then
-            echo "### ⚠️ AI Code Review skipped"
-            echo "OpenAI API quota exceeded. Please check your account plan or usage."
-            echo "<PR_COMMENT>" > comment.txt
-            echo "### ⚠️ AI Code Review skipped" >> comment.txt
+            echo "### ⚠️ AI Code Review skipped" > comment.txt
             echo "OpenAI API quota exceeded. Please check your account plan or usage." >> comment.txt
           else
             echo "### 🤖 AI Code Review" > comment.txt
@@ -308,6 +274,6 @@ jobs:
             cat llm_content.txt >> comment.txt
             echo "</details>" >> comment.txt
           fi
-            
+
           gh api repos/${{ github.repository }}/issues/$PR/comments \
             -f body="$(cat comment.txt)"
