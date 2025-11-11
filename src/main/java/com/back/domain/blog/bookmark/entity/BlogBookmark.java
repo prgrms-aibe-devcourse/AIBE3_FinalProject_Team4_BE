@@ -32,6 +32,7 @@ public class BlogBookmark {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 연관관계 편의 메서드
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blog_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Blog blog;
@@ -53,12 +54,4 @@ public class BlogBookmark {
     public BlogBookmark() {
     }
 
-    // 연관관계 편의 메서드
-    public void setBlog(Blog blog) {
-        this.blog = blog;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
 }

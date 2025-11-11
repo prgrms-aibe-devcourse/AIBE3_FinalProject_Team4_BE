@@ -1,10 +1,12 @@
 package com.back.domain.blog.blog.entity;
 
 
-import com.back.domain.blog.blog.dto.BlogWriteDto;
-import com.back.domain.blog.hashtag.BlogHashtag;
+import com.back.domain.blog.blog.dto.BlogWriteReqDto;
+import com.back.domain.blog.blog.exception.BlogErrorCase;
+import com.back.domain.blog.hashtag.entity.BlogHashtag;
+import com.back.domain.blog.like.entity.BlogLike;
+import com.back.global.exception.ServiceException;
 import jakarta.persistence.*;
-import jakarta.validation.Valid;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -44,45 +46,29 @@ public class Blog {
     private Integer bookmarkCount = 0;
     private Integer commentCount = 0;
 
+    @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = {CascadeType.MERGE, CascadeType.REFRESH})
+    private List<BlogHashtag> blogHashtags = new ArrayList<>();
+
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BlogHashtag> hashtags = new ArrayList<>();
+    private List<BlogLike> likes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogLike> bookmark = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;
 
-    public static Blog create(@Valid BlogWriteDto blogDto, List<Long> hashtagIds) {
-        if (blogDto.title() == null || blogDto.title().isBlank()) {
-            throw new IllegalArgumentException("Blog title cannot be null or empty");
-        }
-
-        Blog blog = Blog.builder()
-                .title(blogDto.title())
-                .content(blogDto.content())
-                .thumbnailUrl(blogDto.thumbnailUrl())
-                .status(blogDto.status())
-                .createdAt(LocalDateTime.now())
-                .modifiedAt(LocalDateTime.now())
-                .viewCount(0)
-                .likeCount(0)
-                .bookmarkCount(0)
-                .commentCount(0)
-                .build();
-        blog.updateHashtags(hashtagIds);
-
-        return blog;
-    }
-
     public void publish() {
         if (this.status == BlogStatus.PUBLISHED) {
-            throw new IllegalStateException("Already published");
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
         }
         this.status = BlogStatus.PUBLISHED;
     }
 
     public void unpublish() {
         if (this.status == BlogStatus.DRAFT) {
-            throw new IllegalStateException("Cannot unpublish draft");
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
         }
         this.status = BlogStatus.DRAFT;
     }
@@ -99,11 +85,11 @@ public class Blog {
         this.viewCount += 1;
     }
 
-    public void modify(BlogWriteDto blogDto, List<Long> hashtagIds) {
-        this.title = blogDto.title();
-        this.content = blogDto.content();
-        this.thumbnailUrl = blogDto.thumbnailUrl();
-        this.status = blogDto.status();
+    public void modify(BlogWriteReqDto reqBody, List<Long> hashtagIds) {
+        this.title = reqBody.title();
+        this.content = reqBody.content();
+        this.thumbnailUrl = reqBody.thumbnailUrl();
+        this.status = reqBody.status();
         this.modifiedAt = LocalDateTime.now();
 
         this.updateHashtags(hashtagIds);
@@ -113,17 +99,17 @@ public class Blog {
         this.likeCount += 1;
     }
 
-    private void updateHashtags(List<Long> hashtagIds) {
-        if (this.hashtags != null) {
-            this.hashtags.clear();
+    public void updateHashtags(List<Long> hashtagIds) {
+        if (this.blogHashtags != null) {
+            this.blogHashtags.clear();
         } else {
-            this.hashtags = new ArrayList<>();
+            this.blogHashtags = new ArrayList<>();
         }
 
         if (hashtagIds != null) {
             hashtagIds.stream()
                     .map(id -> new BlogHashtag(id, this))
-                    .forEach(this.hashtags::add);
+                    .forEach(this.blogHashtags::add);
         }
     }
 }
