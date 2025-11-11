@@ -27,7 +27,10 @@ public record UserJoinRequestDto(
         LocalDate dateOfBirth,
 
         @NotNull
-        Gender gender
+        Gender gender,
+
+        @NotBlank(message = "이메일 인증 토큰은 필수입니다.")
+        String verificationToken
 ) {
 }
 
