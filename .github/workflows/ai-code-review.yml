@@ -31,7 +31,6 @@ env:
     **/*.map
     **/*.pdf
     **/*Test.java
-  OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
 
 jobs:
   review:
@@ -40,7 +39,6 @@ jobs:
     steps:
       - name: Check trigger
         id: gate
-        continue-on-error: true
         run: |
           set -euo pipefail
           EVENT="${{ github.event_name }}"
@@ -68,11 +66,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Ensure GitHub CLI
-        if: steps.gate.outputs.not_needed != 'true'
-        run: |
-          gh --version || sudo apt-get update && sudo apt-get install -y gh
-
       - name: Setup SHAs
         id: shas
         if: steps.gate.outputs.not_needed != 'true'
@@ -80,6 +73,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE="${{ github.event.pull_request.base.sha }}"
             HEAD="${{ github.event.pull_request.head.sha }}"
@@ -98,21 +92,25 @@ jobs:
         id: model
         run: |
           set -euo pipefail
+
           MODEL="gpt-4o-mini"
+
           PR=${{ steps.shas.outputs.pr }}
 
           LABELS=$(gh pr view $PR --json labels --jq '.labels[].name')
+
           if echo "$LABELS" | grep -qi "high-priority"; then
             MODEL="gpt-4o"
           fi
 
-          DIFF_LINES=$(git diff --unified=0 "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" | grep -E '^(\+|\-)' | wc -l | tr -d ' ')
-          DIFF_FILES=$(git diff --name-only "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" | wc -l | tr -d ' ')
-          if (( DIFF_LINES > 400 || DIFF_FILES > 20 )); then
+          LINES=$(git diff --unified=0 "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" | grep -E '^(\+|\-)' | wc -l | tr -d ' ')
+          if (( LINES > 400 )); then
             MODEL="gpt-4o"
           fi
 
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Filter files
         id: files
@@ -127,15 +125,13 @@ jobs:
           while IFS= read -r pat; do [[ -n "$pat" ]] && EXCLUDES+=("$pat"); done <<< "$EXCLUDE_GLOBS"
 
           FILTERED=()
-          shopt -s extglob
           for f in "${DIFF[@]}"; do
             SKIP=0
             for g in "${EXCLUDES[@]}"; do
-              [[ $f == $g || $f == @($g) ]] && SKIP=1 && break
+              [[ $f == $g || $f == */$g ]] && SKIP=1 && break
             done
             (( SKIP == 0 )) && FILTERED+=("$f")
           done
-          shopt -u extglob
 
           [[ ${#FILTERED[@]} -gt ${MAX_FILES} ]] && FILTERED=("${FILTERED[@]:0:${MAX_FILES}}")
 
@@ -157,7 +153,7 @@ jobs:
           else
             git diff "$BASE" "$HEAD" > diff.patch
             BYTES=$(wc -c < diff.patch | tr -d ' ')
-            (( BYTES > 180000 )) && head -c 180000 diff.patch > diff.patch.trim && mv diff.patch.trim diff.patch
+            (( BYTES > 200000 )) && head -c 200000 diff.patch > diff.patch.trim && mv diff.patch.trim diff.patch
 
             jq -n --rawfile patch diff.patch --arg base "$BASE" --arg head "$HEAD" \
               '{oversize:false, base:$base, head:$head, patch:$patch}' > diff.json
@@ -167,47 +163,87 @@ jobs:
       - name: Build prompt
         run: |
           PR=${{ steps.shas.outputs.pr }}
+          
           {
             echo "당신은 **시니어 백엔드 아키텍트 겸 Java 코드 리뷰 전문가**입니다."
-            echo "리뷰 대상: Spring Boot 백엔드 (JPA, Hibernate, Spring Security, REST API, JUnit/Mockito)"
-            echo "리뷰 목표: 문제 분석 → 개선안 → 코드 예시"
+            echo "리뷰 대상은 Spring Boot 기반의 Java 백엔드 코드이며, 주요 기술 스택은 JPA, Hibernate, Spring Security, REST API, 그리고 테스트는 JUnit + Mockito입니다."
+            echo "리뷰의 목표는 단순히 문제를 지적하는 것이 아니라, 개발자가 즉시 개선할 수 있도록 **정확한 원인 분석 → 실질적인 개선 방안 → 코드 예시**를 제공하는 것입니다."
             echo ""
-            echo "💡 리뷰 원칙:"
-            echo "- 근거 기반 수정 제안"
-            echo "- 도메인/비즈니스 맥락 고려"
-            echo "- 한국어 작성"
+            echo "💡 리뷰 기본 원칙:"
+            echo "- 모호한 칭찬 대신, 근거 기반의 수정 제안을 제공합니다."
+            echo "- 코드의 의도와 도메인 맥락을 고려해 실무적인 피드백을 제시합니다."
+            echo "- 리뷰는 반드시 **한국어**로 작성하며, 'No feedback generated'와 같은 무의미한 응답은 허용되지 않습니다."
             echo ""
-            echo "🧩 리뷰 범위:"
-            echo "- Entity/Service/Controller 설계, JPA 연관관계, Lazy 로딩, N+1, 트랜잭션, 예외 처리, 테스트, 코드 품질"
+            echo "🧩 리뷰 범위 (변경된 코드 전부 분석):"
+            echo "- **도메인 설계 및 역할 분리 (DDD)**: Entity, Service, Controller 간 책임이 적절하게 분리되었는가?"
+            echo "- **JPA 매핑 및 성능 이슈**: 연관관계, Lazy 로딩, N+1 쿼리, 불필요한 쿼리 발생 여부"
+            echo "- **Service 계층 설계**: 비즈니스 로직이 잘 분리되어 있는가? 트랜잭션 처리가 적절한가?"
+            echo "- **REST API 명세 및 컨벤션 준수**: URL 설계, 응답 포맷, 상태 코드가 일관적인가?"
+            echo "- **예외 처리 및 유효성 검사**: 커스텀 예외, 예외 핸들러, Request validation이 적절한가?"
+            echo "- **테스트 작성**: 단위 테스트 / 통합 테스트의 커버리지가 충분한가? Mockito 사용이 적절한가?"
+            echo "- **코드 품질**: 메서드 명확성, 중복 제거, 의존성 주입 방식, 불필요한 로직 제거 등"
+            echo ""
+            echo "⚙️ 리뷰 방법:"
+            echo "1. 변경된 파일을 한 줄 단위로 분석하여, 다음 항목들을 명확히 작성하세요:"
+            echo "   - 문제 코드 및 줄 번호"
+            echo "   - 어떤 문제가 발생할 수 있는지 명확한 이유"
+            echo "   - 수정 방향 + 코드 예시"
+            echo "   - 관련된 Java/Spring 원칙, 성능 고려사항 등을 함께 제시"
+            echo "   - **적어도 5개 이상의 주요 피드백을 생성하세요.**"
+            echo ""
+            echo "2. 코드가 잘 작성된 경우에도 이유와 함께 언급합니다. (예: 적절한 캡슐화, 트랜잭션 분리 우수 등)"
+            echo ""
+            echo "3. 아래 형식으로 반드시 출력합니다:"
+            echo ""
+            echo "### 🧠 요약"
+            echo "- 이 PR에서 눈에 띄는 주요 리스크 1~3개를 간결하게 정리"
+            echo ""
+            echo "### ⚠️ 세부 코드 리뷰"
+            echo "- [파일명:줄번호] 문제 설명 → 원인 → 개선 방안 (+ 코드 예시)"
+            echo "- 실제 수정 가능한 형태로 작성할 것"
+            echo "- 가능한 한 많은 문제를 찾아서 작성하세요. 최소 5개 이상이 권장됩니다."
+            echo ""
+            echo "### 🧪 테스트 제안"
+            echo "- 개선된 코드에 대해 어떤 테스트를 작성하면 좋을지 아이디어 제시"
+            echo ""
+            echo "### 🔧 자동 수정 가능 예시 (선택)"
+            echo "- 즉시 적용 가능한 안전한 코드 스니펫이 있다면 명시"
+            echo ""
+            echo "리뷰는 실무적인 통찰과 깊이 있는 개선 방향을 중점으로 작성되어야 하며, 단순한 스타일 피드백은 지양합니다."
           } > system.txt
-
+          
           : > user.txt
+          
           echo "<PR_META>" >> user.txt
           gh api repos/${{ github.repository }}/pulls/$PR --jq '{title:.title, author:.user.login, labels: [.labels[].name], body:.body}' >> user.txt
           echo "</PR_META>" >> user.txt
-
+          
           echo "<REVIEW_SCOPE>" >> user.txt
-          echo "- 변경된 파일만 리뷰 (diff 기준)" >> user.txt
+          echo "- 변화된 파일만 리뷰합니다 (diff 참고)" >> user.txt
+          echo "- 전체 리포지토리 컨텍스트는 요청하지 마세요" >> user.txt
           echo "</REVIEW_SCOPE>" >> user.txt
-
+          
           echo "<TECH_STACK_HINTS>" >> user.txt
-          echo "- Java 17+, Spring Boot 3.x, JPA/Hibernate, Spring Security, REST API, JUnit/Mockito" >> user.txt
+          echo "- Java 17+, Spring Boot 3.x, JPA, Hibernate, Spring Security, REST API, JUnit/Mockito" >> user.txt
+          echo "- 트랜잭션 관리, 도메인 설계, 쿼리 성능 최적화, 에러 처리 전략, 테스트 품질" >> user.txt
           echo "</TECH_STACK_HINTS>" >> user.txt
-
+          
           echo "<OUTPUT_FORMAT>" >> user.txt
           echo "- 요약: 주요 리스크 1~3개" >> user.txt
-          echo "- 이슈: 파일/라인 + 문제 + 원인 + 개선안 + 코드 예시" >> user.txt
-          echo "- 테스트 제안" >> user.txt
-          echo "- 자동 수정 가능 코드" >> user.txt
+          echo "- 이슈 목록: 파일경로/라인번호(가능 시) + 문제 + 원인 + 개선안 + 코드 스니펫" >> user.txt
+          echo "- 테스트 제안: 개선 후 검증할 수 있는 테스트 시나리오" >> user.txt
+          echo "- 자동 수정 가능 스니펫: 있다면 제시" >> user.txt
           echo "</OUTPUT_FORMAT>" >> user.txt
-
+          
           echo "<DIFF_JSON>" >> user.txt
           jq -c . < diff.json >> user.txt
           echo "</DIFF_JSON>" >> user.txt
-
+          
           echo "<DIFF_PATCH>" >> user.txt
           git diff ${{ steps.shas.outputs.base }} ${{ steps.shas.outputs.head }} >> user.txt
           echo "</DIFF_PATCH>" >> user.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Call OpenAI
         id: llm
@@ -215,8 +251,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
         run: |
           set -euo pipefail
+          
           MODEL=${{ steps.model.outputs.model }}
-
+          
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
@@ -232,20 +269,17 @@ jobs:
           )
 
           echo "$RESP" > llm_response.json
-          if jq -e '.choices[0].message.content' llm_response.json >/dev/null; then
-            jq -r '.choices[0].message.content' llm_response.json > llm_content.txt
-          else
-            echo "⚠️ AI 응답 실패. 나중에 다시 시도하세요." > llm_content.txt
-          fi
+          jq -r '.choices[0].message.content // "⚠️ Model returned empty response"' < llm_response.json > llm_content.txt
 
       - name: Comment PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=${{ steps.shas.outputs.pr }}
+
           {
             echo "### 🤖 AI Code Review"
-            echo "<details><summary>🧾 리뷰 내용 보기</summary>"
+            echo "<details><summary>View results</summary>"
             echo ""
             cat llm_content.txt
             echo ""
