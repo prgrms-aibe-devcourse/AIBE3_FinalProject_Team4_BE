@@ -16,6 +16,7 @@ public class Rq {
 
         Cookie cookie = new Cookie(name, value);
         cookie.setHttpOnly(true);
+        cookie.setSecure(true);
         cookie.setPath("/");
 
         if (value.isBlank()) {

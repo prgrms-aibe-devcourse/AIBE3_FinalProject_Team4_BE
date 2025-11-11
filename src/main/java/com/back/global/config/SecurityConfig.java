@@ -4,6 +4,7 @@ import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.global.config.security.jwt.JwtAuthenticationFilter;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,9 +30,10 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final Rq rq;
+    private final ObjectMapper objectMapper;
 
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtProvider, refreshTokenService, rq);
+        return new JwtAuthenticationFilter(jwtProvider, refreshTokenService, rq, objectMapper);
     }
 
     @Bean
@@ -48,7 +50,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/v1/auth/signup", "api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

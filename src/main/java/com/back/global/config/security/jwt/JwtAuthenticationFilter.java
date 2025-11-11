@@ -4,6 +4,8 @@ import com.back.domain.user.refreshToken.entity.RefreshToken;
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rq.Rq;
+import com.back.global.rsData.RsData;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -25,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final Rq rq;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest req,
@@ -110,7 +113,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void handleCustomAuthError(HttpServletResponse res, String message) throws IOException {
         res.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 응답 상태를 401로 설정
         res.setContentType("application/json;charset=UTF-8");   // 응답 콘텐츠 타입 설정
-        String jsonResponse = String.format("{\"msg\": \"%s\"}", message);  // JSON 형식의 응답 본문 생성
+
+        RsData<Void> rsData = new RsData<>(
+                "401-1",
+                message
+        );
+
+        String jsonResponse = objectMapper.writeValueAsString(rsData);
         res.getWriter().write(jsonResponse);    // 응답 본문 작성
     }
 }
