@@ -192,7 +192,7 @@ jobs:
           git diff ${{ steps.shas.outputs.base }} ${{ steps.shas.outputs.head }} >> user.txt
           echo "</DIFF_PATCH>" >> user.txt
 
-      - name: 🤖 Call OpenAI
+            - name: 🤖 Call OpenAI
         id: llm
         if: steps.gate.outputs.not_needed != 'true'
         env:
