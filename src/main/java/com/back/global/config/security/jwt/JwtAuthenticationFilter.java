@@ -39,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 req.getRequestURI().startsWith("/v3/api-docs") ||
                 req.getRequestURI().equals("/api/v1/auth/signup") ||
                 req.getRequestURI().equals("/api/v1/auth/login") ||
+                req.getRequestURI().equals("/api/v1/auth/password-reset") ||
                 req.getRequestURI().equals("/api/v1/auth/send-code") ||
                 req.getRequestURI().equals("/api/v1/auth/verify-code")
         ) {

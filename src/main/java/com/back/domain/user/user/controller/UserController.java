@@ -106,6 +106,12 @@ public class UserController {
         );
     }
 
+    @PostMapping("/password-reset")
+    public RsData<String> passwordReset(@RequestBody PasswordResetRequestDto dto) {
+        userService.passwordReset(dto);
+        return RsData.successOf("비밀번호가 재설정 되었습니다.");
+    }
+
     @GetMapping("/me")
     @Operation(
             summary = "프로필 조회",
