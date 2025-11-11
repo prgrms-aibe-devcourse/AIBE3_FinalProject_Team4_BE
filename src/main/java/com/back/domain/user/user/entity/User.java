@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @Table(name = "users")
 public class User extends BaseEntity{
 
-    @Column(unique = true)
     private String email;           // 이메일
     @Column(unique = true)
     private String username;        // 가입 ID

@@ -21,9 +21,6 @@ public class UserService {
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
-        userRepository.findByEmail(dto.email()).ifPresent(_user -> {
-            throw new AuthException("400-1", "이미 가입된 이메일입니다.");
-        });
         userRepository.findByUsername(dto.username()).ifPresent(_user -> {
             throw new AuthException("400-2", "이미 가입된 아이디입니다.");
         });
