@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Shorlog", description = "쇼로그 API")
+@Tag(name = "Shorlog", description = "숏로그 API")
 @RestController
 @RequestMapping("/api/v1/shorlog")
 @RequiredArgsConstructor
@@ -73,6 +73,6 @@ public class ShorlogController {
             @PathVariable Long id
     ) {
         shorlogService.deleteShorlog(userId, id);
-        return ResponseEntity.ok(new RsData<>("200-1", "쇼로그가 삭제되었습니다."));
+        return ResponseEntity.ok(new RsData<>("200-1", "숏로그가 삭제되었습니다."));
     }
 }

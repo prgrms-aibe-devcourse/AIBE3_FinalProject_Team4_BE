@@ -59,14 +59,13 @@ public class ShorlogService {
     @Transactional
     public ShorlogDetailResponse getShorlog(Long id) {
         Shorlog shorlog = shorlogRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        // (Atomic Update)
+        // 조회수 증가 (Atomic Update)
         shorlogRepository.incrementViewCount(id);
 
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
 
-        shorlog.incrementViewCount();
 
         return ShorlogDetailResponse.from(shorlog, hashtags);
     }
@@ -121,7 +120,7 @@ public class ShorlogService {
     @Transactional
     public UpdateShorlogResponse updateShorlog(Long userId, Long shorlogId, UpdateShorlogRequest request) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
-                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
         if (!shorlog.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("작성자만 수정할 수 있습니다.");
@@ -136,7 +135,7 @@ public class ShorlogService {
     @Transactional
     public void deleteShorlog(Long userId, Long shorlogId) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
-                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
         if (!shorlog.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
