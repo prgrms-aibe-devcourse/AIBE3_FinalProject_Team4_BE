@@ -1,4 +1,4 @@
-name: AI Code Review (Free Tier)
+name: AI Code Review
 
 on:
   pull_request:
@@ -12,8 +12,8 @@ permissions:
 
 env:
   MAX_TOKENS: '2000'
-  MAX_FILES: '10'
-  MAX_LINES: '200'
+  MAX_FILES: '40'
+  MAX_LINES: '1800'
   EXCLUDE_GLOBS: |
     **/node_modules/**
     **/build/**
@@ -88,10 +88,29 @@ jobs:
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "pr=$PR" >> "$GITHUB_OUTPUT"
 
-      - name: Decide Model (Free Tier)
+      - name: Decide Model
         id: model
         run: |
-          echo "model=gpt-3.5-turbo" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          MODEL="gpt-4o-mini"
+
+          PR=${{ steps.shas.outputs.pr }}
+
+          LABELS=$(gh pr view $PR --json labels --jq '.labels[].name')
+
+          if echo "$LABELS" | grep -qi "high-priority"; then
+            MODEL="gpt-4o"
+          fi
+
+          LINES=$(git diff --unified=0 "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" | grep -E '^(\+|\-)' | wc -l | tr -d ' ')
+          if (( LINES > 400 )); then
+            MODEL="gpt-4o"
+          fi
+
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Filter files
         id: files
@@ -136,10 +155,7 @@ jobs:
             BYTES=$(wc -c < diff.patch | tr -d ' ')
             (( BYTES > 200000 )) && head -c 200000 diff.patch > diff.patch.trim && mv diff.patch.trim diff.patch
 
-            jq -n \
-              --arg base "$BASE" \
-              --arg head "$HEAD" \
-              --rawfile patch diff.patch \
+            jq -n --rawfile patch diff.patch --arg base "$BASE" --arg head "$HEAD" \
               '{oversize:false, base:$base, head:$head, patch:$patch}' > diff.json
             echo "oversize=false" >> "$GITHUB_OUTPUT"
           fi
@@ -147,7 +163,7 @@ jobs:
       - name: Build prompt
         run: |
           PR=${{ steps.shas.outputs.pr }}
-
+          
           {
             echo "당신은 **시니어 백엔드 아키텍트 겸 Java 코드 리뷰 전문가**입니다."
             echo "리뷰 대상은 Spring Boot 기반의 Java 백엔드 코드이며, 주요 기술 스택은 JPA, Hibernate, Spring Security, REST API, 그리고 테스트는 JUnit + Mockito입니다."
@@ -233,19 +249,18 @@ jobs:
         id: llm
         env:
           OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
-          MAX_TOKENS: ${{ env.MAX_TOKENS }}
         run: |
           set -euo pipefail
-
-          MAX_TOKENS_NUMBER=$(echo $MAX_TOKENS | tr -d "'")
+          
           MODEL=${{ steps.model.outputs.model }}
-
+          
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
             --arg usr "$(cat user.txt)" \
-            --arg mt "$MAX_TOKENS_NUMBER" \
-            '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens: ($mt|tonumber), temperature:0.2}')
+            --argjson mt ${MAX_TOKENS} \
+            '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens:$mt, temperature:0.2}'
+          )
 
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
@@ -254,12 +269,6 @@ jobs:
           )
 
           echo "$RESP" > llm_response.json
-
-          if jq -e '.error.code == "insufficient_quota"' llm_response.json >/dev/null 2>&1; then
-            echo "QUOTA_EXCEEDED=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           jq -r '.choices[0].message.content // "⚠️ Model returned empty response"' < llm_response.json > llm_content.txt
 
       - name: Comment PR
@@ -268,15 +277,14 @@ jobs:
         run: |
           PR=${{ steps.shas.outputs.pr }}
 
-          if [[ "${{ steps.llm.outputs.QUOTA_EXCEEDED }}" == "true" ]]; then
-            echo "### ⚠️ AI Code Review skipped" > comment.txt
-            echo "OpenAI API quota exceeded. Please check your account plan or usage." >> comment.txt
-          else
-            echo "### 🤖 AI Code Review" > comment.txt
-            echo "<details><summary>View results</summary>" >> comment.txt
-            cat llm_content.txt >> comment.txt
-            echo "</details>" >> comment.txt
-          fi
+          {
+            echo "### 🤖 AI Code Review"
+            echo "<details><summary>View results</summary>"
+            echo ""
+            cat llm_content.txt
+            echo ""
+            echo "</details>"
+          } > comment.txt
 
           gh api repos/${{ github.repository }}/issues/$PR/comments \
             -f body="$(cat comment.txt)"
