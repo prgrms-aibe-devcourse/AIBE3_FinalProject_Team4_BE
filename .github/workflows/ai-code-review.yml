@@ -214,6 +214,9 @@ jobs:
 
           jq -r '.choices[0].message.content // "⚠️ Model returned empty response"' < llm_response.json > llm_content.txt
 
+          echo "🔍 Raw OpenAI response:"
+          cat llm_response.json
+
       - name: 💬 Comment PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
