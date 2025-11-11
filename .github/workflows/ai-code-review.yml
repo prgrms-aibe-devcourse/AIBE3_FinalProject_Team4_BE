@@ -241,8 +241,8 @@ jobs:
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
             --arg usr "$(cat user.txt)" \
-            --argjson mt $MAX_TOKENS_NUMBER \
-            '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens:$mt, temperature:0.2}')
+            --arg mt "$MAX_TOKENS_NUMBER" \
+            '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens: ($mt|tonumber), temperature:0.2}')
 
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
