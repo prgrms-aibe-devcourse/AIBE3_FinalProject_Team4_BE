@@ -1,17 +1,16 @@
 package com.back.domain.comments.comments.service;
 
-import com.back.domain.comments.comments.dto.CommentCreateRequestDto;
-import com.back.domain.comments.comments.dto.CommentResponseDto;
-import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
+import com.back.domain.comments.comments.dto.*;
 import com.back.domain.comments.comments.entity.Comments;
+import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
+import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +23,7 @@ public class CommentsService {
         Comments parent = null;
         if (req.parentId() != null) {
             parent = commentsRepository.findById(req.parentId())
-                    .orElseThrow(() -> new IllegalArgumentException("부모 댓글을 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ServiceException(CommentsErrorCase.PARENT_COMMENT_NOT_FOUND));
         }
 
         Comments comment = Comments.builder()
@@ -35,7 +34,6 @@ public class CommentsService {
                 .build();
 
         commentsRepository.save(comment);
-
         return RsData.successOf(CommentResponseDto.fromEntity(comment));
     }
 
@@ -51,10 +49,10 @@ public class CommentsService {
     @Transactional
     public RsData<CommentResponseDto> updateComment(Long commentId, Long userId, CommentUpdateRequestDto req) {
         Comments comments = commentsRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
         if (!comments.getUserId().equals(userId)) {
-            return RsData.failOf("본인 댓글만 수정할 수 있습니다.");
+            throw new ServiceException(CommentsErrorCase.UNAUTHORIZED_UPDATE);
         }
 
         comments.updateContent(req.content());
@@ -64,38 +62,32 @@ public class CommentsService {
     @Transactional
     public RsData<Void> deleteComment(Long commentsId, Long userId) {
         Comments comments = commentsRepository.findById(commentsId)
-                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
         if (!comments.getUserId().equals(userId)) {
-            return RsData.failOf("본인 댓글만 삭제할 수 있습니다.");
+            throw new ServiceException(CommentsErrorCase.UNAUTHORIZED_DELETE);
         }
 
         commentsRepository.delete(comments);
         return new RsData<>("200-3", "댓글이 삭제되었습니다.");
     }
 
-    // ✅ 좋아요
+    @Transactional
     public RsData<CommentResponseDto> likeComment(Long commentId, Long userId) {
-        Optional<Comments> optionalComment = commentsRepository.findById(commentId);
-        if (optionalComment.isEmpty()) {
-            return RsData.failOf("댓글을 찾을 수 없습니다.");
-        }
+        Comments comments = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
-        Comments comments = optionalComment.get();
         comments.addLike(userId);
         commentsRepository.save(comments);
 
         return RsData.successOf(CommentResponseDto.fromEntity(comments));
     }
 
-    // ✅ 좋아요 취소
+    @Transactional
     public RsData<CommentResponseDto> unlikeComment(Long commentId, Long userId) {
-        Optional<Comments> optionalComment = commentsRepository.findById(commentId);
-        if (optionalComment.isEmpty()) {
-            return RsData.failOf("댓글을 찾을 수 없습니다.");
-        }
+        Comments comments = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
-        Comments comments = optionalComment.get();
         comments.removeLike(userId);
         commentsRepository.save(comments);
 
