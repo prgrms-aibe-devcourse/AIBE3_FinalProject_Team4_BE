@@ -61,7 +61,7 @@ public class ShorlogService {
         Shorlog shorlog = shorlogRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        // 조회수 증가 (Atomic Update)
+        // 조회수 증가 (Bulk Update - 영속성 컨텍스트를 거치지 않는 방식)
         shorlogRepository.incrementViewCount(id);
 
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,7 +18,8 @@ public interface ShorlogDraftRepository extends JpaRepository<ShorlogDraft, Long
 
     int countByUserId(Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true) // Bulk DELETE 처리
+    @Transactional
     @Query("DELETE FROM ShorlogDraft sd WHERE sd.createdAt < :expiryDate")
     void deleteExpiredDrafts(@Param("expiryDate") LocalDateTime expiryDate);
 }

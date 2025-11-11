@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,7 +16,8 @@ public interface ShorlogHashtagRepository extends JpaRepository<ShorlogHashtag, 
     @Query("SELECT h.name FROM ShorlogHashtag sh JOIN sh.hashtag h WHERE sh.shorlog.id = :shorlogId")
     List<String> findHashtagNamesByShorlogId(@Param("shorlogId") Long shorlogId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("DELETE FROM ShorlogHashtag sh WHERE sh.shorlog.id = :shorlogId")
     void deleteByShorlogId(@Param("shorlogId") Long shorlogId);
 }
