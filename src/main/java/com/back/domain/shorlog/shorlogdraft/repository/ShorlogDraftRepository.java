@@ -13,12 +13,12 @@ import java.util.List;
 @Repository
 public interface ShorlogDraftRepository extends JpaRepository<ShorlogDraft, Long> {
 
-    List<ShorlogDraft> findByUserIdOrderByCreateDateDesc(Long userId);
+    List<ShorlogDraft> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     int countByUserId(Long userId);
 
     @Modifying
-    @Query("DELETE FROM ShorlogDraft sd WHERE sd.createDate < :expiryDate")
+    @Query("DELETE FROM ShorlogDraft sd WHERE sd.createdAt < :expiryDate")
     void deleteExpiredDrafts(@Param("expiryDate") LocalDateTime expiryDate);
 }
 

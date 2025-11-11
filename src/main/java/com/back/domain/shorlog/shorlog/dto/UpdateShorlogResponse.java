@@ -28,7 +28,7 @@ public class UpdateShorlogResponse {
                 .thumbnailUrl(shorlog.getThumbnailUrl())
                 .thumbnailType(shorlog.getThumbnailType())
                 .hashtags(hashtags)
-                .updatedAt(shorlog.getModifyDate())
+                .updatedAt(shorlog.getModifiedAt())
                 .build();
     }
 }

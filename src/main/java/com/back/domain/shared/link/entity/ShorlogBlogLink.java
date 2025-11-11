@@ -36,5 +36,5 @@ public class ShorlogBlogLink {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createDate;
+    private LocalDateTime createdAt;
 }

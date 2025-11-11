@@ -75,7 +75,7 @@ public class ShorlogService {
      // TODO: AI 추천 알고리즘 연동 (5번 이지연)
     public Page<ShorlogFeedResponse> getFeed(int page) {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
-        Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreateDateDesc(pageable);
+        Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
@@ -109,7 +109,7 @@ public class ShorlogService {
         switch (sort.toLowerCase()) {
             case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
             case "views" -> shorlogs = shorlogRepository.findByUserIdOrderByViewCountDesc(userId, pageable);
-            default -> shorlogs = shorlogRepository.findByUserIdOrderByCreateDateDesc(userId, pageable);
+            default -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
         }
 
         return shorlogs.map(shorlog -> {

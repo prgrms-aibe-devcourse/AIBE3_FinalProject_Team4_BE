@@ -45,8 +45,8 @@ public class ShorlogDetailResponse {
                 .bookmarkCount(0) // TODO: 북마크 기능 구현 후
                 .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
                 .hashtags(hashtags)
-                .createdAt(shorlog.getCreateDate())
-                .modifiedAt(shorlog.getModifyDate())
+                .createdAt(shorlog.getCreatedAt())
+                .modifiedAt(shorlog.getModifiedAt())
                 .connectedBlogId(null) // TODO: 블로그 연결 기능 구현 후
                 .build();
     }

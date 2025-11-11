@@ -33,7 +33,7 @@ public class CreateShorlogResponse {
                 .thumbnailUrl(shorlog.getThumbnailUrl())
                 .thumbnailType(shorlog.getThumbnailType())
                 .hashtags(hashtags)
-                .createdAt(shorlog.getCreateDate())
+                .createdAt(shorlog.getCreatedAt())
                 .build();
     }
 }

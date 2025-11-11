@@ -24,16 +24,16 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
      // 전체 피드 조회 (최신순 - AI 추천은 나중에)
      // TODO: AI 추천 알고리즘 연동 (5번 이지연)
 
-    Page<Shorlog> findAllByOrderByCreateDateDesc(Pageable pageable);
+    Page<Shorlog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
      // 팔로잉 피드 조회
      // TODO: Follow 기능 구현 후 수정 (1번 주권영)
-    @Query("SELECT s FROM Shorlog s WHERE s.user.id IN :followingUserIds ORDER BY s.createDate DESC")
+    @Query("SELECT s FROM Shorlog s WHERE s.user.id IN :followingUserIds ORDER BY s.createdAt DESC")
     Page<Shorlog> findByFollowingUsers(@Param("followingUserIds") List<Long> followingUserIds, Pageable pageable);
 
-    Page<Shorlog> findByUserIdOrderByCreateDateDesc(Long userId, Pageable pageable);
+    Page<Shorlog> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    Page<Shorlog> findByUserIdOrderByCreateDateAsc(Long userId, Pageable pageable);
+    Page<Shorlog> findByUserIdOrderByCreatedAtAsc(Long userId, Pageable pageable);
 
     Page<Shorlog> findByUserIdOrderByViewCountDesc(Long userId, Pageable pageable);
 
