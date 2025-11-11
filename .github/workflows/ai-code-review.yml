@@ -10,35 +10,35 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  MAX_TOKENS: '2000'
+  MAX_FILES: '40'
+  MAX_LINES: '1800'
+  EXCLUDE_GLOBS: |
+    **/node_modules/**
+    **/build/**
+    **/out/**
+    **/target/**
+    **/bin/**
+    **/*.jar
+    **/*.class
+    **/*.log
+    **/*.png
+    **/*.jpg
+    **/*.svg
+    **/*.gif
+    **/*.zip
+    **/*.map
+    **/*.pdf
+    **/*Test.java
+  OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
+
 jobs:
   review:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             # ✅ 모든 gh 명령 인증용
-      OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
-      MAX_TOKENS: '2000'
-      MAX_FILES: '40'
-      MAX_LINES: '1800'
-      EXCLUDE_GLOBS: |
-        **/node_modules/**
-        **/build/**
-        **/out/**
-        **/target/**
-        **/bin/**
-        **/*.jar
-        **/*.class
-        **/*.log
-        **/*.png
-        **/*.jpg
-        **/*.svg
-        **/*.gif
-        **/*.zip
-        **/*.map
-        **/*.pdf
-        **/*Test.java
 
     steps:
-      - name: 🧭 Check trigger
+      - name: Check trigger
         id: gate
         continue-on-error: true
         run: |
@@ -58,24 +58,26 @@ jobs:
             exit 0
           fi
 
-      - name: ⏭️ Exit if not needed
+      - name: Exit if not needed
         if: steps.gate.outputs.not_needed == 'true'
-        run: echo "AI review not required for this event."
+        run: echo "⏭️ Skip AI review"
 
-      - name: 📦 Checkout repo
+      - name: Checkout repo
         if: steps.gate.outputs.not_needed != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 🔧 Ensure GitHub CLI
+      - name: Ensure GitHub CLI
         if: steps.gate.outputs.not_needed != 'true'
         run: |
-          gh --version || (sudo apt-get update && sudo apt-get install -y gh)
+          gh --version || sudo apt-get update && sudo apt-get install -y gh
 
-      - name: 🧮 Setup SHAs
+      - name: Setup SHAs
         id: shas
         if: steps.gate.outputs.not_needed != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -92,9 +94,8 @@ jobs:
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"
           echo "pr=$PR" >> "$GITHUB_OUTPUT"
 
-      - name: 🧠 Decide Model
+      - name: Decide Model
         id: model
-        if: steps.gate.outputs.not_needed != 'true'
         run: |
           set -euo pipefail
           MODEL="gpt-4o-mini"
@@ -113,12 +114,13 @@ jobs:
 
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
 
-      - name: 🧹 Filter files
+      - name: Filter files
         id: files
         if: steps.gate.outputs.not_needed != 'true'
         run: |
           BASE="${{ steps.shas.outputs.base }}"
           HEAD="${{ steps.shas.outputs.head }}"
+
           mapfile -t DIFF < <(git diff --name-only "$BASE" "$HEAD")
 
           EXCLUDES=()
@@ -140,12 +142,13 @@ jobs:
           printf "%s\n" "${FILTERED[@]}" > files.txt
           echo "list=$(jq -R -s -c 'split(\"\\n\")[:-1]' files.txt)" >> "$GITHUB_OUTPUT"
 
-      - name: 🧱 Create patch JSON
+      - name: Create patch JSON
         id: diff
         if: steps.gate.outputs.not_needed != 'true'
         run: |
           BASE="${{ steps.shas.outputs.base }}"
           HEAD="${{ steps.shas.outputs.head }}"
+
           LINES=$(git diff --unified=0 "$BASE" "$HEAD" | grep -E '^(\+|\-)' | wc -l | tr -d ' ')
 
           if (( LINES > ${MAX_LINES} )); then
@@ -161,8 +164,7 @@ jobs:
             echo "oversize=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 🏗️ Build prompt
-        if: steps.gate.outputs.not_needed != 'true'
+      - name: Build prompt
         run: |
           PR=${{ steps.shas.outputs.pr }}
           {
@@ -184,6 +186,21 @@ jobs:
           gh api repos/${{ github.repository }}/pulls/$PR --jq '{title:.title, author:.user.login, labels: [.labels[].name], body:.body}' >> user.txt
           echo "</PR_META>" >> user.txt
 
+          echo "<REVIEW_SCOPE>" >> user.txt
+          echo "- 변경된 파일만 리뷰 (diff 기준)" >> user.txt
+          echo "</REVIEW_SCOPE>" >> user.txt
+
+          echo "<TECH_STACK_HINTS>" >> user.txt
+          echo "- Java 17+, Spring Boot 3.x, JPA/Hibernate, Spring Security, REST API, JUnit/Mockito" >> user.txt
+          echo "</TECH_STACK_HINTS>" >> user.txt
+
+          echo "<OUTPUT_FORMAT>" >> user.txt
+          echo "- 요약: 주요 리스크 1~3개" >> user.txt
+          echo "- 이슈: 파일/라인 + 문제 + 원인 + 개선안 + 코드 예시" >> user.txt
+          echo "- 테스트 제안" >> user.txt
+          echo "- 자동 수정 가능 코드" >> user.txt
+          echo "</OUTPUT_FORMAT>" >> user.txt
+
           echo "<DIFF_JSON>" >> user.txt
           jq -c . < diff.json >> user.txt
           echo "</DIFF_JSON>" >> user.txt
@@ -192,19 +209,14 @@ jobs:
           git diff ${{ steps.shas.outputs.base }} ${{ steps.shas.outputs.head }} >> user.txt
           echo "</DIFF_PATCH>" >> user.txt
 
-      - name: 🤖 Call OpenAI
+      - name: Call OpenAI
         id: llm
-        if: steps.gate.outputs.not_needed != 'true'
         env:
           OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
-          run: |
-            echo "🔑 OPENAI_API_KEY starts with: ${OPENAI_API_KEY:0:10}"
         run: |
           set -euo pipefail
           MODEL=${{ steps.model.outputs.model }}
 
-
-          echo "🔍 Using model: $MODEL"
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(cat system.txt)" \
@@ -216,17 +228,19 @@ jobs:
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -d "$PAYLOAD" || echo '{}'
+            -d "$PAYLOAD"
           )
 
-          if jq -e '.choices[0].message.content' <<<"$RESP" >/dev/null 2>&1; then
-            jq -r '.choices[0].message.content' <<<"$RESP" > llm_content.txt
+          echo "$RESP" > llm_response.json
+          if jq -e '.choices[0].message.content' llm_response.json >/dev/null; then
+            jq -r '.choices[0].message.content' llm_response.json > llm_content.txt
           else
             echo "⚠️ AI 응답 실패. 나중에 다시 시도하세요." > llm_content.txt
           fi
 
-      - name: 💬 Comment PR
-        if: steps.gate.outputs.not_needed != 'true'
+      - name: Comment PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=${{ steps.shas.outputs.pr }}
           {
