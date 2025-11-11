@@ -1,11 +1,13 @@
 package com.back.domain.user.user.service;
 
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.domain.user.user.dto.UserJoinRequestDto;
 import com.back.domain.user.user.dto.UserLoginRequestDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
@@ -38,6 +41,12 @@ public class UserService {
         checkPassword(user, dto.password());
 
         return user;
+    }
+
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenService.deleteRefreshTokenByUserId(userId);
+        SecurityContextHolder.clearContext();
     }
 
     @Transactional(readOnly = true)

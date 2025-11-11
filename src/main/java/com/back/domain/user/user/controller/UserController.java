@@ -12,7 +12,7 @@ import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -54,7 +54,8 @@ public class UserController {
     }
 
     @DeleteMapping("/logout")
-    public RsData<Void> logout() {
+    public RsData<Void> logout(@AuthenticationPrincipal Long userId) {
+        userService.logout(userId);
         rq.deleteCookie("accessToken");
         rq.deleteCookie("refreshToken");
 
@@ -65,8 +66,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public RsData<UserDto> me(Authentication auth) {
-        User user = userService.getUserById((Long) auth.getPrincipal());
+    public RsData<UserDto> me(@AuthenticationPrincipal Long userId) {
+        User user = userService.getUserById(userId);
         return new RsData<>(
                 "200-1",
                 "사용자 정보입니다.",
