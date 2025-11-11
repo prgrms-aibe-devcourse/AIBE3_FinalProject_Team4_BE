@@ -82,4 +82,40 @@ public class ApiV1CommentsController {
     ) {
         return commentsService.deleteComment(commentId, userId);
     }
+
+    // ✅ 댓글 좋아요
+    @PostMapping("/{commentId}/like")
+    @Operation(
+            summary = "댓글 좋아요",
+            description = "특정 댓글에 좋아요를 추가합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "좋아요 성공",
+                            content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음")
+            }
+    )
+    public RsData<CommentResponseDto> likeComment(
+            @PathVariable Long commentId,
+            @RequestParam Long userId
+    ) {
+        return commentsService.likeComment(commentId, userId);
+    }
+
+    // ✅ 댓글 좋아요 취소
+    @PostMapping("/{commentId}/unlike")
+    @Operation(
+            summary = "댓글 좋아요 취소",
+            description = "특정 댓글의 좋아요를 취소합니다.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "좋아요 취소 성공",
+                            content = @Content(schema = @Schema(implementation = CommentResponseDto.class))),
+                    @ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음")
+            }
+    )
+    public RsData<CommentResponseDto> unlikeComment(
+            @PathVariable Long commentId,
+            @RequestParam Long userId
+    ) {
+        return commentsService.unlikeComment(commentId, userId);
+    }
 }

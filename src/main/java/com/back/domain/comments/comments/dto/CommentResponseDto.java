@@ -13,6 +13,7 @@ public record CommentResponseDto(
         Long userId,
         String content,
         LocalDateTime createdAt,
+        int likeCount,
         List<CommentResponseDto> replies
 ) {
     public static CommentResponseDto fromEntity(Comments comment) {
@@ -22,6 +23,7 @@ public record CommentResponseDto(
                 .userId(comment.getUserId())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
+                .likeCount(comment.getLikeCount())
                 .replies(comment.getChildren().stream()
                         .map(CommentResponseDto::fromEntity)
                         .toList())

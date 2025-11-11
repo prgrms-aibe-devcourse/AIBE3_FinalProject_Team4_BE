@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -71,5 +72,33 @@ public class CommentsService {
 
         commentsRepository.delete(comments);
         return new RsData<>("200-3", "댓글이 삭제되었습니다.");
+    }
+
+    // ✅ 좋아요
+    public RsData<CommentResponseDto> likeComment(Long commentId, Long userId) {
+        Optional<Comments> optionalComment = commentsRepository.findById(commentId);
+        if (optionalComment.isEmpty()) {
+            return RsData.failOf("댓글을 찾을 수 없습니다.");
+        }
+
+        Comments comments = optionalComment.get();
+        comments.addLike(userId);
+        commentsRepository.save(comments);
+
+        return RsData.successOf(CommentResponseDto.fromEntity(comments));
+    }
+
+    // ✅ 좋아요 취소
+    public RsData<CommentResponseDto> unlikeComment(Long commentId, Long userId) {
+        Optional<Comments> optionalComment = commentsRepository.findById(commentId);
+        if (optionalComment.isEmpty()) {
+            return RsData.failOf("댓글을 찾을 수 없습니다.");
+        }
+
+        Comments comments = optionalComment.get();
+        comments.removeLike(userId);
+        commentsRepository.save(comments);
+
+        return RsData.successOf(CommentResponseDto.fromEntity(comments));
     }
 }

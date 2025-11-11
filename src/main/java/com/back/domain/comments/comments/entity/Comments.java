@@ -5,7 +5,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -38,6 +40,9 @@ public class Comments {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @ElementCollection
+    private Set<Long> likedUserIds = new HashSet<>();
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -51,5 +56,17 @@ public class Comments {
 
     public void updateContent(String newContent) {
         this.content = newContent;
+    }
+
+    public void addLike(Long userId) {
+        likedUserIds.add(userId);
+    }
+
+    public void removeLike(Long userId) {
+        likedUserIds.remove(userId);
+    }
+
+    public int getLikeCount() {
+        return likedUserIds.size();
     }
 }
