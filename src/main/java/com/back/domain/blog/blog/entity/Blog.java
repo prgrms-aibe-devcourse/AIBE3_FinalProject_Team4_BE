@@ -3,6 +3,7 @@ package com.back.domain.blog.blog.entity;
 
 import com.back.domain.blog.blog.dto.BlogWriteReqDto;
 import com.back.domain.blog.hashtag.entity.BlogHashtag;
+import com.back.domain.blog.like.entity.BlogLike;
 import com.back.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,6 +47,12 @@ public class Blog {
 
     @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = {CascadeType.MERGE, CascadeType.REFRESH})
     private List<BlogHashtag> blogHashtags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogLike> likes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogLike> bookmark = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
