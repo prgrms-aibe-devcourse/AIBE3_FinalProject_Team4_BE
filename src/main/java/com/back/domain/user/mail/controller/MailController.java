@@ -6,6 +6,7 @@ import com.back.domain.user.mail.service.MailService;
 import com.back.domain.user.mail.service.VerificationTokenService;
 import com.back.global.exception.AuthException;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +22,7 @@ public class MailController {
     private final VerificationTokenService verificationTokenService;
 
     @PostMapping("/send-code")
+    @Operation(summary = "이메일 인증 코드 전송")
     public RsData<Void> sendVerificationCode(@RequestBody String email) {
         try {
             String authCode = mailService.createAuthCode(); // 인증 코드 생성
@@ -38,6 +40,7 @@ public class MailController {
     }
 
     @PostMapping("/verify-code")
+    @Operation(summary = "이메일 인증 코드 검증")
     public RsData<EmailVerificationTokenResponseDto> verifyCode(@RequestBody EmailVerifyRequestDto dto) {
         String savedCode = mailService.getAuthCode(dto.email());
 
@@ -46,7 +49,6 @@ public class MailController {
         }
 
         if (savedCode.equals(dto.code())) {
-
             mailService.deleteAuthCode(dto.email());
             String verifiedToken = verificationTokenService.generateAndStoreToken(dto.email());
             return RsData.of(
