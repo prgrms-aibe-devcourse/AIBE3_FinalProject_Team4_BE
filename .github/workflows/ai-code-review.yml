@@ -195,6 +195,10 @@ jobs:
       - name: 🤖 Call OpenAI
         id: llm
         if: steps.gate.outputs.not_needed != 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.WORKFLOW_OPENAI_API_KEY }}
+          run: |
+            echo "🔑 OPENAI_API_KEY starts with: ${OPENAI_API_KEY:0:10}"
         run: |
           set -euo pipefail
           MODEL=${{ steps.model.outputs.model }}
