@@ -12,8 +12,8 @@ permissions:
 
 env:
   MAX_TOKENS: '2000'
-  MAX_FILES: '10'        # 무료 계정용으로 제한
-  MAX_LINES: '200'       # 무료 계정용으로 제한
+  MAX_FILES: '10'
+  MAX_LINES: '200'
   EXCLUDE_GLOBS: |
     **/node_modules/**
     **/build/**
@@ -136,7 +136,10 @@ jobs:
             BYTES=$(wc -c < diff.patch | tr -d ' ')
             (( BYTES > 200000 )) && head -c 200000 diff.patch > diff.patch.trim && mv diff.patch.trim diff.patch
 
-            jq -n --rawfile patch diff.patch --arg base "$BASE" --arg head "$HEAD" \
+            jq -n \
+              --arg base "$BASE" \
+              --arg head "$HEAD" \
+              --rawfile patch diff.patch \
               '{oversize:false, base:$base, head:$head, patch:$patch}' > diff.json
             echo "oversize=false" >> "$GITHUB_OUTPUT"
           fi
@@ -144,7 +147,7 @@ jobs:
       - name: Build prompt
         run: |
           PR=${{ steps.shas.outputs.pr }}
-
+          
           {
             echo "당신은 **시니어 백엔드 아키텍트 겸 Java 코드 리뷰 전문가**입니다."
             echo "리뷰 대상은 Spring Boot 기반의 Java 백엔드 코드이며, 주요 기술 스택은 JPA, Hibernate, Spring Security, REST API, 그리고 테스트는 JUnit + Mockito입니다."
@@ -159,10 +162,10 @@ jobs:
             echo "- **도메인 설계 및 역할 분리 (DDD)**: Entity, Service, Controller 간 책임이 적절하게 분리되었는가?"
             echo "- **JPA 매핑 및 성능 이슈**: 연관관계, Lazy 로딩, N+1 쿼리, 불필요한 쿼리 발생 여부"
             echo "- **Service 계층 설계**: 비즈니스 로직이 잘 분리되어 있는가? 트랜잭션 처리가 적절한가?"
-            echo "- **REST API 명세 및 컨벤션 준수**: URL 설계, 응답 포맷, 상태 코드가 일관적인가?"
+              echo "- **REST API 명세 및 컨벤션 준수**: URL 설계, 응답 포맷, 상태 코드가 일관적인가?"
             echo "- **예외 처리 및 유효성 검사**: 커스텀 예외, 예외 핸들러, Request validation이 적절한가?"
             echo "- **테스트 작성**: 단위 테스트 / 통합 테스트의 커버리지가 충분한가? Mockito 사용이 적절한가?"
-            echo "- **코드 품질**: 메서드 명확성, 중복 제거, 의존성 주입 방식, 불필요한 로직 제거 등"
+              echo "- **코드 품질**: 메서드 명확성, 중복 제거, 의존성 주입 방식, 불필요한 로직 제거 등"
             echo ""
             echo "⚙️ 리뷰 방법:"
             echo "1. 변경된 파일을 한 줄 단위로 분석하여, 다음 항목들을 명확히 작성하세요:"
@@ -223,7 +226,7 @@ jobs:
           echo "<DIFF_PATCH>" >> user.txt
           git diff ${{ steps.shas.outputs.base }} ${{ steps.shas.outputs.head }} >> user.txt
           echo "</DIFF_PATCH>" >> user.txt
-        env:
+          env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Call OpenAI
