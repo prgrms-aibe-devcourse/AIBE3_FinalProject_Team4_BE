@@ -8,19 +8,17 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@EntityListeners(AuditingEntityListener.class)
-@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)  //생성일, 수정일 자동화
+@MappedSuperclass //부모클래스
 @Getter
-public abstract class BaseEntity {
+public class BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    protected Long id;
+    private long id;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createDate;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(name = "modified_at", nullable = false)
-    private LocalDateTime modifyDate;
+    private LocalDateTime modifiedAt;
 }
