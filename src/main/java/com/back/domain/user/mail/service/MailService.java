@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class MailService {
     private final JavaMailSender javaMailSender;
     private final RedisTemplate<String, String> redisTemplate;
+    private final static String AUTH_CODE_PREFIX = "emailAuthCode:";
 
     public String createAuthCode() {
         StringBuilder authCode = new StringBuilder();
@@ -48,7 +49,7 @@ public class MailService {
 
     public void saveAuthCode(String email, String authCode) {
         redisTemplate.opsForValue().set(
-                "emailAuthCode:" + email,
+                AUTH_CODE_PREFIX + email,
                 authCode,
                 5 * 60, // 5 minutes
                 TimeUnit.SECONDS
@@ -56,10 +57,10 @@ public class MailService {
     }
 
     public String getAuthCode(String email) {
-        return redisTemplate.opsForValue().get("emailAuthCode:" + email);
+        return redisTemplate.opsForValue().get(AUTH_CODE_PREFIX + email);
     }
 
     public void deleteAuthCode(String email) {
-        redisTemplate.delete("emailAuthCode:" + email);
+        redisTemplate.delete(AUTH_CODE_PREFIX + email);
     }
 }
