@@ -205,11 +205,12 @@ jobs:
           set -euo pipefail
           MODEL=gpt-4o
 
+          # 🧠 안전한 JSON 문자열 인코딩
           PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg sys "$(jq -Rs . < system.txt)" \
             --arg usr "$(jq -Rs . < user.txt)" \
-            --argjson mt ${MAX_TOKENS} \
+            --argjson mt 4000 \
             '{model:$model, messages:[{role:"system",content:$sys},{role:"user",content:$usr}], max_tokens:$mt, temperature:0.2}'
           )
 
@@ -217,13 +218,35 @@ jobs:
           RESP=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -d "$PAYLOAD")
+            -d "$PAYLOAD" || true)
 
           echo "$RESP" > llm_response.json
           echo "✅ Response size: $(wc -c < llm_response.json) bytes"
 
-          jq -r '.choices[0].message.content // "⚠️ Model returned empty response (check prompt formatting)"' \
-            < llm_response.json > llm_content.txt
+          # ⚠️ 에러 메시지 감지
+          ERROR_MSG=$(jq -r '.error.message // empty' < llm_response.json)
+          if [[ -n "$ERROR_MSG" ]]; then
+            echo "❌ OpenAI API returned error:"
+            echo "   → $ERROR_MSG"
+            echo ""
+            echo "💡 해결 방법:"
+            echo " - 'insufficient_quota': OpenAI 결제 크레딧 충전 필요"
+            echo " - 'invalid_api_key': 키가 잘못됐거나 만료됨"
+            echo " - 기타 오류: prompt 크기, JSON 포맷 또는 일시적 서버 이슈"
+            exit 1
+          fi
+
+          # ⚙️ 응답 내용 추출
+          CONTENT=$(jq -r '.choices[0].message.content // empty' < llm_response.json)
+          if [[ -z "$CONTENT" ]]; then
+            echo "⚠️ Model returned empty response (no content in .choices)"
+            echo "🔍 Debug info: $(jq -r '. | keys_unsorted' < llm_response.json)"
+            exit 1
+          fi
+
+          echo "$CONTENT" > llm_content.txt
+          echo "✅ AI review content extracted successfully."
+      
 
       - name: Comment PR
         env:
