@@ -2,11 +2,14 @@ package com.back.domain.shorlog.shorlog.controller;
 
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Shorlog", description = "숏로그 API")
@@ -18,19 +21,22 @@ public class ShorlogController {
     private final ShorlogService shorlogService;
 
     @PostMapping
+    @Operation(summary = "숏로그 작성")
     public RsData<CreateShorlogResponse> createShorlog(
-            @RequestAttribute("userId") Long userId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @Valid @RequestBody CreateShorlogRequest request
     ) {
-        return RsData.successOf(shorlogService.createShorlog(userId, request));
+        return RsData.successOf(shorlogService.createShorlog(securityUser.getId(), request));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "숏로그 상세 조회")
     public RsData<ShorlogDetailResponse> getShorlog(@PathVariable Long id) {
         return RsData.successOf(shorlogService.getShorlog(id));
     }
 
     @GetMapping("/feed")
+    @Operation(summary = "숏로그 피드 조회")
     public RsData<Page<ShorlogFeedResponse>> getFeed(
             @RequestParam(defaultValue = "0") int page
     ) {
@@ -38,37 +44,41 @@ public class ShorlogController {
     }
 
     @GetMapping("/following")
+    @Operation(summary = "팔로잉 피드 조회")
     public RsData<Page<ShorlogFeedResponse>> getFollowingFeed(
-            @RequestAttribute("userId") Long userId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
-        return RsData.successOf(shorlogService.getFollowingFeed(userId, page));
+        return RsData.successOf(shorlogService.getFollowingFeed(securityUser.getId(), page));
     }
 
     @GetMapping("/my")
+    @Operation(summary = "내 숏로그 조회")
     public RsData<Page<ShorlogFeedResponse>> getMyShorlogs(
-            @RequestAttribute("userId") Long userId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "latest") String sort,
             @RequestParam(defaultValue = "0") int page
     ) {
-        return RsData.successOf(shorlogService.getMyShorlogs(userId, sort, page));
+        return RsData.successOf(shorlogService.getMyShorlogs(securityUser.getId(), sort, page));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "숏로그 수정")
     public RsData<UpdateShorlogResponse> updateShorlog(
-            @RequestAttribute("userId") Long userId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id,
             @Valid @RequestBody UpdateShorlogRequest request
     ) {
-        return RsData.successOf(shorlogService.updateShorlog(userId, id, request));
+        return RsData.successOf(shorlogService.updateShorlog(securityUser.getId(), id, request));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "숏로그 삭제")
     public RsData<Void> deleteShorlog(
-            @RequestAttribute("userId") Long userId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id
     ) {
-        shorlogService.deleteShorlog(userId, id);
+        shorlogService.deleteShorlog(securityUser.getId(), id);
         return new RsData<>("200-1", "숏로그가 삭제되었습니다.");
     }
 }
