@@ -28,6 +28,18 @@ spring:
       chat:
         api-key: "ci-dummy-key" # CI 환경에서만 사용할 더미 값
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_SENDER_EMAIL}
+    password: ${GMAIL_SENDER_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 logging:
   level:
     org.hibernate.SQL: debug
