@@ -37,8 +37,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 인증 인가 필요 없는 요청
         if(req.getRequestURI().startsWith("/swagger-ui") ||
                 req.getRequestURI().startsWith("/v3/api-docs") ||
-                req.getRequestURI().startsWith("/api/v1/auth/signup") ||
-                req.getRequestURI().startsWith("/api/v1/auth/login")
+                req.getRequestURI().equals("/api/v1/auth/signup") ||
+                req.getRequestURI().equals("/api/v1/auth/login") ||
+                req.getRequestURI().equals("/api/v1/auth/password-reset") ||
+                req.getRequestURI().equals("/api/v1/auth/send-code") ||
+                req.getRequestURI().equals("/api/v1/auth/verify-code")
         ) {
             chain.doFilter(req, res);
             return;

@@ -1,16 +1,18 @@
 package com.back.domain.user.user.controller;
 
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
-import com.back.domain.user.user.dto.UserDto;
-import com.back.domain.user.user.dto.UserJoinRequestDto;
-import com.back.domain.user.user.dto.UserLoginRequestDto;
-import com.back.domain.user.user.dto.UserLoginResponseDto;
+import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,23 +21,27 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Auth API", description = "회원 및 인증/인가 토큰 API")
 public class UserController {
+
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
     private final Rq rq;
 
     @PostMapping("/signup")
+    @Operation(summary = "회원 가입")
     public RsData<UserDto> join(@Valid @RequestBody UserJoinRequestDto dto) {
         User user = userService.join(dto);
         return new RsData<>(
-            "201-1",
-            "%s 님 가입을 환영합니다!".formatted(user.getUsername()),
-            new UserDto(user)
+                "201-1",
+                "%s 님 가입을 환영합니다!".formatted(user.getUsername()),
+                new UserDto(user)
         );
     }
 
     @PostMapping("/login")
+    @Operation(summary = "로그인")
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
@@ -55,6 +61,7 @@ public class UserController {
     }
 
     @DeleteMapping("/logout")
+    @Operation(summary = "로그아웃")
     public RsData<Void> logout(@AuthenticationPrincipal SecurityUser securityUser) {
         userService.logout(securityUser.getId());
         rq.deleteCookie("accessToken");
@@ -66,7 +73,15 @@ public class UserController {
         );
     }
 
+    @PostMapping("/password-reset")
+    @Operation(summary = "비밀번호 재설정")
+    public RsData<String> passwordReset(@RequestBody PasswordResetRequestDto dto) {
+        userService.passwordReset(dto);
+        return RsData.successOf("비밀번호가 재설정 되었습니다.");
+    }
+
     @GetMapping("/me")
+    @Operation(summary = "프로필 조회")
     public RsData<UserDto> me(@AuthenticationPrincipal SecurityUser securityUser) {
         User user = userService.getUserById(securityUser.getId());
         return new RsData<>(

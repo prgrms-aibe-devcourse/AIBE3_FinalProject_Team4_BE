@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @Table(name = "users")
 public class User extends BaseEntity{
 
-    @Column(unique = true)
     private String email;           // 이메일
     @Column(unique = true)
     private String username;        // 가입 ID
@@ -37,5 +36,9 @@ public class User extends BaseEntity{
         this.bio = null;            //가입 시 기본 자기소개는 null
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
+    }
+
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
     }
 }
