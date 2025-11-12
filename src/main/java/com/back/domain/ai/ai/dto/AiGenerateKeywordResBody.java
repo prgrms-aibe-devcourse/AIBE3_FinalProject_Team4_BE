@@ -2,7 +2,7 @@ package com.back.domain.ai.ai.dto;
 
 import java.util.List;
 
-public record AiKeywordResBody(
+public record AiGenerateKeywordResBody(
         List<String> keywords
 ) {
 }

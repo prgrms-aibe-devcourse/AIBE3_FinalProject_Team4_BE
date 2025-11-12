@@ -2,12 +2,14 @@ package com.back.domain.ai.ai.dto;
 
 import jakarta.validation.constraints.NotNull;
 
-public record AiAssistReqBody(
-        @NotNull
-        AiAssistMode mode,
+public record AiGenerateReqBody(
+        String model,
 
         @NotNull
-        AiAssistContentType contentType,
+        AiGenerateMode mode,
+
+        @NotNull
+        AiGenerateContentType contentType,
 
         String message,
 

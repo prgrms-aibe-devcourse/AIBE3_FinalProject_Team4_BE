@@ -2,16 +2,13 @@ package com.back.domain.ai.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum AiAssistMode {
-    TITLE("title"),
-    HASHTAG("hashtag"),
-    SUMMARY("summary"),
-    KEYWORD("keyword"),
-    CHAT("chat");
+public enum AiGenerateContentType {
+    BLOG("blog"),
+    SHORLOG("shorlog");
 
     private final String value;
 
-    AiAssistMode(String value) {
+    AiGenerateContentType(String value) {
         this.value = value;
     }
 

@@ -1,6 +1,6 @@
 package com.back.domain.ai.ai.dto;
 
-public record AiContentResBody(
+public record AiGenerateContentResBody(
         String content
 ) {
 }
