@@ -45,9 +45,9 @@ public class BlogBookmarkService {
         long deleted = bookmarkRepository.deleteByBlog_IdAndUser_Id(blogId, userId);
         if (deleted > 0) {
             blogRepository.decreaseBookmark(blogId);
-            return true; // off 성공
+            return true;
         }
-        return false; // 이미 off였음(멱등)
+        return false;
     }
 
     public boolean isBookmarked(Long blogId, Long userId) {

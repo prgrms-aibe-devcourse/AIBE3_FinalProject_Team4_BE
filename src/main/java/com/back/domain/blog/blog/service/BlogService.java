@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +57,7 @@ public class BlogService {
     @Transactional
     public BlogDto findById(Long id) {
         Blog blog = blogRepository.findById(id)
-                .orElseThrow(NoSuchElementException::new);
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         return new BlogDto(blog);
     }
@@ -79,7 +78,7 @@ public class BlogService {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
         Blog blog = blogRepository.findById(blogId)
-                .orElseThrow(NoSuchElementException::new);
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         blog.modify(reqDto, reqDto.hashtagIds());
 
         return new BlogDto(blog);
@@ -88,7 +87,7 @@ public class BlogService {
     @Transactional
     public long increaseView(Long id) {
         Blog blog = blogRepository.findById(id)
-                .orElseThrow(NoSuchElementException::new);
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         blog.increaseViewCount();
         return blog.getViewCount();
@@ -97,7 +96,7 @@ public class BlogService {
     @Transactional
     public long increaseLike(Long id) {
         Blog blog = blogRepository.findById(id)
-                .orElseThrow(NoSuchElementException::new);
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         blog.increaseLikeCount();
         return blog.getLikeCount();
@@ -106,7 +105,7 @@ public class BlogService {
     @Transactional
     public void delete(Long id) {
         Blog blog = blogRepository.findById(id)
-                .orElseThrow(NoSuchElementException::new);
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         blogRepository.delete(blog);
     }

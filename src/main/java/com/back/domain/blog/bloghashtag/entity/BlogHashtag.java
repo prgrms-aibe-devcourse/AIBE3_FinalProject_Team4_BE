@@ -1,4 +1,4 @@
-package com.back.domain.blog.hashtag.entity;
+package com.back.domain.blog.bloghashtag.entity;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.hashtag.hashtag.entity.Hashtag;

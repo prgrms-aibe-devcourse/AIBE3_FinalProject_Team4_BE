@@ -5,6 +5,7 @@ import com.back.domain.user.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_blog_id", columnList = "blog_id")
         })
 @EntityListeners(AuditingEntityListener.class)
+@NoArgsConstructor
 public class BlogBookmark {
 
     @Id
@@ -51,7 +53,5 @@ public class BlogBookmark {
         this.user = user;
     }
 
-    public BlogBookmark() {
-    }
 
 }
