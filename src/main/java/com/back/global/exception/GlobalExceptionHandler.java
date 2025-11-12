@@ -1,7 +1,6 @@
 package com.back.global.exception;
 
 import com.back.global.rsData.RsData;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +9,8 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Slf4j
 @RestControllerAdvice
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
 
         RsData<?> response = RsData.failOf("400-1", message);
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(BAD_REQUEST)
                 .body(response);
     }
 
@@ -70,5 +71,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RsData<Void>> handle(AuthException e) {
         RsData<Void> rsData = e.getRsData();
         return ResponseEntity.status(rsData.statusCode()).body(rsData);
+    }
+
+     // IllegalArgumentException 처리 (해시태그 검증 등)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<RsData<?>> handleIllegalArgumentException(IllegalArgumentException e) {
+        RsData<?> response = RsData.failOf("400-1", e.getMessage());
+        return ResponseEntity
+                .status(BAD_REQUEST)
+                .body(response);
     }
 }
