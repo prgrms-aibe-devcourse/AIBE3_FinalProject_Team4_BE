@@ -1,4 +1,4 @@
-package com.back.domain.hashtag.hashtag.dto;
+package com.back.domain.shared.hashtag;
 
 public record HashtagDto(
         Long id,
@@ -6,3 +6,4 @@ public record HashtagDto(
 ) {
 
 }
+

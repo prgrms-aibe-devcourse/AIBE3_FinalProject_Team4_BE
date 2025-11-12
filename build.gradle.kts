@@ -46,6 +46,9 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
+    // Mail
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
@@ -69,13 +72,13 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-        // Elasticsearch
-        implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
-        //tsid
-        implementation("com.github.f4b6a3:tsid-creator:5.2.6")
-        implementation("org.springframework.boot:spring-boot-starter-validation")
-        // Docker Compose
-        developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+    // Elasticsearch
+    implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
+    //tsid
+    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    // Docker Compose
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
 
     // Spring AI

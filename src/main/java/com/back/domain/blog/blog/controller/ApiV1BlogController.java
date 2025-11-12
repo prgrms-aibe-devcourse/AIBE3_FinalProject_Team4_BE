@@ -42,6 +42,21 @@ public class ApiV1BlogController {
         return new RsData<>("201-1", "블로그 글 작성이 완료되었습니다.", new BlogDto(blog));
     }
 
+    //TODO: 아래 두개의 api 추후 pagination, 검색/filtering api만들 예정
+    @GetMapping("")
+    @Operation(summary = "블로그 글 다건 조회")
+    public RsData<List<BlogDto>> getItems() {
+        List<BlogDto> blogDtos = blogService.findAll();
+        return new RsData<>("200-1", "블로그 글 조회가 완료되었습니다.", blogDtos);
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "내 블로그 글 다건 조회")
+    public RsData<List<BlogDto>> getMyItems(@AuthenticationPrincipal SecurityUser userDetails) {
+        List<BlogDto> blogDtos = blogService.findAllByUserId(userDetails.getId());
+        return new RsData<>("200-1", "내 블로그 글 조회가 완료되었습니다.", blogDtos);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "블로그 글 단건 조회")
     public RsData<BlogDto> getItem(@PathVariable Long id) {
@@ -63,8 +78,8 @@ public class ApiV1BlogController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "블로그 글 삭제")
-    public RsData<Void> delete(@PathVariable Long id) {
-        blogService.delete(id);
+    public RsData<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
+        blogService.delete(id, userDetails.getId());
         return new RsData<>("200-4", "블로그 글 삭제가 완료되었습니다.");
     }
 
@@ -88,14 +103,14 @@ public class ApiV1BlogController {
         return new RsData<>("200-2", "블로그 임시저장 글 조회가 완료되었습니다.", draftDtos);
     }
 
-    @PostMapping("/{id}/view")
+    @PutMapping("/{id}/view")
     @Operation(summary = "블로그 글 조회수 증가")
     public RsData<ViewResponse> increaseView(@PathVariable Long id) {
         long viewCount = blogService.increaseView(id);
         return new RsData<>("200-2", "블로그 글 조회수가 증가되었습니다.", new ViewResponse(id, viewCount));
     }
 
-    @PostMapping("/{id}/like")
+    @PutMapping("/{id}/like")
     @Operation(summary = "블로그 글 좋아요 수 증가")
     public RsData<LikeResponse> increaseLike(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
         boolean on = blogLikeService.likeOn(userDetails.getUserId(), id);
@@ -111,7 +126,7 @@ public class ApiV1BlogController {
         return new RsData<>("200-2", "블로그 글 좋아요 수가 감소되었습니다.", new LikeResponse(id, !off, likeCount));
     }
 
-    @PostMapping("/{id}/bookmark")
+    @PutMapping("/{id}/bookmark")
     @Operation(summary = "블로그 글 북마크 추가")
     public RsData<BookmarkResponse> addBookmark(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
         boolean on = blogBookmarkService.bookmarkOn(userDetails.getId(), id);

@@ -39,4 +39,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             where b.id = :blogId
             """)
     void decreaseBookmark(Long postId);
+
+    @Query("SELECT b FROM Blog b WHERE b.user = :author AND b.status = :status ORDER BY b.createdAt DESC")
+    List<Blog> findAllByAuthorAndStatus(Long id, BlogStatus blogStatus);
 }

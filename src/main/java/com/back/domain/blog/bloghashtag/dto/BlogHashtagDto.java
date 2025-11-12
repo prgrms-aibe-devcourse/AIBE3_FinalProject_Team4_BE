@@ -1,6 +1,6 @@
 package com.back.domain.blog.bloghashtag.dto;
 
-import com.back.domain.hashtag.hashtag.entity.Hashtag;
+import com.back.domain.shared.hashtag.entity.Hashtag;
 
 public record BlogHashtagDto(
         Long id,

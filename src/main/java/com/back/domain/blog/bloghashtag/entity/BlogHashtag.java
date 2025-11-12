@@ -1,7 +1,7 @@
 package com.back.domain.blog.bloghashtag.entity;
 
 import com.back.domain.blog.blog.entity.Blog;
-import com.back.domain.hashtag.hashtag.entity.Hashtag;
+import com.back.domain.shared.hashtag.entity.Hashtag;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

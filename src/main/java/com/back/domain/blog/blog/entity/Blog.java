@@ -6,6 +6,7 @@ import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.like.entity.BlogLike;
+import com.back.domain.user.user.entity.User;
 import com.back.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,7 +32,10 @@ public class Blog {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
-    private Long userId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     private String title;
     @Column(columnDefinition = "TEXT")
@@ -59,6 +63,26 @@ public class Blog {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;
+
+    public static Blog create(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
+        if (title == null || title.isBlank()) {
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
+        }
+
+        return Blog.builder()
+                .user(user)
+                .title(title)
+                .content(content)
+                .thumbnailUrl(thumbnailUrl)
+                .status(status)
+                .createdAt(LocalDateTime.now())
+                .modifiedAt(LocalDateTime.now())
+                .viewCount(0)
+                .likeCount(0)
+                .bookmarkCount(0)
+                .commentCount(0)
+                .build();
+    }
 
     public void publish() {
         if (this.status == BlogStatus.PUBLISHED) {

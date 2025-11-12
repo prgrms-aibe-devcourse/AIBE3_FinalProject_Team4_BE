@@ -1,7 +1,7 @@
 package com.back.domain.blog.blog.dto;
 
 import com.back.domain.blog.blog.entity.BlogStatus;
-import com.back.domain.hashtag.hashtag.dto.HashtagDto;
+import com.back.domain.shared.hashtag.HashtagDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
