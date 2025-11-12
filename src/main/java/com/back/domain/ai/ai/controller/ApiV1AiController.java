@@ -36,10 +36,18 @@ public class ApiV1AiController {
                 .map(RsData::successOf);
     }
 
-    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/chat/once", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "챗봇")
-    public Flux<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
-        return aiChatService.chat(req)
+    public Mono<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
+        return Mono.fromCallable(() -> aiChatService.chat(req))
+                .subscribeOn(Schedulers.boundedElastic())
+                .map(RsData::successOf);
+    }
+
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "챗봇 (스트리밍 출력)")
+    public Flux<RsData<String>> chatStream(@RequestBody @Validated AiChatReqBody req) {
+        return aiChatService.chatStream(req)
                 .map(RsData::successOf)
                 .doOnCancel(() -> log.info("클라이언트가 AI 요청 중단"));
     }

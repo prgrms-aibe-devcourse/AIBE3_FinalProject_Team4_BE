@@ -35,7 +35,19 @@ public class AiChatService {
             * 답변은 System Message의 규칙에 따라 마크다운(Markdown) 형식으로 구조화해야 합니다.
             """;
 
-    public Flux<String> chat(AiChatReqBody req) {
+    public String chat(AiChatReqBody req) {
+        return openAiChatClient.prompt(buildPrompt(req))
+                .call()
+                .content();
+    }
+
+    public Flux<String> chatStream(AiChatReqBody req) {
+        return openAiChatClient.prompt(buildPrompt(req))
+                .stream()
+                .content();
+    }
+
+    private Prompt buildPrompt(AiChatReqBody req) {
         SystemMessage systemMessage = SystemMessage.builder()
                 .text(AiGenerateService.SYSTEM_BASE_PROMPT)
                 .text(SYSTEM_DETAIL_PROMPT)
@@ -46,14 +58,10 @@ public class AiChatService {
                 .text("[블로그 본문]: " + req.content())
                 .build();
 
-        Prompt prompt = Prompt.builder()
+        return Prompt.builder()
                 .messages(List.of(systemMessage, userMessage))
                 .chatOptions(modelOption)
                 .build();
-
-        return openAiChatClient.prompt(prompt)
-                .stream()
-                .content();
     }
 
     /**
