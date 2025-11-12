@@ -34,7 +34,6 @@ public class SecurityConfig {
     private final RefreshTokenService refreshTokenService;
     private final Rq rq;
     private final ObjectMapper objectMapper;
-    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtProvider, refreshTokenService, rq, objectMapper);
