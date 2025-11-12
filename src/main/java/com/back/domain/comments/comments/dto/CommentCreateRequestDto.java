@@ -1,7 +1,10 @@
 package com.back.domain.comments.comments.dto;
 
+import com.back.domain.comments.comments.entity.CommentsTargetType;
+
 public record CommentCreateRequestDto(
-        Long postId,
+        CommentsTargetType targetType,
+        Long targetId,
         Long userId,
         String content,
         Long parentId

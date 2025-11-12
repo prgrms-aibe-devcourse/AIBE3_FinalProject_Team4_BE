@@ -1,7 +1,10 @@
 package com.back.domain.comments.comments.service;
 
-import com.back.domain.comments.comments.dto.*;
+import com.back.domain.comments.comments.dto.CommentCreateRequestDto;
+import com.back.domain.comments.comments.dto.CommentResponseDto;
+import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
 import com.back.domain.comments.comments.entity.Comments;
+import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
 import com.back.global.exception.ServiceException;
@@ -29,20 +32,24 @@ public class CommentsService {
         }
 
         Comments comment = Comments.builder()
-                .postId(req.postId())
+                .targetType(req.targetType())
+                .targetId(req.targetId())
                 .userId(req.userId())
                 .content(req.content())
                 .parent(parent)
                 .build();
 
         commentsRepository.save(comment);
+
         return RsData.of("200-1", "댓글이 등록되었습니다.", CommentResponseDto.fromEntity(comment));
     }
-
     // 특정 게시글의 댓글 목록 조회
     @Transactional(readOnly = true)
-    public RsData<List<CommentResponseDto>> getCommentsByPost(Long postId) {
-        List<Comments> comments = commentsRepository.findByPostIdAndParentIsNullOrderByCreatedAtAsc(postId);
+    public RsData<List<CommentResponseDto>> getCommentsByTarget(CommentsTargetType targetType, Long targetId) {
+        List<Comments> comments = commentsRepository.findByTargetTypeAndTargetIdAndParentIsNullOrderByCreatedAtAsc(
+                targetType,
+                targetId
+        );
 
         List<CommentResponseDto> dtoList = comments.stream()
                 .map(CommentResponseDto::fromEntity)
@@ -57,7 +64,7 @@ public class CommentsService {
         Comments comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getId().equals(userId)) {
             throw new ServiceException(CommentsErrorCase.UNAUTHORIZED_UPDATE);
         }
 
@@ -71,7 +78,7 @@ public class CommentsService {
         Comments comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getId().equals(userId)) {
             throw new ServiceException(CommentsErrorCase.UNAUTHORIZED_DELETE);
         }
 

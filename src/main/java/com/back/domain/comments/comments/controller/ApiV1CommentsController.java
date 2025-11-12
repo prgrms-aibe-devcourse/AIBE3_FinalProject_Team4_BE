@@ -1,6 +1,9 @@
 package com.back.domain.comments.comments.controller;
 
-import com.back.domain.comments.comments.dto.*;
+import com.back.domain.comments.comments.dto.CommentCreateRequestDto;
+import com.back.domain.comments.comments.dto.CommentResponseDto;
+import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
+import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +42,7 @@ public class ApiV1CommentsController {
         return commentsService.createComment(req);
     }
 
-    @GetMapping("/{postId}")
+    @GetMapping("/{targetType}/{targetId}")
     @Operation(
             summary = "댓글 조회",
             description = "게시글의 모든 댓글 및 대댓글을 조회합니다.",
@@ -50,8 +53,11 @@ public class ApiV1CommentsController {
                             content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
-    public RsData<List<CommentResponseDto>> getCommentsByPost(@PathVariable Long postId) {
-        return commentsService.getCommentsByPost(postId);
+    public RsData<List<CommentResponseDto>> getCommentsByTarget(
+            @PathVariable CommentsTargetType targetType,
+            @PathVariable Long targetId
+    ) {
+        return commentsService.getCommentsByTarget(targetType, targetId);
     }
 
     @PutMapping("/{commentId}")
