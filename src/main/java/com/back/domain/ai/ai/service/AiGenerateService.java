@@ -1,7 +1,6 @@
 package com.back.domain.ai.ai.service;
 
 import com.back.domain.ai.ai.dto.*;
-import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -60,13 +59,13 @@ public class AiGenerateService {
             );
             case "summary" -> generate(
                     appendUserPrompt(USER_SUMMARY_PROMPT, req),
-                    AiGenerateContentResBody.class
+                    AiGenerateSummaryResBody.class
             );
             case "keyword" -> generate(
                     appendUserPrompt(USER_KEYWORD_PROMPT, req),
                     AiGenerateKeywordResBody.class
             );
-            default -> throw new ServiceException("400-1", "지원하지 않는 모드입니다.");
+            default -> throw new IllegalArgumentException("지원하지 않는 모드입니다.");
         };
     }
 
@@ -84,7 +83,7 @@ public class AiGenerateService {
 
         userPrompt.append(modePrompt).append("/n")
                 .append("[콘텐츠 유형]: ").append(req.contentType()).append("/n");
-        if (!req.message().isBlank()) {
+        if (req.message() != null && !req.message().isBlank()) {
             userPrompt.append("[질문]: ").append(req.message()).append("\n");
         }
         userPrompt.append("[본문]: \n").append(req.content());

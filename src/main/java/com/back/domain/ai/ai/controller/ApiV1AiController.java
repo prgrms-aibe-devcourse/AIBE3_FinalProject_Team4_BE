@@ -26,7 +26,7 @@ import reactor.core.scheduler.Schedulers;
 @RequestMapping("/api/v1/ais")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "ApiV1AiController", description = "API AI 컨트롤러")
+@Tag(name = "AI API", description = "AI 관련 API")
 public class ApiV1AiController {
     private final AiGenerateService aiGenerateService;
     private final AiIndexService aiIndexService;
@@ -41,6 +41,16 @@ public class ApiV1AiController {
                 .doOnError(e -> log.error("AI 생성 기능 관련 에러", e));
     }
 
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "챗봇 (스트리밍 응답)")
+    public Flux<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
+        return aiChatService.chatStream(req)
+                .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 챗봇 (스트리밍) 에러: ", e))
+                .doOnCancel(() -> log.info("클라이언트가 AI 요청 중단"));
+    }
+
+    // 챗봇 기능은 스트리밍 응답을 기본으로 할 예정입니다.
     @PostMapping(value = "/chat/once", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "챗봇 (단일 응답)")
     public Mono<ResponseEntity<RsData<String>>> chatOnce(@RequestBody @Validated AiChatReqBody req) {
@@ -54,24 +64,7 @@ public class ApiV1AiController {
                 .doOnError(e -> log.error("AI 챗봇 에러: ", e));
     }
 
-    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "챗봇 (스트리밍 출력)")
-    public Flux<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
-        return aiChatService.chatStream(req)
-                .map(RsData::successOf)
-                .doOnError(e -> log.error("AI 챗봇 (스트리밍) 에러: ", e))
-                .doOnCancel(() -> log.info("클라이언트가 AI 요청 중단"));
-    }
-
-    @PostMapping("/index")
-    @Operation(summary = "블로그 벡터 색인")
-    public Mono<RsData<String>> indexBlog(@RequestBody AiIndexBlogReqBody req) {
-        return Mono.fromRunnable(() -> aiIndexService.indexBlog(req.id(), req.title(), req.content()))
-                .subscribeOn(Schedulers.boundedElastic())
-                .then(Mono.just(RsData.successOf("블로그 벡터 등록 완료")))
-                .doOnError(e -> log.error("AI 블로그 벡터 DB 에러: ", e));
-    }
-
+    // 추후 챗봇 API를 통합하고, 내부 로직에서 RAG 기반 여부에 따라 분기 처리할 예정입니다.
     @PostMapping("/chat/rag")
     @Operation(summary = "RAG 기반 챗봇")
     public Mono<RsData<String>> chatWithRag(@RequestBody @Validated AiChatReqBody req) {
@@ -79,5 +72,14 @@ public class ApiV1AiController {
                 .subscribeOn(Schedulers.boundedElastic())
                 .map(RsData::successOf)
                 .doOnError(e -> log.error("AI 챗봇 (RAG) 에러: ", e));
+    }
+
+    @PostMapping("/index")
+    @Operation(summary = "블로그 벡터 DB 등록")
+    public Mono<RsData<String>> indexBlog(@RequestBody AiIndexBlogReqBody req) {
+        return Mono.fromRunnable(() -> aiIndexService.indexBlog(req.blogId(), req.title(), req.content()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then(Mono.just(RsData.successOf("블로그 벡터 등록 완료")))
+                .doOnError(e -> log.error("AI 블로그 벡터 DB 에러: ", e));
     }
 }

@@ -1,7 +1,7 @@
 package com.back.domain.ai.ai.dto;
 
 public record AiIndexBlogReqBody(
-        Integer id,
+        Integer blogId,
         String title,
         String content
 ) {

@@ -36,14 +36,9 @@ public class AiChatService {
             """;
 
     public String chatOnce(AiChatReqBody req) {
-//        return openAiChatClient.prompt(buildPrompt(req))
-//                .call()
-//                .content();
-        String response = openAiChatClient.prompt(buildPrompt(req))
+        return openAiChatClient.prompt(buildPrompt(req))
                 .call()
                 .content();
-        log.info("챗봇: {}", response);
-        return response;
     }
 
     public Flux<String> chatStream(AiChatReqBody req) {
@@ -78,7 +73,6 @@ public class AiChatService {
         String context = similarDocuments.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n---\n"));
-
 
         SystemMessage systemMessage = SystemMessage.builder()
                 .text(AiGenerateService.SYSTEM_BASE_PROMPT)
