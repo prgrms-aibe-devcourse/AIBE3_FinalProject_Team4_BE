@@ -15,7 +15,7 @@ public interface ShorlogHashtagRepository extends JpaRepository<ShorlogHashtag, 
     @Query("SELECT h.name FROM ShorlogHashtag sh JOIN sh.hashtag h WHERE sh.shorlog.id = :shorlogId")
     List<String> findHashtagNamesByShorlogId(@Param("shorlogId") Long shorlogId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM ShorlogHashtag sh WHERE sh.shorlog.id = :shorlogId")
     void deleteByShorlogId(@Param("shorlogId") Long shorlogId);
 }

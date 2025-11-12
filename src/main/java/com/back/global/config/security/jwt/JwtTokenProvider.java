@@ -1,8 +1,11 @@
 package com.back.global.config.security.jwt;
 
+import com.back.global.config.security.SecurityUser;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -18,7 +21,7 @@ public class JwtTokenProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String role) {
+    public String generateAccessToken(Long userId, String role) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("role", role)
@@ -39,7 +42,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith((SecretKey) signingKey).build().parse(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
@@ -50,7 +53,7 @@ public class JwtTokenProvider {
         if (!validateToken(token)) {
             throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
-        String subject = Jwts.parserBuilder()
+        String subject = Jwts.parser()
                 .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
@@ -59,11 +62,18 @@ public class JwtTokenProvider {
         return Long.parseLong(subject);
     }
 
-    public Long getTokenExpiry(String token) {
-        if (!validateToken(token)) {
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
-        }
-        return Jwts.parserBuilder().setSigningKey(signingKey).build()
-                .parseClaimsJws(token).getBody().getExpiration().getTime();
+    public SecurityUser parseUserFromToken(String token) {
+        Claims claims  = Jwts.parser()
+                .verifyWith((SecretKey) signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        Long userId = Long.parseLong(claims.getSubject());
+        String email = claims.get("email", String.class);
+        String username = claims.get("username", String.class);
+        String nickname = claims.get("nickname", String.class);
+
+        return new SecurityUser(userId, email, username, nickname);
     }
 }

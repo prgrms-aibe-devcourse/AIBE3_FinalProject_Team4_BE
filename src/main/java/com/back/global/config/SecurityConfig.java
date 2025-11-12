@@ -1,6 +1,10 @@
 package com.back.global.config;
 
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
+import com.back.global.config.security.jwt.JwtAuthenticationFilter;
 import com.back.global.config.security.jwt.JwtTokenProvider;
+import com.back.global.rq.Rq;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +15,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -23,6 +28,13 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final Rq rq;
+    private final ObjectMapper objectMapper;
+
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(jwtProvider, refreshTokenService, rq, objectMapper);
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -37,14 +49,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-                        .anyRequest().permitAll() // TODO: 로그인, 회원가입 개발 후 .anyRequest().authenticated() 으로 변경
-                );
-        // TODO: 로그인,회원가입 api 개발 후 아래 코드 주석 제거
-        //.addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/password-reset").permitAll()
+                        .requestMatchers("/api/v1/auth/send-code", "/api/v1/auth/verify-code").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

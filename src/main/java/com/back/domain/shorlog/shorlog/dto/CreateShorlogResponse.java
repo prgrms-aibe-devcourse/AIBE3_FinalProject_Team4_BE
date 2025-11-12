@@ -27,11 +27,11 @@ public class CreateShorlogResponse {
                 .id(shorlog.getId())
                 .userId(shorlog.getUser().getId())
                 .username(shorlog.getUser().getUsername())
-                .profileImgUrl(shorlog.getUser().getProfileimgurl())
+                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .content(shorlog.getContent())
                 .thumbnailUrls(shorlog.getThumbnailUrlList())
                 .hashtags(hashtags)
-                .createdAt(shorlog.getCreateDate())
+                .createdAt(shorlog.getCreatedAt())
                 .build();
     }
 }

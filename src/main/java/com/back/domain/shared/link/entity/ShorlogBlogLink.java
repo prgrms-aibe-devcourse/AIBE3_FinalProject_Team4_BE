@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(uniqueConstraints = { // 하나의 쇼로그는 하나의 블로그에만 연결 가능
+@Table(uniqueConstraints = {
         @UniqueConstraint(
-                name = "uk_shorlog",  // ✅ 이름 변경
-                columnNames = {"shorlog_id"}  // ✅ shorlog_id만!
+                name = "uk_shorlog",
+                columnNames = {"shorlog_id"} // 하나의 숏로그는 하나의 블로그에만 연결되도록 제한
         )
 })
 @Getter
@@ -36,5 +36,5 @@ public class ShorlogBlogLink {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createDate;
+    private LocalDateTime createdAt;
 }

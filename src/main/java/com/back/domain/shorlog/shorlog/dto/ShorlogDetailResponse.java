@@ -29,22 +29,22 @@ public class ShorlogDetailResponse {
     private LocalDateTime modifiedAt;
     private Long connectedBlogId;
 
-    public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags) {
+    public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount) {
         return ShorlogDetailResponse.builder()
                 .id(shorlog.getId())
                 .userId(shorlog.getUser().getId())
                 .username(shorlog.getUser().getUsername())
                 .nickname(shorlog.getUser().getNickname())
-                .profileImgUrl(shorlog.getUser().getProfileimgurl())
+                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .content(shorlog.getContent())
                 .thumbnailUrls(shorlog.getThumbnailUrlList())
-                .viewCount(shorlog.getViewCount())
+                .viewCount(viewCount)
                 .likeCount(0) // TODO: 좋아요 기능 구현 후
                 .bookmarkCount(0) // TODO: 북마크 기능 구현 후
                 .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
                 .hashtags(hashtags)
-                .createdAt(shorlog.getCreateDate())
-                .modifiedAt(shorlog.getModifyDate())
+                .createdAt(shorlog.getCreatedAt())
+                .modifiedAt(shorlog.getModifiedAt())
                 .connectedBlogId(null) // TODO: 블로그 연결 기능 구현 후
                 .build();
     }

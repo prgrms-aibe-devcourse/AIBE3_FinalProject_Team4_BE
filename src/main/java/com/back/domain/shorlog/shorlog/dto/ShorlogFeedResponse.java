@@ -13,7 +13,7 @@ import java.util.List;
 public class ShorlogFeedResponse {
 
     private Long id;
-    private String thumbnailUrl; // 피드에서는 첫 번째 섬네일만 표시
+    private String thumbnailUrl;
     private String profileImgUrl;
     private String username;
     private List<String> hashtags;
@@ -29,8 +29,8 @@ public class ShorlogFeedResponse {
 
         return ShorlogFeedResponse.builder()
                 .id(shorlog.getId())
+                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .thumbnailUrl(firstThumbnail)
-                .profileImgUrl(shorlog.getUser().getProfileimgurl())
                 .username(shorlog.getUser().getUsername())
                 .hashtags(hashtags)
                 .likeCount(0) // TODO: 좋아요 기능 구현 후
@@ -39,7 +39,7 @@ public class ShorlogFeedResponse {
                 .build();
     }
 
-    // 콘텐츠에서 첫 문장 추출 - 줄바꿈(\n) 기준으로 첫 줄만 반환
+    // 콘텐츠에서 첫 줄 추출 - 줄바꿈(\n) 기준으로 첫 줄만 반환
     private static String extractFirstLine(String content) {
         if (content == null || content.isEmpty()) {
             return "";

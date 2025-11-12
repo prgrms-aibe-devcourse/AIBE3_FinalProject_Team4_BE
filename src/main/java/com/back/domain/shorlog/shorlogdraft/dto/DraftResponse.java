@@ -26,8 +26,7 @@ public class DraftResponse {
                 .content(draft.getContent())
                 .thumbnailUrls(draft.getThumbnailUrlList())
                 .hashtags(hashtags)
-                .createdAt(draft.getCreateDate())
+                .createdAt(draft.getCreatedAt())
                 .build();
     }
 }
-

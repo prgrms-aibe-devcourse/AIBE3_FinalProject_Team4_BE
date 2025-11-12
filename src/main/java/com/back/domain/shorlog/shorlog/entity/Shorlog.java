@@ -29,10 +29,6 @@ public class Shorlog extends BaseEntity {
     @Builder.Default
     private Integer viewCount = 0;
 
-    public void incrementViewCount() {
-        this.viewCount++;
-    }
-
     public void update(String content, List<String> thumbnailUrls) {
         this.content = content;
         setThumbnailUrlList(thumbnailUrls);

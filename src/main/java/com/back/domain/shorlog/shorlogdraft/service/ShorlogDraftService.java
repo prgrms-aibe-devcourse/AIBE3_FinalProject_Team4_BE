@@ -56,7 +56,7 @@ public class ShorlogDraftService {
     }
 
     public List<DraftResponse> getDrafts(Long userId) {
-        List<ShorlogDraft> drafts = draftRepository.findByUserIdOrderByCreateDateDesc(userId);
+        List<ShorlogDraft> drafts = draftRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return drafts.stream()
                 .map(draft -> DraftResponse.of(draft, convertJsonToHashtags(draft.getHashtags())))
                 .toList();
@@ -131,4 +131,3 @@ public class ShorlogDraftService {
         }
     }
 }
-

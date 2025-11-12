@@ -15,7 +15,7 @@ public interface ShorlogImageRepository extends JpaRepository<ShorlogImage, Long
 
     Optional<ShorlogImage> findBySavedFilename(String savedFilename);
 
-    @Query("SELECT si FROM ShorlogImage si WHERE si.referenceCount = 0 AND si.createDate < :expiryDate")
+    @Query("SELECT si FROM ShorlogImage si WHERE si.referenceCount = 0 AND si.createdAt < :expiryDate")
     List<ShorlogImage> findUnusedImages(@Param("expiryDate") LocalDateTime expiryDate);
 }
 

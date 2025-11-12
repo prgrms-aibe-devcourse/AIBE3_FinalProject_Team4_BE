@@ -4,16 +4,18 @@ import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,80 +25,85 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/shorlog")
 @RequiredArgsConstructor
-public class ShorlogController {
+public class ApiV1ShorlogController {
 
     private final ShorlogService shorlogService;
     private final ImageUploadService imageUploadService;
 
     @PostMapping
-    public ResponseEntity<RsData<CreateShorlogResponse>> createShorlog(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "숏로그 작성")
+    public RsData<CreateShorlogResponse> createShorlog(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @Valid @RequestBody CreateShorlogRequest request
     ) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(RsData.successOf(shorlogService.createShorlog(userId, request)));
+        return RsData.successOf(shorlogService.createShorlog(securityUser.getId(), request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RsData<ShorlogDetailResponse>> getShorlog(@PathVariable Long id) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.getShorlog(id)));
+    @Operation(summary = "숏로그 상세 조회")
+    public RsData<ShorlogDetailResponse> getShorlog(@PathVariable Long id) {
+        return RsData.successOf(shorlogService.getShorlog(id));
     }
 
     @GetMapping("/feed")
-    public ResponseEntity<RsData<Page<ShorlogFeedResponse>>> getFeed(
+    @Operation(summary = "숏로그 피드 조회")
+    public RsData<Page<ShorlogFeedResponse>> getFeed(
             @RequestParam(defaultValue = "0") int page
     ) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.getFeed(page)));
+        return RsData.successOf(shorlogService.getFeed(page));
     }
 
     @GetMapping("/following")
-    public ResponseEntity<RsData<Page<ShorlogFeedResponse>>> getFollowingFeed(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "팔로잉 피드 조회")
+    public RsData<Page<ShorlogFeedResponse>> getFollowingFeed(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.getFollowingFeed(userId, page)));
+        return RsData.successOf(shorlogService.getFollowingFeed(securityUser.getId(), page));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<RsData<Page<ShorlogFeedResponse>>> getMyShorlogs(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "내 숏로그 조회")
+    public RsData<Page<ShorlogFeedResponse>> getMyShorlogs(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "latest") String sort,
             @RequestParam(defaultValue = "0") int page
     ) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.getMyShorlogs(userId, sort, page)));
+        return RsData.successOf(shorlogService.getMyShorlogs(securityUser.getId(), sort, page));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RsData<UpdateShorlogResponse>> updateShorlog(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "숏로그 수정")
+    public RsData<UpdateShorlogResponse> updateShorlog(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id,
             @Valid @RequestBody UpdateShorlogRequest request
     ) {
-        return ResponseEntity.ok(RsData.successOf(shorlogService.updateShorlog(userId, id, request)));
+        return RsData.successOf(shorlogService.updateShorlog(securityUser.getId(), id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<RsData<Void>> deleteShorlog(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "숏로그 삭제")
+    public RsData<Void> deleteShorlog(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id
     ) {
-        shorlogService.deleteShorlog(userId, id);
-        return ResponseEntity.ok(new RsData<>("200-1", "쇼로그가 삭제되었습니다."));
+        shorlogService.deleteShorlog(securityUser.getId(), id);
+        return new RsData<>("200-1", "숏로그가 삭제되었습니다.");
     }
 
     @PostMapping("/images/batch")
-    public ResponseEntity<RsData<List<UploadImageResponse>>> uploadImages(
-            @RequestAttribute("userId") Long userId,
+    @Operation(summary = "이미지 일괄 업로드")
+    public RsData<List<UploadImageResponse>> uploadImages(
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "aspectRatios", required = false) List<String> aspectRatios
     ) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(RsData.successOf(imageUploadService.uploadImages(userId, files, aspectRatios)));
+        return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, aspectRatios));
     }
 
     @GetMapping("/image/{filename}")
+    @Operation(summary = "이미지 조회")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {
         Resource resource = imageUploadService.loadImage(filename);
         String contentType = imageUploadService.getContentType(filename);

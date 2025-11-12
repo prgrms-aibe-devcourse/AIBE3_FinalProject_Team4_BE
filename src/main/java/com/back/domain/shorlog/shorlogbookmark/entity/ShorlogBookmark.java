@@ -30,7 +30,7 @@ public class ShorlogBookmark {  // BaseEntity 상속 X
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createDate;
+    private LocalDateTime createdAt;
 
     // 복합 키 클래스
     @NoArgsConstructor
