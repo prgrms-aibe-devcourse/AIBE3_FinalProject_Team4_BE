@@ -66,8 +66,7 @@ public class ShorlogService {
 
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
 
-
-        return ShorlogDetailResponse.from(shorlog, hashtags);
+        return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1);
     }
 
      // 격자형 피드 조회 (전체, AI 추천)
@@ -108,7 +107,8 @@ public class ShorlogService {
         switch (sort.toLowerCase()) {
             case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
             case "views" -> shorlogs = shorlogRepository.findByUserIdOrderByViewCountDesc(userId, pageable);
-            default -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+            case "latest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'views', 'latest' 중 하나여야 합니다.");
         }
 
         return shorlogs.map(shorlog -> {

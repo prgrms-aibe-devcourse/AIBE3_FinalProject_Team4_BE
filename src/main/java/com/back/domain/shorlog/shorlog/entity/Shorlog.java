@@ -22,10 +22,9 @@ public class Shorlog extends BaseEntity {
     private String thumbnailUrl;
 
     @Column(name = "thumbnail_type", length = 20, nullable = false)
-    @Builder.Default
-    private String thumbnailType = "upload";
+    private String thumbnailType;
 
-    @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
+    @Column(name = "view_count", nullable = false)
     @Builder.Default
     private Integer viewCount = 0;
 

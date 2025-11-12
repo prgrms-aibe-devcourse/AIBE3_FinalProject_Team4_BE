@@ -34,7 +34,7 @@ public class ShorlogFeedResponse {
                 .build();
     }
 
-    // 콘텐츠에서 첫 문장 추출 - 줄바꿈(\n) 기준으로 첫 줄만 반환
+    // 콘텐츠에서 첫 줄 추출 - 줄바꿈(\n) 기준으로 첫 줄만 반환
     private static String extractFirstLine(String content) {
         if (content == null || content.isEmpty()) {
             return "";
