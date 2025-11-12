@@ -113,20 +113,24 @@ public class BlogService {
 
     @Transactional
     public Blog saveDraft(Long userId, Long id, @Valid BlogWriteReqDto reqbody, String thumbnailUrl) {
-        Blog blog;
-        if (blogRepository.findById(id).isEmpty()) {
-            blog = create(userId, reqbody, thumbnailUrl);
-            blog.updateHashtags(reqbody.hashtagIds());
-            blog.setStatus(BlogStatus.DRAFT);
-            blogRepository.save(blog);
-            return blog;
-        } else {
-            blog = blogRepository.findById(id)
-                    .orElseThrow(NoSuchElementException::new);
-            blog.modify(reqbody, reqbody.hashtagIds());
-            blogRepository.save(blog);
-            return blog;
-        }
+        Blog blog = blogRepository.findById(id)
+                .orElseGet(() -> createDraft(userId, reqbody, thumbnailUrl)); // 존재하지 않으면 새로 생성
+
+        updateDraft(blog, reqbody, thumbnailUrl);
+
+        return blog;
+    }
+
+    private Blog createDraft(Long userId, BlogWriteReqDto req, String thumbnailUrl) {
+        Blog newBlog = create(userId, req, thumbnailUrl);
+        newBlog.updateHashtags(req.hashtagIds());
+        newBlog.setStatus(BlogStatus.DRAFT);
+        return blogRepository.save(newBlog);
+    }
+
+    private void updateDraft(Blog blog, BlogWriteReqDto req, String thumbnailUrl) {
+        blog.modify(req, req.hashtagIds());
+        blog.setStatus(BlogStatus.DRAFT);
     }
 
     public List<BlogDraftDto> findDraftsByUserId(Long userId) {
