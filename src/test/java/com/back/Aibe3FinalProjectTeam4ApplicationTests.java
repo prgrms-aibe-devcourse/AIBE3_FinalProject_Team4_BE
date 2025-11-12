@@ -12,6 +12,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 @SpringBootTest
 class Aibe3FinalProjectTeam4ApplicationTests {
+    //키 등록함
 
     @TestConfiguration
     static class TestBeanConfig {
