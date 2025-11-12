@@ -12,8 +12,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -37,12 +41,16 @@ public class ApiV1AiController {
                 .doOnError(e -> log.error("AI 생성 기능 관련 에러", e));
     }
 
-    @PostMapping("/chat/once")
-    @Operation(summary = "챗봇")
-    public Mono<RsData<String>> chatOnce(@RequestBody @Validated AiChatReqBody req) {
+    @PostMapping(value = "/chat/once", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "챗봇 (단일 응답)")
+    public Mono<ResponseEntity<RsData<String>>> chatOnce(@RequestBody @Validated AiChatReqBody req) {
         return Mono.fromCallable(() -> aiChatService.chatOnce(req))
                 .subscribeOn(Schedulers.boundedElastic())
                 .map(RsData::successOf)
+                // ResponseEntity로 Content-Type JSON 명시하여 WebFlux 직렬화 문제 방지
+                .map(rs -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(rs))
                 .doOnError(e -> log.error("AI 챗봇 에러: ", e));
     }
 
