@@ -119,7 +119,7 @@ public class AiChatService {
         SearchRequest searchRequest = SearchRequest.builder()
                 .query(query)
                 .topK(3)
-                .filterExpression("id == %d".formatted(blogId))
+                .filterExpression("blogId == %d".formatted(blogId))
                 .build();
 
         return vectorStore.similaritySearch(searchRequest);
