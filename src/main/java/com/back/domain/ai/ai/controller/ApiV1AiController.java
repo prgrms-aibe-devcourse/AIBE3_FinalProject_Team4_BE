@@ -33,22 +33,25 @@ public class ApiV1AiController {
     public Mono<RsData<Object>> generate(@RequestBody @Validated AiGenerateReqBody req) {
         return Mono.fromCallable(() -> aiGenerateService.generate(req))
                 .subscribeOn(Schedulers.boundedElastic())
-                .map(RsData::successOf);
+                .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 생성 기능 관련 에러", e));
     }
 
-    @PostMapping(value = "/chat/once", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping("/chat/once")
     @Operation(summary = "챗봇")
-    public Mono<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
-        return Mono.fromCallable(() -> aiChatService.chat(req))
+    public Mono<RsData<String>> chatOnce(@RequestBody @Validated AiChatReqBody req) {
+        return Mono.fromCallable(() -> aiChatService.chatOnce(req))
                 .subscribeOn(Schedulers.boundedElastic())
-                .map(RsData::successOf);
+                .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 챗봇 에러: ", e));
     }
 
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "챗봇 (스트리밍 출력)")
-    public Flux<RsData<String>> chatStream(@RequestBody @Validated AiChatReqBody req) {
+    public Flux<RsData<String>> chat(@RequestBody @Validated AiChatReqBody req) {
         return aiChatService.chatStream(req)
                 .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 챗봇 (스트리밍) 에러: ", e))
                 .doOnCancel(() -> log.info("클라이언트가 AI 요청 중단"));
     }
 
@@ -57,7 +60,8 @@ public class ApiV1AiController {
     public Mono<RsData<String>> indexBlog(@RequestBody AiIndexBlogReqBody req) {
         return Mono.fromRunnable(() -> aiIndexService.indexBlog(req.id(), req.title(), req.content()))
                 .subscribeOn(Schedulers.boundedElastic())
-                .then(Mono.just(RsData.successOf("블로그 벡터 등록 완료")));
+                .then(Mono.just(RsData.successOf("블로그 벡터 등록 완료")))
+                .doOnError(e -> log.error("AI 블로그 벡터 DB 에러: ", e));
     }
 
     @PostMapping("/chat/rag")
@@ -65,6 +69,7 @@ public class ApiV1AiController {
     public Mono<RsData<String>> chatWithRag(@RequestBody @Validated AiChatReqBody req) {
         return Mono.fromCallable(() -> aiChatService.chatWithRag(req.id(), req.message()))
                 .subscribeOn(Schedulers.boundedElastic())
-                .map(RsData::successOf);
+                .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 챗봇 (RAG) 에러: ", e));
     }
 }

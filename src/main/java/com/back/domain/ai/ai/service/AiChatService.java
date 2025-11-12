@@ -32,13 +32,18 @@ public class AiChatService {
     private final String SYSTEM_DETAIL_PROMPT = """
             * 전문적이면서도 친근한 톤을 유지합니다.
             * 모든 답변은 명확하고 자연스러운 문체로, 실제 블로그 작성에 바로 쓸 수 있게 작성해야 합니다.
-            * 답변은 System Message의 규칙에 따라 마크다운(Markdown) 형식으로 구조화해야 합니다.
+            * 답변은 마크다운(Markdown) 형식으로 구조화해야 합니다.
             """;
 
-    public String chat(AiChatReqBody req) {
-        return openAiChatClient.prompt(buildPrompt(req))
+    public String chatOnce(AiChatReqBody req) {
+//        return openAiChatClient.prompt(buildPrompt(req))
+//                .call()
+//                .content();
+        String response = openAiChatClient.prompt(buildPrompt(req))
                 .call()
                 .content();
+        log.info("챗봇: {}", response);
+        return response;
     }
 
     public Flux<String> chatStream(AiChatReqBody req) {
