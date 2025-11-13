@@ -24,11 +24,9 @@ public class BlogService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
 
-
     public void truncate() {
         blogRepository.deleteAll();
     }
-
 
     public List<BlogDto> findAll() {
         List<Blog> blogs = blogRepository.findAll();
@@ -136,10 +134,9 @@ public class BlogService {
     }
 
     public List<BlogDto> findAllByUserId(Long userId) {
-        List<Blog> blogs = blogRepository.findAllByAuthorAndStatus(userId, BlogStatus.PUBLISHED);
+        List<Blog> blogs = blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED);
         return blogs.stream()
                 .map(b -> new BlogDto(b))
                 .toList();
     }
 }
-

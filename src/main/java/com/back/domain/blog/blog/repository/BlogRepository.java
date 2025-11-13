@@ -24,6 +24,10 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             """)
     Optional<Blog> findByIdWithHashtags(@Param("id") Long id);
 
+    @Query("""
+            SELECT b FROM Blog b
+            WHERE b.status = :blogStatus AND b.user.id = :id
+            """)
     List<Blog> findByStatusAndUserId(BlogStatus blogStatus, Long id);
 
     @Modifying
@@ -40,6 +44,5 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             """)
     void decreaseBookmark(Long postId);
 
-    @Query("SELECT b FROM Blog b WHERE b.user = :author AND b.status = :status ORDER BY b.createdAt DESC")
-    List<Blog> findAllByAuthorAndStatus(Long id, BlogStatus blogStatus);
+    List<Blog> findAllByUserIdAndStatus(Long userId, BlogStatus blogStatus);
 }
