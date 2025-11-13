@@ -11,4 +11,5 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
             CommentsTargetType targetType,
             Long targetId
     );
+    void deleteByTargetTypeAndTargetId(CommentsTargetType targetType, Long targetId);
 }

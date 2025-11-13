@@ -5,6 +5,7 @@ import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +27,9 @@ public class ApiV1CommentsController {
 
     private final CommentsService commentsService;
 
+    /**
+     * 댓글 작성
+     */
     @PostMapping
     @Operation(
             summary = "댓글 작성",
@@ -38,10 +43,16 @@ public class ApiV1CommentsController {
                             content = @Content(schema = @Schema(implementation = RsData.class)))
             }
     )
-    public RsData<CommentResponseDto> createComment(@Valid @RequestBody CommentCreateRequestDto req) {
-        return commentsService.createComment(req);
+    public RsData<CommentResponseDto> createComment(
+            @AuthenticationPrincipal SecurityUser user,
+            @Valid @RequestBody CommentCreateRequestDto req
+    ) {
+        return commentsService.createComment(req.withUserId(user.getId()));
     }
 
+    /**
+     * 댓글 조회
+     */
     @GetMapping("/{targetType}/{targetId}")
     @Operation(
             summary = "댓글 조회",
@@ -60,6 +71,9 @@ public class ApiV1CommentsController {
         return commentsService.getCommentsByTarget(targetType, targetId);
     }
 
+    /**
+     * 댓글 수정
+     */
     @PutMapping("/{commentId}")
     @Operation(
             summary = "댓글 수정",
@@ -77,12 +91,15 @@ public class ApiV1CommentsController {
     )
     public RsData<CommentResponseDto> updateComment(
             @PathVariable Long commentId,
-            @RequestParam Long userId,
+            @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody CommentUpdateRequestDto req
     ) {
-        return commentsService.updateComment(commentId, userId, req);
+        return commentsService.updateComment(commentId, user.getId(), req);
     }
 
+    /**
+     * 댓글 삭제
+     */
     @DeleteMapping("/{commentId}")
     @Operation(
             summary = "댓글 삭제",
@@ -98,11 +115,14 @@ public class ApiV1CommentsController {
     )
     public RsData<Void> deleteComment(
             @PathVariable Long commentId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal SecurityUser user
     ) {
-        return commentsService.deleteComment(commentId, userId);
+        return commentsService.deleteComment(commentId, user.getId());
     }
 
+    /**
+     * 좋아요 추가
+     */
     @PostMapping("/{commentId}/like")
     @Operation(
             summary = "댓글 좋아요",
@@ -118,11 +138,14 @@ public class ApiV1CommentsController {
     )
     public RsData<CommentResponseDto> likeComment(
             @PathVariable Long commentId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal SecurityUser user
     ) {
-        return commentsService.likeComment(commentId, userId);
+        return commentsService.likeComment(commentId, user.getId());
     }
 
+    /**
+     * 좋아요 취소
+     */
     @PostMapping("/{commentId}/unlike")
     @Operation(
             summary = "댓글 좋아요 취소",
@@ -138,8 +161,8 @@ public class ApiV1CommentsController {
     )
     public RsData<CommentResponseDto> unlikeComment(
             @PathVariable Long commentId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal SecurityUser user
     ) {
-        return commentsService.unlikeComment(commentId, userId);
+        return commentsService.unlikeComment(commentId, user.getId());
     }
 }
