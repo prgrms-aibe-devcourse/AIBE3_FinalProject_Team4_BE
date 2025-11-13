@@ -19,7 +19,7 @@ public class UploadImageResponse {
     public static UploadImageResponse from(ShorlogImage image) {
         return UploadImageResponse.builder()
                 .id(image.getId())
-                .imageUrl("/api/v1/shorlog/image/" + image.getSavedFilename())
+                .imageUrl(image.getS3Url())  // S3 URL 직접 반환
                 .originalFilename(image.getOriginalFilename())
                 .fileSize(image.getFileSize())
                 .build();

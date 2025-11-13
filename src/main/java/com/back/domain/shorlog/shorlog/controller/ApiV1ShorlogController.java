@@ -10,11 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -100,17 +96,5 @@ public class ApiV1ShorlogController {
             @RequestParam(value = "aspectRatios", required = false) List<String> aspectRatios
     ) {
         return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, aspectRatios));
-    }
-
-    @GetMapping("/image/{filename}")
-    @Operation(summary = "이미지 조회")
-    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
-        Resource resource = imageUploadService.loadImage(filename);
-        String contentType = imageUploadService.getContentType(filename);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                .body(resource);
     }
 }

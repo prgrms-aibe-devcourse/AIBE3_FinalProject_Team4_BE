@@ -1,5 +1,9 @@
 package com.back.domain.shorlog.shorlogimage.service;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.shorlog.shorlogimage.entity.ShorlogImage;
 import com.back.domain.shorlog.shorlogimage.repository.ShorlogImageRepository;
@@ -8,8 +12,6 @@ import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -34,13 +37,16 @@ public class ImageUploadService {
 
     private final ShorlogImageRepository imageRepository;
     private final UserRepository userRepository;
+    private final AmazonS3 amazonS3;
 
-    @Value("${file.upload.max-size:5242880}")
-    private long maxFileSize;
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"};
     private static final int MAX_WIDTH = 1080;
     private static final int MAX_HEIGHT = 1350;
+    private static final String S3_FOLDER = "shorlog/images/";
 
     @Transactional
     public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<String> aspectRatios) {
@@ -68,27 +74,47 @@ public class ImageUploadService {
             String originalFilename = file.getOriginalFilename();
             String extension = getFileExtension(originalFilename);
             String savedFilename = generateUniqueFilename(extension);
+            String s3Key = S3_FOLDER + savedFilename;
 
             try {
                 BufferedImage originalImage = ImageIO.read(file.getInputStream());
                 BufferedImage resizedImage = resizeImageByAspectRatio(originalImage, aspectRatio);
 
+                // BufferedImage → byte[]
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(resizedImage, extension.equals("jpg") ? "jpeg" : extension, baos);
-                byte[] imageData = baos.toByteArray();
+                byte[] imageBytes = baos.toByteArray();
 
+                // S3 업로드
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentLength(imageBytes.length);
+                metadata.setContentType(file.getContentType());
+
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+
+                // ACL 없이 업로드 (버킷 정책으로 퍼블릭 액세스 관리)
+                PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, s3Key, inputStream, metadata);
+
+                amazonS3.putObject(putObjectRequest);
+
+                // S3 URL 생성
+                String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
+
+                // DB 저장 (URL만 저장)
                 ShorlogImage image = ShorlogImage.builder()
                         .user(user)
                         .originalFilename(originalFilename)
                         .savedFilename(savedFilename)
-                        .imageData(imageData)
-                        .fileSize((long) imageData.length)
+                        .s3Url(s3Url)
+                        .fileSize((long) imageBytes.length)
                         .contentType(file.getContentType())
                         .referenceCount(0)
                         .build();
 
                 ShorlogImage savedImage = imageRepository.save(image);
                 responses.add(UploadImageResponse.from(savedImage));
+
+                log.info("S3 업로드 성공: {} → {}", originalFilename, s3Url);
 
             } catch (IOException e) {
                 throw new RuntimeException("파일 업로드 중 오류가 발생했습니다: " + originalFilename, e);
@@ -98,27 +124,12 @@ public class ImageUploadService {
         return responses;
     }
 
-
-    public Resource loadImage(String filename) {
-        ShorlogImage image = imageRepository.findBySavedFilename(filename)
-                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-
-        return new ByteArrayResource(image.getImageData());
-    }
-
-    public String getContentType(String filename) {
-        ShorlogImage image = imageRepository.findBySavedFilename(filename)
-                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-
-        return image.getContentType();
-    }
-
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("파일이 비어있습니다.");
         }
 
-        if (file.getSize() > maxFileSize) {
+        if (file.getSize() > MAX_FILE_SIZE) {
             throw new IllegalArgumentException("파일 크기는 5MB를 초과할 수 없습니다.");
         }
 
@@ -244,8 +255,17 @@ public class ImageUploadService {
         List<ShorlogImage> unusedImages = imageRepository.findUnusedImages(expiryDate);
 
         for (ShorlogImage image : unusedImages) {
-            imageRepository.delete(image);
-            log.info("미사용 이미지 삭제 완료: {}", image.getSavedFilename());
+            try {
+                String s3Key = S3_FOLDER + image.getSavedFilename();
+                amazonS3.deleteObject(new DeleteObjectRequest(bucket, s3Key));
+                log.info("S3 파일 삭제 완료: {}", s3Key);
+
+                imageRepository.delete(image);
+                log.info("DB 메타데이터 삭제 완료: {}", image.getSavedFilename());
+
+            } catch (Exception e) {
+                log.error("이미지 삭제 실패: {}", image.getSavedFilename(), e);
+            }
         }
 
         if (!unusedImages.isEmpty()) {

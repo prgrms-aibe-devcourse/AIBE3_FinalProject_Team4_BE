@@ -23,9 +23,8 @@ public class ShorlogImage extends BaseEntity {
     @Column(name = "saved_filename", nullable = false, unique = true)
     private String savedFilename;
 
-    @Lob
-    @Column(name = "image_data", nullable = false, columnDefinition = "LONGBLOB")
-    private byte[] imageData;
+    @Column(name = "s3_url", nullable = false, length = 500)
+    private String s3Url;
 
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
