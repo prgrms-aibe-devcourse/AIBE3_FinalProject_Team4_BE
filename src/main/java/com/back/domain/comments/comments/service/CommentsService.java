@@ -21,11 +21,7 @@ public class CommentsService {
 
     private final CommentsRepository commentsRepository;
 
-
-    // =============================
     //  공통 메서드
-    // =============================
-
     private Comments getComment(Long id) {
         return commentsRepository.findById(id)
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
@@ -42,11 +38,7 @@ public class CommentsService {
         }
     }
 
-
-    // =============================
     //  댓글 생성
-    // =============================
-
     @Transactional
     public RsData<CommentResponseDto> createComment(CommentCreateRequestDto req) {
 
@@ -72,11 +64,7 @@ public class CommentsService {
         );
     }
 
-
-    // =============================
     //  댓글 조회
-    // =============================
-
     @Transactional(readOnly = true)
     public RsData<List<CommentResponseDto>> getCommentsByTarget(CommentsTargetType targetType, Long targetId) {
 
@@ -90,11 +78,7 @@ public class CommentsService {
         return RsData.of("200-1", "댓글 목록 조회 성공", dtoList);
     }
 
-
-    // =============================
     //  댓글 수정
-    // =============================
-
     @Transactional
     public RsData<CommentResponseDto> updateComment(Long commentId, Long userId, CommentUpdateRequestDto req) {
 
@@ -110,11 +94,7 @@ public class CommentsService {
         );
     }
 
-
-    // =============================
     //  댓글 삭제
-    // =============================
-
     @Transactional
     public RsData<Void> deleteComment(Long commentId, Long userId) {
 
@@ -126,17 +106,18 @@ public class CommentsService {
         return RsData.of("200-3", "댓글이 삭제되었습니다.", null);
     }
 
-
-    // =============================
     //  댓글 좋아요
-    // =============================
-
     @Transactional
     public RsData<CommentResponseDto> likeComment(Long commentId, Long userId) {
 
         Comments comment = getComment(commentId);
 
-        comment.addLike(userId);   // 중복 좋아요 체크는 entity 내부에서 처리한다고 가정
+        // 자기 댓글 좋아요 금지
+        if (comment.getUserId().equals(userId)) {
+            throw new ServiceException(CommentsErrorCase.COMMENT_LIKE_FORBIDDEN);
+        }
+
+        comment.addLike(userId);
 
         return RsData.of(
                 "200-4",
@@ -145,11 +126,7 @@ public class CommentsService {
         );
     }
 
-
-    // =============================
     //  댓글 좋아요 취소
-    // =============================
-
     @Transactional
     public RsData<CommentResponseDto> unlikeComment(Long commentId, Long userId) {
 
