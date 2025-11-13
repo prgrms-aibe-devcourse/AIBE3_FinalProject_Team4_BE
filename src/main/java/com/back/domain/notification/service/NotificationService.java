@@ -9,6 +9,7 @@ import com.back.global.exception.ServiceException;
 import com.back.global.sse.SseEmitterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
@@ -20,9 +21,12 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final SseEmitterRepository emitterRepository;
 
-    // 알림 생성 + SSE push
-    public void send(Long receiverId, Long senderId, NotificationType type,
-                     Long targetId, String message) {
+    // 알림 생성 + SSE 전송
+    public void send(Long receiverId, Long senderId,
+                     NotificationType type, Long targetId,
+                     String senderNickname) {
+
+        String message = type.createMessage(senderNickname);
 
         Notification notification = Notification.builder()
                 .receiverId(receiverId)
@@ -37,7 +41,7 @@ public class NotificationService {
         sendToClient(receiverId, notification);
     }
 
-    // SSE로 알림 push
+    // SSE Push
     public void sendToClient(Long userId, Notification notification) {
         emitterRepository.get(userId).ifPresent(emitter -> {
             try {
@@ -52,7 +56,7 @@ public class NotificationService {
         });
     }
 
-    // 알림 목록 조회
+    // 전체 알림 조회
     public List<NotificationResponseDto> getNotifications(Long userId) {
         return notificationRepository
                 .findByReceiverIdOrderByCreatedAtDesc(userId)
@@ -61,12 +65,22 @@ public class NotificationService {
                 .toList();
     }
 
-    // 읽지 않은 알림 수
+    // 최근 10개 알림 조회
+    public List<NotificationResponseDto> getRecentNotifications(Long userId) {
+        return notificationRepository
+                .findTop10ByReceiverIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(NotificationResponseDto::from)
+                .toList();
+    }
+
+    // 읽지 않은 개수 조회
     public long getUnreadCount(Long userId) {
         return notificationRepository.countByReceiverIdAndIsReadFalse(userId);
     }
 
-    // 읽음 처리
+    // 개별 알림 읽음 처리
+    @Transactional
     public void markAsRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ServiceException(NotificationErrorCase.NOTIFICATION_NOT_FOUND));
@@ -76,5 +90,11 @@ public class NotificationService {
         }
 
         notification.markAsRead();
+    }
+
+    // 전체 알림 읽음 처리 (드롭다운 열었을 때)
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsRead(userId);
     }
 }
