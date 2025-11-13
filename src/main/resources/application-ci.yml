@@ -29,10 +29,29 @@ spring:
 
   ai:
     openai:
-      api-key: "ci-dummy-key" # CI 환경에서만 사용할 더미 값
+      api-key: "ci-dummy-key"
+      embedding:
+        options:
+          model: text-embedding-3-small
     huggingface:
       chat:
-        api-key: "ci-dummy-key" # CI 환경에서만 사용할 더미 값
+        api-key: "ci-dummy-key"
+    vectorstore:
+      pinecone:
+        api-key: "ci-dummy-key"
+        index-name: "ci-dummy-key"
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "ci-dummy-key"
+    password: "ci-dummy-key"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
   mail:
     host: smtp.gmail.com
