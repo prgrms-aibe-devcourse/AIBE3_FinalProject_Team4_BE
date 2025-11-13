@@ -40,11 +40,7 @@ spring:
           starttls:
             enable: true
 
-  elasticsearch:
-    uris: http://localhost:9200
-    autoconfigure:
-      exclude: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
-      
+
 logging:
   level:
     org.hibernate.SQL: debug

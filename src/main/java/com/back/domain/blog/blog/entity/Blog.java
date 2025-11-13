@@ -46,10 +46,10 @@ public class Blog {
     private LocalDateTime modifiedAt;
 
     private String thumbnailUrl;
-    private Integer viewCount = 0;
-    private Integer likeCount = 0;
-    private Integer bookmarkCount = 0;
-    private Integer commentCount = 0;
+    private Integer viewCount;
+    private Integer likeCount;
+    private Integer bookmarkCount;
+    private Integer commentCount;
 
     @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = {CascadeType.MERGE, CascadeType.REFRESH})
     private List<BlogHashtag> blogHashtags = new ArrayList<>();
