@@ -1,21 +1,140 @@
 package com.back.domain.blog.blog.entity;
 
+
+import com.back.domain.blog.blog.dto.BlogWriteReqDto;
+import com.back.domain.blog.blog.exception.BlogErrorCase;
+import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
+import com.back.domain.blog.bookmark.entity.BlogBookmark;
+import com.back.domain.blog.like.entity.BlogLike;
 import com.back.domain.user.user.entity.User;
-import com.back.global.jpa.entity.BaseEntity;
+import com.back.global.exception.ServiceException;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-@Entity
-@Getter
-@NoArgsConstructor
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import static jakarta.persistence.GenerationType.IDENTITY;
+
+@EntityListeners(AuditingEntityListener.class)
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class Blog extends BaseEntity {
+@Getter
+@Setter
+@Entity
+@Table(name = "blogs")
+public class Blog {
+    @Id
+    @GeneratedValue(strategy = IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
+    private String title;
+    @Column(columnDefinition = "TEXT")
     private String content;
+    @CreatedDate
+    private LocalDateTime createdAt;
+    @LastModifiedDate
+    private LocalDateTime modifiedAt;
+
+    private String thumbnailUrl;
+    private Integer viewCount;
+    private Integer likeCount;
+    private Integer bookmarkCount;
+    private Integer commentCount;
+
+    @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = {CascadeType.MERGE, CascadeType.REFRESH})
+    private List<BlogHashtag> blogHashtags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogLike> likes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogBookmark> bookmark = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BlogStatus status = BlogStatus.DRAFT;
+
+    public static Blog create(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
+        if (title == null || title.isBlank()) {
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
+        }
+
+        return Blog.builder()
+                .user(user)
+                .title(title)
+                .content(content)
+                .thumbnailUrl(thumbnailUrl)
+                .status(status)
+                .createdAt(LocalDateTime.now())
+                .modifiedAt(LocalDateTime.now())
+                .viewCount(0)
+                .likeCount(0)
+                .bookmarkCount(0)
+                .commentCount(0)
+                .build();
+    }
+
+    public void publish() {
+        if (this.status == BlogStatus.PUBLISHED) {
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
+        }
+        this.status = BlogStatus.PUBLISHED;
+    }
+
+    public void unpublish() {
+        if (this.status == BlogStatus.DRAFT) {
+            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
+        }
+        this.status = BlogStatus.DRAFT;
+    }
+
+    public boolean isPublished() {
+        return this.status == BlogStatus.PUBLISHED;
+    }
+
+    public boolean isDraft() {
+        return this.status == BlogStatus.DRAFT;
+    }
+
+    public void increaseViewCount() {
+        this.viewCount += 1;
+    }
+
+    public void modify(BlogWriteReqDto reqBody, List<Long> hashtagIds) {
+        this.title = reqBody.title();
+        this.content = reqBody.content();
+        this.thumbnailUrl = reqBody.thumbnailUrl();
+        this.status = reqBody.status();
+        this.modifiedAt = LocalDateTime.now();
+
+        this.updateHashtags(hashtagIds);
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount += 1;
+    }
+
+    public void updateHashtags(List<Long> hashtagIds) {
+        if (this.blogHashtags != null) {
+            this.blogHashtags.clear();
+        } else {
+            this.blogHashtags = new ArrayList<>();
+        }
+
+        if (hashtagIds != null) {
+            hashtagIds.stream()
+                    .map(id -> new BlogHashtag(id, this))
+                    .forEach(this.blogHashtags::add);
+        }
+    }
 }

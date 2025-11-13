@@ -52,18 +52,9 @@ spring:
           auth: true
           starttls:
             enable: true
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: "ci-dummy-key"
-    password: "ci-dummy-key"
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+            
+  elasticsearch:
+    uris: http://elasticsearch:9200
 
 logging:
   level:
