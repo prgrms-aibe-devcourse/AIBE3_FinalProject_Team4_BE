@@ -75,6 +75,10 @@ dependencies {
     implementation(platform("org.springframework.ai:spring-ai-bom:1.0.3"))
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.springframework.ai:spring-ai-starter-model-huggingface")
+    // Vector DB
+    implementation("org.springframework.ai:spring-ai-starter-vector-store-pinecone")
+    // 스트리밍 및 비동기 처리
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
 }
 
 tasks.withType<Test> {
