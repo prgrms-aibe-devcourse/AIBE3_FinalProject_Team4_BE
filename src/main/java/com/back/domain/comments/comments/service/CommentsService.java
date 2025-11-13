@@ -116,6 +116,10 @@ public class CommentsService {
         if (comment.getUserId().equals(userId)) {
             throw new ServiceException(CommentsErrorCase.COMMENT_LIKE_FORBIDDEN);
         }
+        // 좋아요 중복 방지
+        if (comment.getLikedUserIds().contains(userId)) {
+            throw new ServiceException(CommentsErrorCase.COMMENT_LIKE_ALREADY_EXISTS);
+        }
 
         comment.addLike(userId);
 

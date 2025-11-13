@@ -44,13 +44,9 @@ public class Comments extends BaseEntity {
         this.content = newContent;
     }
 
-    public void addLike(Long userId) {
-        likedUserIds.add(userId);
-    }
+    public void addLike(Long userId) { likedUserIds.add(userId); }
 
-    public void removeLike(Long userId) {
-        likedUserIds.remove(userId);
-    }
+    public void removeLike(Long userId) { likedUserIds.remove(userId); }
 
     public int getLikeCount() {
         return likedUserIds.size();
