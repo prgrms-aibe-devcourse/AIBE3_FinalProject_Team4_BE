@@ -30,6 +30,7 @@ public class BlogDocController {
         return new RsData("201-1", "블로그 글 작성이 완료되었습니다.", blogDoc);
     }
 
+    //    TODO: 블로그 검색 API 추후 구현
 //    @GetMapping("/search")
 //    public List<BlogDoc> search(@RequestParam(required = false) String keyword,
 //                                @RequestParam(required = false) Long categoryId,
@@ -39,10 +40,7 @@ public class BlogDocController {
 //                                @RequestParam(defaultValue = "20") Integer size,
 //                                @RequestParam(required = false) String cursor
 //    ) {
-//        Object[] searchAfter = null;
-//        if (StringUtils.hasText(cursor)) {
-//            searchAfter = decodeCursor(cursor);
-//        }
+//        List<Object> searchAfter = null;
 //
 //        BlogSearchReqDto request = new BlogSearchReqDto(
 //                keyword,
@@ -59,7 +57,7 @@ public class BlogDocController {
 //                request,
 //                user != null ? user.getId() : null
 //        );
-//        return blogDocService.searchByKeyword(keyword, size, lastId);
+//        return blogDocService.searchByKeyword(keyword, size, cursor);
 //    }
 
 
