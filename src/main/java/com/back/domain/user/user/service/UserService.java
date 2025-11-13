@@ -44,9 +44,20 @@ public class UserService {
     }
 
     @Transactional
-    public User joinOAuth2User(String username, String password, String nickname, String profileImgUrl) {
-        User user = new User(username, password, nickname, profileImgUrl);
+    public User joinOAuth2User(String username, String profileImgUrl) {
+        User user = new User(username, profileImgUrl);
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public User joinOrLoginOAuth2User(String username, String profileImgUrl) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if(user == null) {
+            user = new User(username, profileImgUrl);
+            return userRepository.save(user);
+        }
+        user.updateProfileImgUrl(profileImgUrl);
+        return user;
     }
 
     @Transactional

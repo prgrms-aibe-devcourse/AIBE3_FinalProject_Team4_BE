@@ -20,27 +20,22 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = super.loadUser(userRequest);
+        OAuth2User oAuth2User = super.loadUser(userRequest);        // 소셜 로그인을 통해 들어온 사용자 정보
 
-        String oauthUserId = "";    // OAuth 제공자에서 제공하는 고유 사용자 ID
-        String providerType = userRequest.getClientRegistration().getRegistrationId().toUpperCase();  // "kakao", "google", "naver" 등
-
-        String nickname = "";       // 사용자 닉네임
+        String oauthUserId = "";    // userId에 사용 할 Oauth2 제공자 고유 ID
         String profileImgUrl = "";  // 프로필 이미지 URL
-        String username = "";       // 사용자 이름(닉네임과 동일하게 설정)
 
+        String providerType = userRequest.getClientRegistration().getRegistrationId().toUpperCase();  // GOOGLE, KAKAO, NAVER
         switch (providerType) {
             case "GOOGLE" -> {
                 oauthUserId =  oAuth2User.getName();
-                nickname = (String) oAuth2User.getAttributes().get("name");
                 profileImgUrl= (String) oAuth2User.getAttributes().get("picture");
             }
             case "KAKAO" -> {
-                oauthUserId =  oAuth2User.getName();
                 Map<String, Object> attributes = oAuth2User.getAttributes();
                 Map<String, Object> attributesProperties = (Map<String, Object>) attributes.get("properties");
 
-                nickname = (String) attributesProperties.get("nickname");
+                oauthUserId =  oAuth2User.getName();
                 profileImgUrl= (String) attributesProperties.get("profile_image");
             }
             case "NAVER" -> {
@@ -48,26 +43,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 Map<String, Object> attributesProperties = (Map<String, Object>) attributes.get("response");
 
                 oauthUserId = (String) attributesProperties.get("id");
-                nickname = (String) attributesProperties.get("nickname");
                 profileImgUrl= (String) attributesProperties.get("profile_image");
             }
         }
 
-        System.out.println("oAuth2User.getAttributes() = " + oAuth2User.getAttributes());
-        System.out.println("providerType = " + providerType);
-        System.out.println("username = " + username);
+        String username = providerType + "__%s".formatted(oauthUserId);
 
-
-        username = providerType + "__%s".formatted(oauthUserId);
-
-        String password = "";
-
-        User user = userRepository.findByUsername(username).orElse(null);
-
-        if(user == null) {
-            // 신규 사용자 회원가입 처리
-            user = userService.joinOAuth2User(username, password, nickname, profileImgUrl);
-        }
+        User user = userService.joinOrLoginOAuth2User(username, profileImgUrl);
 
         return new SecurityUser(
                 user.getId(),
