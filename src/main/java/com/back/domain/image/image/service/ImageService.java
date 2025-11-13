@@ -14,15 +14,15 @@ public class ImageService {
     private final UnsplashImageClient unsplashImageClient;
     private final GoogleImageClient googleImageClient;
 
-    public ImageSearchPagedResponse getUnsplashImages(String query, int page, int size) {
-        UnsplashImageSearchResult result = unsplashImageClient.searchImages(query, page + 1, size);
+    public ImageSearchPagedResponse getUnsplashImages(String keyword, int number, int size) {
+        UnsplashImageSearchResult result = unsplashImageClient.searchImages(keyword, number + 1, size);
 
-        return ImageSearchPagedResponse.fromUnsplash(page, size, result);
+        return ImageSearchPagedResponse.fromUnsplash(keyword, number, size, result);
     }
 
-    public ImageSearchPagedResponse getGoogleImages(String query, int page, int size) {
-        GoogleImageSearchResult result = googleImageClient.searchImages(query, page + 1, size);
+    public ImageSearchPagedResponse getGoogleImages(String keyword, int number, int size) {
+        GoogleImageSearchResult result = googleImageClient.searchImages(keyword, number + 1, size);
 
-        return ImageSearchPagedResponse.fromGoogle(page, size, result);
+        return ImageSearchPagedResponse.fromGoogle(keyword, number, size, result);
     }
 }

@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static com.back.domain.image.image.constants.GoogleImageConstants.MAX_PAGE_SIZE;
+import static com.back.domain.image.image.constants.GoogleImageConstants.MAX_RESULTS_LIMIT;
+
 @Component
 public class GoogleImageClient {
 
@@ -26,12 +29,16 @@ public class GoogleImageClient {
                 .build();
     }
 
-    public GoogleImageSearchResult searchImages(String query, int page, int num) {
-        final int MAX_RESULTS_LIMIT = 100;               // 최대 반환 개수: 100개
-        int finalNum = Math.min(num, 10);               // 반환할 검색결과 수: 1에서 10 사이의 정수
-        int startIndex = (page - 1) * finalNum + 1;      // 반환할 첫 번째 결과의 색인
+    public GoogleImageSearchResult searchImages(String query, int page, int size) {
 
-        if (startIndex > MAX_RESULTS_LIMIT) {
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
+        }
+
+        int finalSize = Math.min(size, MAX_PAGE_SIZE); // 반환할 검색결과 수: 1에서 10 사이의 정수
+        int startIndex = (page - 1) * finalSize + 1;     // 반환할 첫 번째 결과의 색인
+
+        if (startIndex + finalSize - 1 > MAX_RESULTS_LIMIT) {
             throw new IllegalArgumentException("페이지 번호가 너무 큽니다. * Google API는 최대 100개의 결과만 반환합니다.");
         }
 
@@ -42,7 +49,7 @@ public class GoogleImageClient {
                         .queryParam("searchType", "image")
                         .queryParam("q", query)
                         .queryParam("start", startIndex)
-                        .queryParam("num", finalNum)
+                        .queryParam("num", finalSize)
                         .build())
                 .retrieve()
 

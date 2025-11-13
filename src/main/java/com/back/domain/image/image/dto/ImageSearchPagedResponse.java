@@ -3,7 +3,10 @@ package com.back.domain.image.image.dto;
 import java.util.List;
 import java.util.Optional;
 
+import static com.back.domain.image.image.constants.GoogleImageConstants.MAX_RESULTS_LIMIT;
+
 public record ImageSearchPagedResponse(
+        String keyword,
         int number,         // 페이지 번호: 0 이상의 정수
         int size,
         long totalElements,
@@ -12,9 +15,10 @@ public record ImageSearchPagedResponse(
         boolean last,
         List<ImageSearchContentDto> content
 ) {
-    public static ImageSearchPagedResponse fromUnsplash(int number, int size, UnsplashImageSearchResult result) {
+    public static ImageSearchPagedResponse fromUnsplash(String keyword, int number, int size, UnsplashImageSearchResult result) {
         if (result == null) {
             return new ImageSearchPagedResponse(
+                    keyword,
                     number,
                     size,
                     0,
@@ -25,24 +29,28 @@ public record ImageSearchPagedResponse(
             );
         }
 
+        List<ImageSearchContentDto> content = Optional.ofNullable(result.results())
+                .orElse(List.of())
+                .stream()
+                .map(ImageSearchContentDto::new)
+                .toList();
+
         return new ImageSearchPagedResponse(
+                keyword,
                 number,
-                size,
+                content.size(),
                 result.total(),
                 result.totalPages(),
-                number == 1,
-                number == result.totalPages(),
-                Optional.ofNullable(result.results())
-                        .orElse(List.of())
-                        .stream()
-                        .map(ImageSearchContentDto::new)
-                        .toList()
+                number == 0,
+                number >= (result.totalPages() - 1),
+                content
         );
     }
 
-    public static ImageSearchPagedResponse fromGoogle(int number, int size, GoogleImageSearchResult result) {
+    public static ImageSearchPagedResponse fromGoogle(String keyword, int number, int size, GoogleImageSearchResult result) {
         if (result == null) {
             return new ImageSearchPagedResponse(
+                    keyword,
                     number,
                     size,
                     0,
@@ -52,6 +60,15 @@ public record ImageSearchPagedResponse(
                     List.of()
             );
         }
+
+        List<ImageSearchContentDto> content = Optional.ofNullable(result.items())
+                .orElse(List.of())
+                .stream()
+                .map(ImageSearchContentDto::new)
+                .toList();
+
+        boolean first = result.queries().previousPage() == null;
+        boolean last = result.queries().nextPage() == null;
 
         String totalElementsString = result.searchInformation().totalResults();
         long totalElements;
@@ -74,18 +91,21 @@ public record ImageSearchPagedResponse(
             throw new RuntimeException(errorMessage, e);
         }
 
+        if (totalPages * size > MAX_RESULTS_LIMIT) {
+            totalElements = (long) (MAX_RESULTS_LIMIT / size) * size;
+            totalPages = MAX_RESULTS_LIMIT / size;
+            last = (number + 1) >= totalPages;
+        }
+
         return new ImageSearchPagedResponse(
+                keyword,
                 number,
-                size,
+                content.size(),
                 totalElements,
                 totalPages,
-                result.queries().previousPage() == null,
-                result.queries().nextPage() == null,
-                Optional.ofNullable(result.items())
-                        .orElse(List.of())
-                        .stream()
-                        .map(ImageSearchContentDto::new)
-                        .toList()
+                first,
+                last,
+                content
         );
     }
 }

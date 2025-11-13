@@ -10,28 +10,29 @@ import reactor.core.publisher.Mono;
 public class UnsplashImageClient {
 
     private final WebClient webClient;
-    private final String accessKey;
 
     public UnsplashImageClient(WebClient.Builder webClientBuilder,
                                @Value("${unsplash.base-url}") String baseUrl,
                                @Value("${unsplash.access-key}") String accessKey) {
 
-        this.accessKey = accessKey;
-
         this.webClient = webClientBuilder
                 .baseUrl(baseUrl)
-                .defaultHeader("Authorization", "Client-ID " + this.accessKey)
+                .defaultHeader("Authorization", "Client-ID " + accessKey)
                 .build();
     }
 
-    public UnsplashImageSearchResult searchImages(String query, int page, int perPage) {
+    public UnsplashImageSearchResult searchImages(String query, int page, int size) {
+
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
+        }
 
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/search/photos")
                         .queryParam("query", query)
-                        .queryParam("page", page)        // 기본값: 1
-                        .queryParam("per_page", perPage) // 기본값: 10
+                        .queryParam("page", page)     // 기본값: 1
+                        .queryParam("per_page", size) // 기본값: 10
                         .build())
                 .retrieve()
 
