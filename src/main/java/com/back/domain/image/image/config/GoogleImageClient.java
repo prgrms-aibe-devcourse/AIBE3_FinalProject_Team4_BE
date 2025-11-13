@@ -27,7 +27,6 @@ public class GoogleImageClient {
     }
 
     public GoogleImageSearchResult searchImages(String query, int page, int num) {
-        final String RIGHTS_FILTER = "cc_noncommercial"; // 수익 창출이 없는 블로그 사용을 위한 사용권 필터 (Creative Commons 비영리 재사용 라이선스)
         final int MAX_RESULTS_LIMIT = 100;               // 최대 반환 개수: 100개
         int finalNum = Math.min(num, 10);               // 반환할 검색결과 수: 1에서 10 사이의 정수
         int startIndex = (page - 1) * finalNum + 1;      // 반환할 첫 번째 결과의 색인
@@ -44,7 +43,6 @@ public class GoogleImageClient {
                         .queryParam("q", query)
                         .queryParam("start", startIndex)
                         .queryParam("num", finalNum)
-                        .queryParam("rights", RIGHTS_FILTER)
                         .build())
                 .retrieve()
 

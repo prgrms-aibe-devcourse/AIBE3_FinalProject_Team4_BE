@@ -12,7 +12,7 @@ public record UnsplashImageSearchResult(
 
         List<UnsplashImageItem> results
 ) {
-    public UnsplashImageSearchResult withResults(List<UnsplashImageItem> newResults) {
+    public UnsplashImageSearchResult withItems(List<UnsplashImageItem> newResults) {
         return new UnsplashImageSearchResult(
                 this.total,
                 this.totalPages,

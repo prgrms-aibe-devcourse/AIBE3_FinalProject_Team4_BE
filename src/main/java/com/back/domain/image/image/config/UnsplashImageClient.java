@@ -30,7 +30,7 @@ public class UnsplashImageClient {
                 .uri(uriBuilder -> uriBuilder
                         .path("/search/photos")
                         .queryParam("query", query)
-                        .queryParam("page", page)                 // 기본값: 1
+                        .queryParam("page", page)        // 기본값: 1
                         .queryParam("per_page", perPage) // 기본값: 10
                         .build())
                 .retrieve()

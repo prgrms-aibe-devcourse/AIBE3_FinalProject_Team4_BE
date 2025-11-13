@@ -1,8 +1,8 @@
 package com.back.domain.image.image.controller;
 
-import com.back.domain.image.image.dto.GoogleImageSearchResult;
-import com.back.domain.image.image.dto.UnsplashImageSearchResult;
+import com.back.domain.image.image.dto.ImageSearchResBody;
 import com.back.domain.image.image.service.ImageService;
+import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +20,17 @@ public class ApiV1ImageController {
 
     @GetMapping("/unsplash")
     @Operation(summary = "무료 이미지(Unsplash) 목록 조회")
-    public UnsplashImageSearchResult searchUnsplashImages(@RequestParam String keyword,
-                                                          @RequestParam(defaultValue = "1") Integer page,
-                                                          @RequestParam(defaultValue = "10") Integer size) {
-        return imageService.getUnsplashImages(keyword, page, size);
+    public RsData<ImageSearchResBody> searchUnsplashImages(@RequestParam String keyword,
+                                                           @RequestParam(defaultValue = "0") Integer page,
+                                                           @RequestParam(defaultValue = "10") Integer size) {
+        return RsData.successOf(imageService.getUnsplashImages(keyword, page, size));
     }
 
     @GetMapping("/google")
     @Operation(summary = "구글 이미지 목록 조회")
-    public GoogleImageSearchResult searchGoogleImages(@RequestParam String keyword,
-                                                      @RequestParam(defaultValue = "1") Integer page,
-                                                      @RequestParam(defaultValue = "10") Integer size) {
-        return imageService.getGoogleImages(keyword, page, size);
+    public RsData<ImageSearchResBody> searchGoogleImages(@RequestParam String keyword,
+                                                         @RequestParam(defaultValue = "0") Integer page,
+                                                         @RequestParam(defaultValue = "10") Integer size) {
+        return RsData.successOf(imageService.getGoogleImages(keyword, page, size));
     }
 }
