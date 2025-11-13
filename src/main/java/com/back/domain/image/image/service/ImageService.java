@@ -1,11 +1,9 @@
 package com.back.domain.image.image.service;
 
-import com.back.domain.image.image.GoogleImageClient;
-import com.back.domain.image.image.UnsplashImageClient;
-import com.back.domain.image.image.dto.GoogleImageItem;
-import com.back.domain.image.image.dto.GoogleSearchResponse;
-import com.back.domain.image.image.dto.UnsplashPhoto;
-import com.back.domain.image.image.dto.UnsplashSearchResult;
+import com.back.domain.image.image.config.GoogleImageClient;
+import com.back.domain.image.image.config.UnsplashImageClient;
+import com.back.domain.image.image.dto.GoogleImageSearchResult;
+import com.back.domain.image.image.dto.UnsplashImageSearchResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,24 +15,23 @@ public class ImageService {
     private final UnsplashImageClient unsplashImageClient;
     private final GoogleImageClient googleImageClient;
 
-    public List<UnsplashPhoto> getUnsplashImages(String query) {
-        UnsplashSearchResult result = unsplashImageClient.searchImages(query);
+    public UnsplashImageSearchResult getUnsplashImages(String query, int page, int size) {
+        UnsplashImageSearchResult result = unsplashImageClient.searchImages(query, page, size);
 
-        if (result != null && result.getResults() != null) {
-            return result.getResults();
+        if (result != null && result.results() == null) {
+            return result.withResults(List.of());
         }
 
-        return List.of();
+        return result;
     }
 
-    public List<GoogleImageItem> getGoogleImages(String query) {
+    public GoogleImageSearchResult getGoogleImages(String query, int page, int size) {
+        GoogleImageSearchResult result = googleImageClient.searchImages(query, page, size);
 
-        GoogleSearchResponse result = googleImageClient.searchImages(query);
-
-        if (result != null && result.getItems() != null) {
-            return result.getItems(); // 검색 결과 목록 반환
+        if (result != null && result.items() == null) {
+            return result.withItems(List.of());
         }
 
-        return List.of();
+        return result;
     }
 }
