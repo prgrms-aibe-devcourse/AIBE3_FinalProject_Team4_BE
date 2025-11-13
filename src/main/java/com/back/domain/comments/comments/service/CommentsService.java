@@ -64,7 +64,7 @@ public class CommentsService {
         Comments comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
 
-        if (!comment.getId().equals(userId)) {
+        if (!comment.getUserId().equals(userId)) {
             throw new ServiceException(CommentsErrorCase.UNAUTHORIZED_UPDATE);
         }
 
