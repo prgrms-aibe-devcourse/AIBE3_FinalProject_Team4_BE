@@ -44,9 +44,6 @@ db_dev.trace.db
 
 application.yml
 application-secrets.yml
-application-prod.yml
-application-dev.yml
-application-test.yml
 
 .DS_Store
 
