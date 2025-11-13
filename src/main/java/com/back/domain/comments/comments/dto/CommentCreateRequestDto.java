@@ -6,11 +6,6 @@ public record CommentCreateRequestDto(
         CommentsTargetType targetType,
         Long targetId,
         Long parentId,
-        String content,
-        Long userId
+        String content
 ) {
-    public CommentCreateRequestDto withUserId(Long userId) {
-        return new CommentCreateRequestDto(targetType, targetId, parentId, content, userId);
-    }
 }
-
