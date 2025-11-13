@@ -81,8 +81,8 @@ public class AiGenerateService {
     private String appendUserPrompt(String modePrompt, AiGenerateReqBody req) {
         StringBuilder userPrompt = new StringBuilder();
 
-        userPrompt.append(modePrompt).append("/n")
-                .append("[콘텐츠 유형]: ").append(req.contentType()).append("/n");
+        userPrompt.append(modePrompt).append("\n")
+                .append("[콘텐츠 유형]: ").append(req.contentType()).append("\n");
         if (req.message() != null && !req.message().isBlank()) {
             userPrompt.append("[질문]: ").append(req.message()).append("\n");
         }

@@ -51,6 +51,6 @@ public class ApiV1AiController {
     @Operation(summary = "블로그 벡터 DB 등록")
     public RsData indexBlog(@RequestBody AiIndexBlogReqBody req) {
         aiIndexService.indexBlog(req.blogId(), req.title(), req.content());
-        return new RsData<>("201-1", "");
+        return new RsData<>("201-1", "벡터 DB 등록이 완료되었습니다.");
     }
 }
