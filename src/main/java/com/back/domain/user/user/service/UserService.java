@@ -2,6 +2,7 @@ package com.back.domain.user.user.service;
 
 import com.back.domain.user.mail.service.VerificationTokenService;
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
+import com.back.domain.user.user.dto.OAuth2CompleteJoinRequestDto;
 import com.back.domain.user.user.dto.PasswordResetRequestDto;
 import com.back.domain.user.user.dto.UserJoinRequestDto;
 import com.back.domain.user.user.dto.UserLoginRequestDto;
@@ -44,12 +45,6 @@ public class UserService {
     }
 
     @Transactional
-    public User joinOAuth2User(String username, String profileImgUrl) {
-        User user = new User(username, profileImgUrl);
-        return userRepository.save(user);
-    }
-
-    @Transactional
     public User joinOrLoginOAuth2User(String username, String profileImgUrl) {
         User user = userRepository.findByUsername(username).orElse(null);
         if(user == null) {
@@ -57,6 +52,13 @@ public class UserService {
             return userRepository.save(user);
         }
         user.updateProfileImgUrl(profileImgUrl);
+        return user;
+    }
+
+    @Transactional
+    public User toCompleteJoinOAuth2User(Long userId, OAuth2CompleteJoinRequestDto dto) {
+        User user = getUserById(userId);
+        user.completeOAuth2Join(dto.nickname(), dto.dateOfBirth(), dto.gender());
         return user;
     }
 

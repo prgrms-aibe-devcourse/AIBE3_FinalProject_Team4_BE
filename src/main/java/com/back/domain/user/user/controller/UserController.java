@@ -9,9 +9,6 @@ import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +30,18 @@ public class UserController {
     @Operation(summary = "회원 가입")
     public RsData<UserDto> join(@Valid @RequestBody UserJoinRequestDto dto) {
         User user = userService.join(dto);
+        return new RsData<>(
+                "201-1",
+                "%s 님 가입을 환영합니다!".formatted(user.getUsername()),
+                new UserDto(user)
+        );
+    }
+
+    @PostMapping("/complete-oauth2-join")
+    @Operation(summary = "OAuth2 회원 가입 완료를 위한 추가 API")
+    public RsData<UserDto> toCompleteJoinForOAuth2(@Valid @RequestBody OAuth2CompleteJoinRequestDto dto,
+                                                   @AuthenticationPrincipal SecurityUser securityUser) {
+        User user = userService.toCompleteJoinOAuth2User(securityUser.getId(), dto);
         return new RsData<>(
                 "201-1",
                 "%s 님 가입을 환영합니다!".formatted(user.getUsername()),

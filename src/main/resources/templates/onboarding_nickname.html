@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>필수 정보 설정</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 350px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .gender-group button {
+            width: 32%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            background: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 -1px 0 0; /* 버튼 간격 조절 */
+        }
+        .gender-group button:first-child { border-radius: 6px 0 0 6px; }
+        .gender-group button:last-child { border-radius: 0 6px 6px 0; }
+        .gender-group button:hover, .gender-group .selected {
+            background-color: #e6f7e6;
+            border-color: #5cb85c;
+            color: #5cb85c;
+        }
+        .info-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px; /* 입력 필드와의 간격 조절 */
+            text-align: left;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #5cb85c;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="modal">
+    <h2>가입 (2/2)</h2>
+    <form id="onboardingForm">
+
+        <div class="input-group">
+            <label for="nickname" style="display: none;">닉네임</label>
+            <input type="text" id="nickname" name="nickname" placeholder="닉네임" required>
+            <p class="info-text">닉네임은 추후 변경할 수 있습니다.</p>
+        </div>
+
+        <div class="input-group">
+            <label for="dateOfBirth" style="display: none;">생년월일 8자리</label>
+            <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="생년월일 8자리 (YYYYMMDD)" maxlength="8" required>
+        </div>
+
+        <div class="input-group gender-group">
+            <button type="button" class="gender-btn" data-gender="MALE">남자</button>
+            <button type="button" class="gender-btn" data-gender="FEMALE">여자</button>
+            <button type="button" class="gender-btn" data-gender="NONE">선택안함</button>
+            <input type="hidden" id="gender" name="gender" required>
+            <p class="info-text">생년월일과 성별은 공개되지 않습니다.</p>
+        </div>
+
+        <button type="submit" class="submit-btn">가입</button>
+    </form>
+</div>
+
+<script>
+    // 1. 성별 선택 및 hidden input 업데이트 로직
+    document.querySelectorAll('.gender-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.gender-btn').forEach(btn => btn.classList.remove('selected'));
+            this.classList.add('selected');
+            document.getElementById('gender').value = this.dataset.gender;
+        });
+    });
+
+    // 2. 폼 제출을 가로채서 JSON으로 전송하는 AJAX 로직
+    const formElement = document.getElementById('onboardingForm');
+    if (formElement) {
+        formElement.addEventListener('submit', function(event) {
+            event.preventDefault(); // 기본 폼 제출(form-urlencoded) 방지
+
+            // 필드 값 추출
+            const nickname = document.getElementById('nickname').value;
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+            const gender = document.getElementById('gender').value;
+
+            // ⭐ API 경로를 확인하고 필요시 변경하세요.
+            const apiPath = '/api/v1/auth/complete-oauth2-join';
+
+            const data = {
+                nickname: nickname,
+                dateOfBirth: dateOfBirth,
+                gender: gender
+            };
+
+            // Fetch API를 사용하여 JSON 전송
+            fetch(apiPath, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // 성공적으로 가입이 완료되면 메인 페이지로 이동
+                        window.location.href = '/';
+                    } else {
+                        // 서버 에러 처리 (JSON 응답을 기대)
+                        return response.json().then(errorData => {
+                            alert('가입 실패: ' + (errorData.message || '알 수 없는 오류'));
+                        }).catch(() => {
+                            alert('가입 실패: 서버 응답을 처리할 수 없습니다.');
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                    alert('통신 오류가 발생했습니다. 네트워크 상태를 확인하세요.');
+                });
+        });
+    }
+</script>
+</body>
+</html>

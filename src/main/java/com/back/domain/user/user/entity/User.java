@@ -57,6 +57,13 @@ public class User extends BaseEntity {
         this.profileImgUrl = profileImgUrl;
     }
 
+    // OAuth2 가입 완료용 함수
+    public void completeOAuth2Join(String nickname, LocalDate dateOfBirth, Gender gender) {
+        this.nickname = nickname;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+    }
+
     public void updatePassword(String newPassword) {
         this.password = newPassword;
     }
