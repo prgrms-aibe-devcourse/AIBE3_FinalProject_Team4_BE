@@ -10,6 +10,22 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+        #    GitHub Actions 컨테이너 이름(elasticsearch)을 호스트로 사용하여 9200 포트에 접근하도록 자동 처리
+        ports:
+          - 9200/tcp
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms128m -Xmx128m"
+        options: >-
+          --health-cmd="curl -f http://localhost:9200 || exit 1"
+          --health-interval=10s
+          --health-retries=7
+          --health-timeout=5s
+
     env:
       SPRING_PROFILES_ACTIVE: ci
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -40,10 +56,24 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # 5️⃣ Gradle 빌드 + 테스트
-      - name: Build and Test
-        run: ./gradlew clean build --stacktrace --no-daemon
+      - name: Wait for Elasticsearch to be ready
+        run: |
+          echo "Waiting for Elasticsearch..."
+          for i in {1..10}; do
+            if curl -s http://localhost:9200 >/dev/null; then
+              echo "Elasticsearch is up!"
+              break
+            fi
+            echo "Waiting for Elasticsearch... attempt $i"
+            sleep 5
+          done
 
+        # 5️⃣ 빌드 및 테스트 실행
+      - name: Build and Test
+        run: ./gradlew clean test --stacktrace
+        # 💡 Gradle 빌드를 실행합니다.
+      
+      
       # 6️⃣ JUnit XML 결과 업로드
       - name: Upload JUnit results
         if: always()
