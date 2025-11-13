@@ -3,7 +3,7 @@ package com.back.domain.image.image.dto;
 import java.util.List;
 import java.util.Optional;
 
-public record ImageSearchResBody(
+public record ImageSearchPagedResponse(
         int number,         // 페이지 번호: 0 이상의 정수
         int size,
         long totalElements,
@@ -12,9 +12,9 @@ public record ImageSearchResBody(
         boolean last,
         List<ImageSearchContentDto> content
 ) {
-    public static ImageSearchResBody fromUnsplash(int number, int size, UnsplashImageSearchResult result) {
+    public static ImageSearchPagedResponse fromUnsplash(int number, int size, UnsplashImageSearchResult result) {
         if (result == null) {
-            return new ImageSearchResBody(
+            return new ImageSearchPagedResponse(
                     number,
                     size,
                     0,
@@ -25,7 +25,7 @@ public record ImageSearchResBody(
             );
         }
 
-        return new ImageSearchResBody(
+        return new ImageSearchPagedResponse(
                 number,
                 size,
                 result.total(),
@@ -40,9 +40,9 @@ public record ImageSearchResBody(
         );
     }
 
-    public static ImageSearchResBody fromGoogle(int number, int size, GoogleImageSearchResult result) {
+    public static ImageSearchPagedResponse fromGoogle(int number, int size, GoogleImageSearchResult result) {
         if (result == null) {
-            return new ImageSearchResBody(
+            return new ImageSearchPagedResponse(
                     number,
                     size,
                     0,
@@ -74,7 +74,7 @@ public record ImageSearchResBody(
             throw new RuntimeException(errorMessage, e);
         }
 
-        return new ImageSearchResBody(
+        return new ImageSearchPagedResponse(
                 number,
                 size,
                 totalElements,

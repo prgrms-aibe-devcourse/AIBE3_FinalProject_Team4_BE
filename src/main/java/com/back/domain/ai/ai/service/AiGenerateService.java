@@ -47,23 +47,23 @@ public class AiGenerateService {
     private final String USER_SUMMARY_PROMPT = "[내용 요약]: 주어진 블로그의 본문을 분석하여, 간결하고 흥미를 유발하는 요약(200자~800자 사이)을 작성해 주세요. 요약 결과만 출력해야 합니다.\n";
     private final String USER_KEYWORD_PROMPT = "[키워드 추출]: 주어진 콘텐츠 유형의 본문을 분석하여, SEO에 최적화된 핵심 키워드 5개를 JSON 형식(키: keywords)으로 추출해 주세요. 설명 없이 순수한 JSON 객체만 출력해야 합니다.\n";
 
-    public Object generate(AiGenerateReqBody req) {
+    public Object generate(AiGenerateRequest req) {
         return switch (req.mode().getValue()) {
             case "title" -> generate(
                     appendUserPrompt(USER_TITLE_PROMPT, req),
-                    AiGenerateTitleResBody.class
+                    AiGenerateTitleResponse.class
             );
             case "hashtag" -> generate(
                     appendUserPrompt(USER_HASHTAG_PROMPT, req),
-                    AiGenerateHashtagResBody.class
+                    AiGenerateHashtagResponse.class
             );
             case "summary" -> generate(
                     appendUserPrompt(USER_SUMMARY_PROMPT, req),
-                    AiGenerateSummaryResBody.class
+                    AiGenerateSummaryResponse.class
             );
             case "keyword" -> generate(
                     appendUserPrompt(USER_KEYWORD_PROMPT, req),
-                    AiGenerateKeywordResBody.class
+                    AiGenerateKeywordResponse.class
             );
             default -> throw new IllegalArgumentException("지원하지 않는 모드입니다.");
         };
@@ -78,7 +78,7 @@ public class AiGenerateService {
                 .entity(clazz);
     }
 
-    private String appendUserPrompt(String modePrompt, AiGenerateReqBody req) {
+    private String appendUserPrompt(String modePrompt, AiGenerateRequest req) {
         StringBuilder userPrompt = new StringBuilder();
 
         userPrompt.append(modePrompt).append("\n")

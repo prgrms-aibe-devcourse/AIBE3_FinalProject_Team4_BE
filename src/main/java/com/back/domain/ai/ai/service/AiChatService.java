@@ -1,6 +1,6 @@
 package com.back.domain.ai.ai.service;
 
-import com.back.domain.ai.ai.dto.AiChatReqBody;
+import com.back.domain.ai.ai.dto.AiChatRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -35,19 +35,19 @@ public class AiChatService {
             * 답변은 마크다운(Markdown) 형식으로 구조화해야 합니다.
             """;
 
-    public String chatOnce(AiChatReqBody req) {
+    public String chatOnce(AiChatRequest req) {
         return openAiChatClient.prompt(buildPrompt(req))
                 .call()
                 .content();
     }
 
-    public Flux<String> chatStream(AiChatReqBody req) {
+    public Flux<String> chatStream(AiChatRequest req) {
         return openAiChatClient.prompt(buildPrompt(req))
                 .stream()
                 .content();
     }
 
-    private Prompt buildPrompt(AiChatReqBody req) {
+    private Prompt buildPrompt(AiChatRequest req) {
         SystemMessage systemMessage = SystemMessage.builder()
                 .text(AiGenerateService.SYSTEM_BASE_PROMPT)
                 .text(SYSTEM_DETAIL_PROMPT)

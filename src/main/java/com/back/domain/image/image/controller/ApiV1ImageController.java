@@ -1,6 +1,6 @@
 package com.back.domain.image.image.controller;
 
-import com.back.domain.image.image.dto.ImageSearchResBody;
+import com.back.domain.image.image.dto.ImageSearchPagedResponse;
 import com.back.domain.image.image.service.ImageService;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,17 +20,17 @@ public class ApiV1ImageController {
 
     @GetMapping("/unsplash")
     @Operation(summary = "무료 이미지(Unsplash) 목록 조회")
-    public RsData<ImageSearchResBody> searchUnsplashImages(@RequestParam String keyword,
-                                                           @RequestParam(defaultValue = "0") Integer page,
-                                                           @RequestParam(defaultValue = "10") Integer size) {
+    public RsData<ImageSearchPagedResponse> searchUnsplashImages(@RequestParam String keyword,
+                                                                 @RequestParam(defaultValue = "0") Integer page,
+                                                                 @RequestParam(defaultValue = "10") Integer size) {
         return RsData.successOf(imageService.getUnsplashImages(keyword, page, size));
     }
 
     @GetMapping("/google")
     @Operation(summary = "구글 이미지 목록 조회")
-    public RsData<ImageSearchResBody> searchGoogleImages(@RequestParam String keyword,
-                                                         @RequestParam(defaultValue = "0") Integer page,
-                                                         @RequestParam(defaultValue = "10") Integer size) {
+    public RsData<ImageSearchPagedResponse> searchGoogleImages(@RequestParam String keyword,
+                                                               @RequestParam(defaultValue = "0") Integer page,
+                                                               @RequestParam(defaultValue = "10") Integer size) {
         return RsData.successOf(imageService.getGoogleImages(keyword, page, size));
     }
 }
