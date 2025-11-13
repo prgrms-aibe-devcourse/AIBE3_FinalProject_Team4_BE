@@ -1,9 +1,9 @@
 package com.back.domain.comments.comments.entity;
 
+import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -14,45 +14,31 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Comments {
+public class Comments extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
-    private Long postId; // Post 엔티티 없이 대체
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CommentsTargetType targetType; // 댓글 대상 (BLOG / SHOLOG 등)
 
     @Column(nullable = false)
-    private Long userId; // User 엔티티 없이 대체
+    private Long targetId; // 대상 엔티티의 ID (blogId나 shologId)
+
+    @Column(nullable = false)
+    private Long userId;
 
     @Column(nullable = false, length = 500)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    private Comments parent; // 부모 댓글
+    private Comments parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<Comments> children = new ArrayList<>(); // 대댓글 리스트
-
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private List<Comments> children = new ArrayList<>();
 
     @ElementCollection
     private Set<Long> likedUserIds = new HashSet<>();
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = createdAt;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 
     public void updateContent(String newContent) {
         this.content = newContent;
