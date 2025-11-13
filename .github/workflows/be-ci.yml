@@ -10,6 +10,26 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+        #    GitHub Actions 컨테이너 이름(elasticsearch)을 호스트로 사용하여 9200 포트에 접근하도록 자동 처리
+        ports:
+          - 9200/tcp
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms128m -Xmx128m"
+        options: |
+          --name elasticsearch
+          --health-cmd "curl http://localhost:9200"
+          --health-interval 10s
+          
+          entrypoint: bash -c "
+          bin/elasticsearch-plugin install analysis-nori;
+          /usr/local/bin/docker-entrypoint.sh elasticsearch
+          "
+
     env:
       SPRING_PROFILES_ACTIVE: ci
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -42,8 +62,13 @@ jobs:
 
       # 5️⃣ Gradle 빌드 + 테스트
       - name: Build and Test
-        run: ./gradlew clean build --stacktrace --no-daemon
+        run: |
+          # 💡 Elasticsearch가 뜰 때까지 최대 9번, 5초 간격으로 연결을 시도합니다.
+          curl --retry 9 --retry-delay 5 http://elasticsearch:9200
 
+          # 💡 Gradle 빌드를 실행합니다.
+      
+      
       # 6️⃣ JUnit XML 결과 업로드
       - name: Upload JUnit results
         if: always()
