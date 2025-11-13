@@ -40,6 +40,17 @@ public class User extends BaseEntity {
         this.gender = gender;
     }
 
+    public User(String username, String password, String nickname, String profileImgUrl) {
+        this.email = null;
+        this.username = username;
+        this.password = password;
+        this.nickname = nickname;
+        this.profileImgUrl = profileImgUrl;
+        this.bio = null;            //가입 시 기본 자기소개는 null
+        this.dateOfBirth = null;
+        this.gender = null;
+    }
+
     public void updatePassword(String newPassword) {
         this.password = newPassword;
     }

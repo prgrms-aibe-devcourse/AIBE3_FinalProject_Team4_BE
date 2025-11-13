@@ -44,6 +44,12 @@ public class UserService {
     }
 
     @Transactional
+    public User joinOAuth2User(String username, String password, String nickname, String profileImgUrl) {
+        User user = new User(username, password, nickname, profileImgUrl);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User login(UserLoginRequestDto dto) {
         User user = userRepository.findByUsername(dto.username())
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."));
@@ -79,6 +85,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getUserById(Long id) {
         return userRepository.findById(id)
+                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
     }
 
