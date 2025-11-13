@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 public interface ErrorCase {
 
     HttpStatus getHttpStatus();
+
     int getCode();
+
     String getMessage();
 
     /**

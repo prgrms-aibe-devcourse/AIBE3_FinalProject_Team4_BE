@@ -59,6 +59,8 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j:8.3.0")
     runtimeOnly("com.h2database:h2")
 
+    //test
+    testImplementation("org.mockito:mockito-junit-jupiter")
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("com.fasterxml.jackson.core:jackson-databind")
@@ -70,6 +72,15 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Elasticsearch
+    implementation("org.springframework.boot:spring-boot-starter-data-elasticsearch")
+    //tsid
+    implementation("com.github.f4b6a3:tsid-creator:5.2.6")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    // Docker Compose
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+
 
     // Spring AI
     implementation(platform("org.springframework.ai:spring-ai-bom:1.0.3"))

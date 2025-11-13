@@ -43,3 +43,11 @@ db_dev.trace.db
 .env.local
 
 application.yml
+application-secrets.yml
+
+.DS_Store
+
+# logstash
+logstash/.DS_Store
+logstash/lib/
+/logs
