@@ -1,5 +1,6 @@
 package com.back.domain.image.image.controller;
 
+import com.back.domain.image.image.dto.GoogleImageItem;
 import com.back.domain.image.image.dto.UnsplashPhoto;
 import com.back.domain.image.image.service.ImageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,9 +22,13 @@ public class ApiV1ImageController {
 
     @GetMapping("/unsplash")
     @Operation(summary = "무료 이미지(Unsplash) 목록 조회")
-    public List<UnsplashPhoto> getUnsplashImages(@RequestParam String keyword) {
-        return imageService.getImagesByKeyword(keyword);
+    public List<UnsplashPhoto> searchUnsplashImages(@RequestParam String keyword) {
+        return imageService.getUnsplashImages(keyword);
     }
 
-    // 구글 이미지 목록 조회 getGoogleImages
+    @GetMapping("/google/")
+    @Operation(summary = "구글 이미지 목록 조회")
+    public List<GoogleImageItem> searchGoogleImages(@RequestParam String keyword) {
+        return imageService.getGoogleImages(keyword);
+    }
 }

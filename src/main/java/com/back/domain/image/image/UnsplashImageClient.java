@@ -7,14 +7,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Component
-public class UnsplashClient {
+public class UnsplashImageClient {
 
     private final WebClient webClient;
     private final String accessKey;
 
-    public UnsplashClient(WebClient.Builder webClientBuilder,
-                          @Value("${unsplash.base-url}") String baseUrl,
-                          @Value("${unsplash.access-key}") String accessKey) {
+    public UnsplashImageClient(WebClient.Builder webClientBuilder,
+                               @Value("${unsplash.base-url}") String baseUrl,
+                               @Value("${unsplash.access-key}") String accessKey) {
 
         this.accessKey = accessKey;
 
