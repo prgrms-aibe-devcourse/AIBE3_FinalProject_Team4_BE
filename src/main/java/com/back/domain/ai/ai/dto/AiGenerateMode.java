@@ -6,7 +6,10 @@ public enum AiGenerateMode {
     TITLE("title"),
     HASHTAG("hashtag"),
     SUMMARY("summary"),
-    KEYWORD("keyword");
+    KEYWORD("keyword"),
+    KEYWORD_FOR_UNSPLASH("keywordForUnsplash"),
+    KEYWORD_FOR_GOOGLE("keywordForGoogle"),
+    THUMBNAIL_TEXT("thumbnailText");
 
     private final String value;
 

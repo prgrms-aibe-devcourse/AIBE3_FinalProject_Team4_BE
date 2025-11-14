@@ -1,8 +1,0 @@
-package com.back.domain.ai.ai.dto;
-
-import java.util.List;
-
-public record AiGenerateTitleResponse(
-        List<String> titles
-) {
-}

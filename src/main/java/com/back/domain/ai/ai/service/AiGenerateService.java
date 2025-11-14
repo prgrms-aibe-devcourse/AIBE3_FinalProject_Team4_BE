@@ -14,6 +14,7 @@ public class AiGenerateService {
             .model("gpt-4o-mini")
             .build();
 
+    // 시스템 프롬프트
     public static final String SYSTEM_BASE_PROMPT = """
                     당신은 전문적인 블로그 콘텐츠 제작을 돕는 '블로그 도우미 AI' 입니다.
             
@@ -21,7 +22,7 @@ public class AiGenerateService {
                     * 이미지 생성, 파일 업로드, 외부 API 호출 등 텍스트를 벗어나는 요청은 거부해야 합니다.
             
             """;
-    private final String SYSTEM_DETAIL_PROMPT = """
+    private static final String SYSTEM_DETAIL_PROMPT = """
                     * 사용자가 제공하는 글의 내용을 바탕으로, 요청된 기능에 해당하는 결과만 명확하게 출력해야 합니다.
                     * 요청받지 않은 다른 기능의 결과는 절대 추가하지 마십시오.
             
@@ -33,39 +34,62 @@ public class AiGenerateService {
                     1. 제목 추천: 블로그의 핵심 내용을 포괄하고 클릭을 유도할 수 있는 매력적인 제목 3~5개를 추천합니다.
                     2. 해시태그 추천: 추출된 키워드를 기반으로 SNS 공유에 적합한 해시태그 목록 10개를 추천합니다.
                     3. 내용 요약: 블로그 글의 전체 내용을 숏로그 유형으로 요약합니다. 요약문은 200~800자 사이로 작성해야 합니다.
-                    4. 키워드 추출: 내용의 주제와 관련성이 높은 핵심 키워드 5~10개를 추출하여 목록 형태로 제시합니다.
+                    4. 키워드 추출: 내용의 주제와 관련성이 높은 핵심 키워드 1~5개를 추출하여 목록 형태로 제시합니다.
+                    5. 섬네일 문구 추천: 블로그 내용을 기반으로 시선을 끄는 섬네일용 문구를 3~5개 추천합니다.
             
             """;
 
-    private final String USER_TITLE_PROMPT = "[제목 추천]: 주어진 블로그의 본문을 분석하여, 독자의 클릭을 유도하는 매력적인 제목 3개를 JSON 형식(키: titles)으로 추출해 주세요. 설명이나 추가적인 문장은 일절 포함하지 말고, 순수한 JSON 객체만 출력해야 합니다. 단, '#' 기호는 붙이지 말고 단어만 출력하세요.\n";
-    private final String USER_HASHTAG_PROMPT = """
-            [해시태그 추천]: 주어진 콘텐츠 유형의 본문을 분석하여, SNS 공유에 적합한 해시태그 10개를 JSON 형식(키: hashtags)으로 추출해 주세요. 설명 없이 순수한 JSON 객체만 출력해야 합니다.
+    // 단일 결과 프롬프트
+    private static final String USER_SUMMARY_PROMPT = "[내용 요약]: 주어진 블로그의 본문을 분석하여, 간결하고 흥미를 유발하는 요약(200자~800자 사이)을 작성해 주세요. 요약 결과만 출력해야 합니다.\n";
+
+    // 다중 결과 프롬프트
+    private static final String JSON_RESULTS_FORMAT_INSTRUCTION = "JSON 형식(키: results)으로 추출해 주세요. 설명 없이 순수한 JSON 객체만 출력해야 합니다.\n";
+
+    private static final String USER_TITLE_PROMPT = "[제목 추천]: 주어진 블로그의 본문을 분석하여, 독자의 클릭을 유도하는 매력적인 제목 3~5개를 " + JSON_RESULTS_FORMAT_INSTRUCTION;
+    private static final String USER_HASHTAG_PROMPT = """
+            [해시태그 추천]: 주어진 콘텐츠 유형의 본문을 분석하여, SNS 공유에 적합한 해시태그 10개를 %s
                 - '#' 기호는 붙이지 마세요.
                 - 한글, 영문, 숫자만 사용하세요.
-                - 특수문자나 공백은 포함하지 마세요.
-            """;
-    private final String USER_SUMMARY_PROMPT = "[내용 요약]: 주어진 블로그의 본문을 분석하여, 간결하고 흥미를 유발하는 요약(200자~800자 사이)을 작성해 주세요. 요약 결과만 출력해야 합니다.\n";
-    private final String USER_KEYWORD_PROMPT = "[키워드 추출]: 주어진 콘텐츠 유형의 본문을 분석하여, SEO에 최적화된 핵심 키워드 5개를 JSON 형식(키: keywords)으로 추출해 주세요. 설명 없이 순수한 JSON 객체만 출력해야 합니다.\n";
+                - '_' 기호 이외의 특수문자나 공백은 포함하지 마세요.
+            """.formatted(JSON_RESULTS_FORMAT_INSTRUCTION);
+
+    private static final String KEYWORD_BASE_PROMPT = "[키워드 추출]: 주어진 콘텐츠 유형의 본문을 분석하여, ";
+    private static final String USER_KEYWORD_PROMPT = KEYWORD_BASE_PROMPT + "SEO에 최적화된 핵심 키워드 5개를 " + JSON_RESULTS_FORMAT_INSTRUCTION;
+    private static final String USER_KEYWORD_FOR_UNSPLASH_PROMPT = KEYWORD_BASE_PROMPT + "Unsplash에서 효과적으로 검색할 수 있는 비주얼 중심 핵심 키워드 1~3개를 추출해 주세요. 키워드는 사물, 장면, 분위기 등 다양한 이미지 유형을 포괄할 수 있는 Unsplash 사진 검색에 적합한 형태여야 합니다. " + JSON_RESULTS_FORMAT_INSTRUCTION;
+    private static final String USER_KEYWORD_FOR_GOOGLE_PROMPT = KEYWORD_BASE_PROMPT + "Google 이미지 검색에서 높은 관련성을 가지는 핵심 키워드 1~3개를 " + JSON_RESULTS_FORMAT_INSTRUCTION;
+
+    private static final String USER_THUMBNAIL_TEXT_PROMPT = "[섬네일 문구 추천]: 주어진 콘텐츠 유형의 본문을 분석하여, 콘텐츠의 클릭률(CTR)을 극대화할 수 있는, 섬네일 문구 5가지를 " + JSON_RESULTS_FORMAT_INSTRUCTION;
 
     public Object generate(AiGenerateRequest req) {
-        return switch (req.mode().getValue()) {
-            case "title" -> generate(
+        return switch (req.mode()) {
+            case TITLE -> generate(
                     appendUserPrompt(USER_TITLE_PROMPT, req),
-                    AiGenerateTitleResponse.class
+                    AiGenerateMultiResultsResponse.class
             );
-            case "hashtag" -> generate(
+            case HASHTAG -> generate(
                     appendUserPrompt(USER_HASHTAG_PROMPT, req),
-                    AiGenerateHashtagResponse.class
+                    AiGenerateMultiResultsResponse.class
             );
-            case "summary" -> generate(
+            case SUMMARY -> generate(
                     appendUserPrompt(USER_SUMMARY_PROMPT, req),
-                    AiGenerateSummaryResponse.class
+                    AiGenerateSingleResultResponse.class
             );
-            case "keyword" -> generate(
+            case KEYWORD -> generate(
                     appendUserPrompt(USER_KEYWORD_PROMPT, req),
-                    AiGenerateKeywordResponse.class
+                    AiGenerateMultiResultsResponse.class
             );
-            default -> throw new IllegalArgumentException("지원하지 않는 모드입니다.");
+            case KEYWORD_FOR_UNSPLASH -> generate(
+                    appendUserPrompt(USER_KEYWORD_FOR_UNSPLASH_PROMPT, req),
+                    AiGenerateMultiResultsResponse.class
+            );
+            case KEYWORD_FOR_GOOGLE -> generate(
+                    appendUserPrompt(USER_KEYWORD_FOR_GOOGLE_PROMPT, req),
+                    AiGenerateMultiResultsResponse.class
+            );
+            case THUMBNAIL_TEXT -> generate(
+                    appendUserPrompt(USER_THUMBNAIL_TEXT_PROMPT, req),
+                    AiGenerateMultiResultsResponse.class
+            );
         };
     }
 

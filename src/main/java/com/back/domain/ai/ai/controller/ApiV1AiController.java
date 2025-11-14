@@ -29,7 +29,7 @@ public class ApiV1AiController {
     private final AiChatService aiChatService;
 
     @PostMapping
-    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출")
+    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출/섬네일 문구 추천")
     public RsData<Object> generate(@RequestBody @Validated AiGenerateRequest req) {
         return RsData.successOf(aiGenerateService.generate(req));
     }
