@@ -10,9 +10,11 @@ import com.back.domain.shorlog.shorlog.dto.UpdateShorlogRequest;
 import com.back.domain.shorlog.shorlog.dto.UpdateShorlogResponse;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
+import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,8 @@ public class ShorlogService {
 
     private final ShorlogRepository shorlogRepository;
     private final ShorlogHashtagRepository shorlogHashtagRepository;
+    private final ShorlogLikeRepository shorlogLikeRepository;
+    private final ShorlogBookmarkRepository shorlogBookmarkRepository;
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
@@ -76,7 +80,12 @@ public class ShorlogService {
 
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
 
-        return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1);
+        // 좋아요/북마크 개수 조회
+        long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+        long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
+
+        return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1,
+                (int) likeCount, (int) bookmarkCount);
     }
 
      // 격자형 피드 조회 (전체, AI 추천)
@@ -87,7 +96,8 @@ public class ShorlogService {
 
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            return ShorlogFeedResponse.from(shorlog, hashtags);
+            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
         });
     }
 
@@ -106,7 +116,8 @@ public class ShorlogService {
 
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            return ShorlogFeedResponse.from(shorlog, hashtags);
+            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
         });
     }
 
@@ -123,7 +134,8 @@ public class ShorlogService {
 
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            return ShorlogFeedResponse.from(shorlog, hashtags);
+            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
         });
     }
 

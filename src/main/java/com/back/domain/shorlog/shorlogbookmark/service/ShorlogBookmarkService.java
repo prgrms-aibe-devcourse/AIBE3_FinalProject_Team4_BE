@@ -8,6 +8,7 @@ import com.back.domain.shorlog.shorlogbookmark.dto.ShorlogBookmarkResponse;
 import com.back.domain.shorlog.shorlogbookmark.entity.ShorlogBookmark;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
+import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class ShorlogBookmarkService {
     private final ShorlogRepository shorlogRepository;
     private final UserRepository userRepository;
     private final ShorlogHashtagRepository shorlogHashtagRepository;
+    private final ShorlogLikeRepository shorlogLikeRepository;
 
     private static final int BOOKMARK_PAGE_SIZE = 30; // 6열 격자형 피드 (30개씩)
 
@@ -92,7 +94,8 @@ public class ShorlogBookmarkService {
         Page<ShorlogFeedResponse> responsePage = bookmarkPage.map(bookmark -> {
             Shorlog shorlog = bookmark.getShorlog();
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            return ShorlogFeedResponse.from(shorlog, hashtags);
+            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
         });
 
         return BookmarkListResponse.from(responsePage);
