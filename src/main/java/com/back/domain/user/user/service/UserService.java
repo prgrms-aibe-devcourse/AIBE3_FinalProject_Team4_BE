@@ -61,7 +61,7 @@ public class UserService {
     public User toCompleteJoinOAuth2User(OAuth2CompleteJoinRequestDto dto) {
         String token = dto.temporaryToken();
         if(!jwtTokenProvider.validateToken(token)) {
-            throw new AuthException("400-1", "유효하지 않은 임시 토큰입니다.");
+            throw new AuthException("400-1", "임시토큰이 만료되었습니다. 처음부터 다시 시도해주세요.");
         }
         Long userId = jwtTokenProvider.getUserId(token);
         User user = getUserById(userId);
