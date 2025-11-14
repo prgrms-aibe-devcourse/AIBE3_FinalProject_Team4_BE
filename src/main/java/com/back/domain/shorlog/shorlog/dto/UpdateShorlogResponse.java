@@ -16,8 +16,7 @@ import java.util.List;
 public class UpdateShorlogResponse {
     private Long id;
     private String content;
-    private String thumbnailUrl;
-    private String thumbnailType;
+    private List<String> thumbnailUrls;
     private List<String> hashtags;
     private LocalDateTime updatedAt;
 
@@ -25,8 +24,7 @@ public class UpdateShorlogResponse {
         return UpdateShorlogResponse.builder()
                 .id(shorlog.getId())
                 .content(shorlog.getContent())
-                .thumbnailUrl(shorlog.getThumbnailUrl())
-                .thumbnailType(shorlog.getThumbnailType())
+                .thumbnailUrls(shorlog.getThumbnailUrlList())
                 .hashtags(hashtags)
                 .updatedAt(shorlog.getModifiedAt())
                 .build();

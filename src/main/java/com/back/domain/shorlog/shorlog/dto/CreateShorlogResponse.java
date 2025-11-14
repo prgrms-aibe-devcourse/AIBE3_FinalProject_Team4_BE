@@ -18,8 +18,7 @@ public class CreateShorlogResponse {
     private String username;
     private String profileImgUrl;
     private String content;
-    private String thumbnailUrl;
-    private String thumbnailType;
+    private List<String> thumbnailUrls;
     private List<String> hashtags;
     private LocalDateTime createdAt;
 
@@ -30,8 +29,7 @@ public class CreateShorlogResponse {
                 .username(shorlog.getUser().getUsername())
                 .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .content(shorlog.getContent())
-                .thumbnailUrl(shorlog.getThumbnailUrl())
-                .thumbnailType(shorlog.getThumbnailType())
+                .thumbnailUrls(shorlog.getThumbnailUrlList())
                 .hashtags(hashtags)
                 .createdAt(shorlog.getCreatedAt())
                 .build();
