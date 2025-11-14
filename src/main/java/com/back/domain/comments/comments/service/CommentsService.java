@@ -1,5 +1,6 @@
 package com.back.domain.comments.comments.service;
 
+import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.comments.comments.dto.CommentCreateRequestDto;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
@@ -7,6 +8,9 @@ import com.back.domain.comments.comments.entity.Comments;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
+import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +24,11 @@ import java.util.List;
 public class CommentsService {
 
     private final CommentsRepository commentsRepository;
+    private final UserRepository userRepository;
+    private final BlogRepository blogRepository;
+    private final ShorlogRepository shorlogRepository;
 
-
-    // =============================
-    //  공통 메서드
-    // =============================
-
+    // 공통
     private Comments getComment(Long id) {
         return commentsRepository.findById(id)
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
@@ -37,28 +40,31 @@ public class CommentsService {
     }
 
     private void checkOwnership(Comments comment, Long userId) {
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getUser().getId().equals(userId)) {
             throw new ServiceException(CommentsErrorCase.COMMENT_FORBIDDEN);
         }
     }
 
-
-    // =============================
-    //  댓글 생성
-    // =============================
-
     @Transactional
-    public RsData<CommentResponseDto> createComment(CommentCreateRequestDto req) {
+    public RsData<CommentResponseDto> createComment(Long userId, CommentCreateRequestDto req) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.USER_NOT_FOUND));
+
+        // target 존재 여부 검증
+        if (!req.targetType().exists(req.targetId(),blogRepository, shorlogRepository)) {
+            throw new ServiceException(CommentsErrorCase.TARGET_NOT_FOUND);
+        }
 
         Comments parent = null;
-        if (req.parentId() != null) {
+        if (req.parentId() != null && req.parentId() != 0) {
             parent = getParentComment(req.parentId());
         }
 
         Comments comment = Comments.builder()
                 .targetType(req.targetType())
                 .targetId(req.targetId())
-                .userId(req.userId())       // userId는 controller에서만 주입
+                .user(user)
                 .content(req.content())
                 .parent(parent)
                 .build();
@@ -73,35 +79,35 @@ public class CommentsService {
     }
 
 
-    // =============================
-    //  댓글 조회
-    // =============================
-
+    // 댓글 조회
     @Transactional(readOnly = true)
-    public RsData<List<CommentResponseDto>> getCommentsByTarget(CommentsTargetType targetType, Long targetId) {
+    public RsData<List<CommentResponseDto>> getCommentsByTarget(
+            CommentsTargetType targetType,
+            Long targetId
+    ) {
 
         List<Comments> comments = commentsRepository
                 .findByTargetTypeAndTargetIdAndParentIsNullOrderByCreatedAtAsc(targetType, targetId);
 
-        List<CommentResponseDto> dtoList = comments.stream()
-                .map(CommentResponseDto::fromEntity)
-                .toList();
-
-        return RsData.of("200-1", "댓글 목록 조회 성공", dtoList);
+        return RsData.of("200-1", "댓글 목록 조회 성공",
+                comments.stream()
+                        .map(CommentResponseDto::fromEntity)
+                        .toList()
+        );
     }
 
-
-    // =============================
-    //  댓글 수정
-    // =============================
-
+    // 댓글 수정
     @Transactional
-    public RsData<CommentResponseDto> updateComment(Long commentId, Long userId, CommentUpdateRequestDto req) {
+    public RsData<CommentResponseDto> updateComment(
+            Long commentId,
+            Long userId,
+            CommentUpdateRequestDto req
+    ) {
 
         Comments comment = getComment(commentId);
         checkOwnership(comment, userId);
 
-        comment.updateContent(req.content());   // JPA dirty checking
+        comment.updateContent(req.content());
 
         return RsData.of(
                 "200-2",
@@ -110,11 +116,7 @@ public class CommentsService {
         );
     }
 
-
-    // =============================
-    //  댓글 삭제
-    // =============================
-
+    // 댓글 삭제
     @Transactional
     public RsData<Void> deleteComment(Long commentId, Long userId) {
 
@@ -126,17 +128,20 @@ public class CommentsService {
         return RsData.of("200-3", "댓글이 삭제되었습니다.", null);
     }
 
-
-    // =============================
-    //  댓글 좋아요
-    // =============================
-
+    // 댓글 좋아요
     @Transactional
     public RsData<CommentResponseDto> likeComment(Long commentId, Long userId) {
 
         Comments comment = getComment(commentId);
 
-        comment.addLike(userId);   // 중복 좋아요 체크는 entity 내부에서 처리한다고 가정
+        if (comment.getUser().getId().equals(userId)) {
+            throw new ServiceException(CommentsErrorCase.COMMENT_LIKE_FORBIDDEN);
+        }
+        if (comment.getLikedUserIds().contains(userId)) {
+            throw new ServiceException(CommentsErrorCase.COMMENT_LIKE_ALREADY_EXISTS);
+        }
+
+        comment.addLike(userId);
 
         return RsData.of(
                 "200-4",
@@ -145,11 +150,7 @@ public class CommentsService {
         );
     }
 
-
-    // =============================
-    //  댓글 좋아요 취소
-    // =============================
-
+    // 댓글 좋아요 취소
     @Transactional
     public RsData<CommentResponseDto> unlikeComment(Long commentId, Long userId) {
 

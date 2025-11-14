@@ -1,5 +1,6 @@
 package com.back.domain.comments.comments.entity;
 
+import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,13 +19,14 @@ public class Comments extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private CommentsTargetType targetType; // 댓글 대상 (BLOG / SHOLOG 등)
+    private CommentsTargetType targetType; // 댓글 대상 (BLOG / SHORLOG 등)
 
     @Column(nullable = false)
-    private Long targetId; // 대상 엔티티의 ID (blogId나 shologId)
+    private Long targetId; // 대상 엔티티의 ID (blogId나 shorlogId)
 
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false, length = 500)
     private String content;
@@ -38,19 +40,16 @@ public class Comments extends BaseEntity {
     private List<Comments> children = new ArrayList<>();
 
     @ElementCollection
+    @Builder.Default
     private Set<Long> likedUserIds = new HashSet<>();
 
     public void updateContent(String newContent) {
         this.content = newContent;
     }
 
-    public void addLike(Long userId) {
-        likedUserIds.add(userId);
-    }
+    public void addLike(Long userId) { likedUserIds.add(userId); }
 
-    public void removeLike(Long userId) {
-        likedUserIds.remove(userId);
-    }
+    public void removeLike(Long userId) { likedUserIds.remove(userId); }
 
     public int getLikeCount() {
         return likedUserIds.size();
