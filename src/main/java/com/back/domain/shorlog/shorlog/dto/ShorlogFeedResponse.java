@@ -21,7 +21,7 @@ public class ShorlogFeedResponse {
     private Integer commentCount;
     private String firstLine;
 
-    public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags) {
+    public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags, Integer likeCount) {
         List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
         String firstThumbnail = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
                 ? thumbnailUrls.get(0)
@@ -33,7 +33,7 @@ public class ShorlogFeedResponse {
                 .thumbnailUrl(firstThumbnail)
                 .username(shorlog.getUser().getUsername())
                 .hashtags(hashtags)
-                .likeCount(0) // TODO: 좋아요 기능 구현 후
+                .likeCount(likeCount)
                 .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
                 .firstLine(extractFirstLine(shorlog.getContent()))
                 .build();

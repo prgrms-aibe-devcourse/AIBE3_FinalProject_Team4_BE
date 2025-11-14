@@ -29,7 +29,8 @@ public class ShorlogDetailResponse {
     private LocalDateTime modifiedAt;
     private Long connectedBlogId;
 
-    public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount) {
+    public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount,
+                                             Integer likeCount, Integer bookmarkCount) {
         return ShorlogDetailResponse.builder()
                 .id(shorlog.getId())
                 .userId(shorlog.getUser().getId())
@@ -39,8 +40,8 @@ public class ShorlogDetailResponse {
                 .content(shorlog.getContent())
                 .thumbnailUrls(shorlog.getThumbnailUrlList())
                 .viewCount(viewCount)
-                .likeCount(0) // TODO: 좋아요 기능 구현 후
-                .bookmarkCount(0) // TODO: 북마크 기능 구현 후
+                .likeCount(likeCount)
+                .bookmarkCount(bookmarkCount)
                 .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
                 .hashtags(hashtags)
                 .createdAt(shorlog.getCreatedAt())
