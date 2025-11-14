@@ -82,7 +82,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1 * 60 * 1000)) // 5분 유효
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5분 유효
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
