@@ -1,11 +1,9 @@
 package com.back.domain.comments.comments.dto;
 
 import com.back.domain.comments.comments.entity.Comments;
-import lombok.Builder;
 
 import java.util.List;
 
-@Builder
 public record CommentResponseDto(
         Long id,
         String content,
