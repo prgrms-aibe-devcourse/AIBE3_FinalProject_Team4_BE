@@ -28,13 +28,13 @@ public class NotificationService {
 
         String message = type.createMessage(senderNickname);
 
-        Notification notification = Notification.builder()
-                .receiverId(receiverId)
-                .senderId(senderId)
-                .type(type)
-                .targetId(targetId)
-                .message(message)
-                .build();
+        Notification notification = Notification.create(
+                receiverId,
+                senderId,
+                type,
+                targetId,
+                message
+        );
 
         notificationRepository.save(notification);
 

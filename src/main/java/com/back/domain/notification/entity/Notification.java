@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -30,7 +29,6 @@ public class Notification extends BaseEntity {
 
     private boolean isRead = false;
 
-    @Builder
     public Notification(Long receiverId, Long senderId, NotificationType type,
                         Long targetId, String message) {
         this.receiverId = receiverId;
@@ -38,6 +36,11 @@ public class Notification extends BaseEntity {
         this.type = type;
         this.targetId = targetId;
         this.message = message;
+    }
+
+    public static Notification create(Long receiverId, Long senderId,
+                                      NotificationType type, Long targetId, String message) {
+        return new Notification(receiverId, senderId, type, targetId, message);
     }
 
     public void markAsRead() {
