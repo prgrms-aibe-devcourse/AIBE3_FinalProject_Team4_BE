@@ -4,6 +4,8 @@ import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.like.entity.BlogLike;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
+import com.back.domain.notification.entity.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +20,23 @@ public class BlogLikeService {
     private final BlogLikeRepository likeRepository;
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public boolean likeOn(Long userId, Long blogId) {
         if (likeRepository.existsByBlog_IdAndUser_Id(blogId, userId)) {
             return true;
         }
+
+        // 게시글 정보 조회 (receiver 확인 목적)
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new RuntimeException("블로그 게시글을 찾을 수 없습니다."));
+
+        // 자기 글 좋아요 금지
+        if (blog.getUser().getId().equals(userId)) {
+            throw new RuntimeException("본인의 글에는 좋아요할 수 없습니다.");
+        }
+
         BlogLike like = new BlogLike();
         like.setBlog(new Blog());
         like.getBlog().setId(blogId);
@@ -33,6 +46,19 @@ public class BlogLikeService {
         try {
             likeRepository.save(like);
             blogRepository.increaseBookmark(blogId);
+
+            // 🔔 알림 전송
+            User sender = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+            notificationService.send(
+                    blog.getUser().getId(),         // receiver
+                    userId,                         // sender
+                    NotificationType.BLOG_LIKE,     // type
+                    blogId,                         // target
+                    sender.getNickname()            // sender nickname
+            );
+
             return true;
         } catch (DataIntegrityViolationException e) {
             return true;
