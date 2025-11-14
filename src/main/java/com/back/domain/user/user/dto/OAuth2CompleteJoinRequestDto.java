@@ -18,6 +18,9 @@ public record OAuth2CompleteJoinRequestDto(
         LocalDate dateOfBirth,
 
         @NotNull
-        Gender gender
+        Gender gender,
+
+        @NotBlank(message = "발급받은 임시 토큰을 포함해주세요.")
+        String temporaryToken
 ) {
 }

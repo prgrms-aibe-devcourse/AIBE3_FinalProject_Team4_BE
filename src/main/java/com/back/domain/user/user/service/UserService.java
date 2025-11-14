@@ -8,6 +8,7 @@ import com.back.domain.user.user.dto.UserJoinRequestDto;
 import com.back.domain.user.user.dto.UserLoginRequestDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +23,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final VerificationTokenService verificationTokenService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
@@ -56,7 +58,12 @@ public class UserService {
     }
 
     @Transactional
-    public User toCompleteJoinOAuth2User(Long userId, OAuth2CompleteJoinRequestDto dto) {
+    public User toCompleteJoinOAuth2User(OAuth2CompleteJoinRequestDto dto) {
+        String token = dto.temporaryToken();
+        if(!jwtTokenProvider.validateToken(token)) {
+            throw new AuthException("400-1", "유효하지 않은 임시 토큰입니다.");
+        }
+        Long userId = jwtTokenProvider.getUserId(token);
         User user = getUserById(userId);
         user.completeOAuth2Join(dto.nickname(), dto.dateOfBirth(), dto.gender());
         return user;

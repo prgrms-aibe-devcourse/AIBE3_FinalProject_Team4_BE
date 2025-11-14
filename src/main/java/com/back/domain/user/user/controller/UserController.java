@@ -38,10 +38,19 @@ public class UserController {
     }
 
     @PostMapping("/complete-oauth2-join")
-    @Operation(summary = "OAuth2 회원 가입 완료를 위한 추가 API")
-    public RsData<UserDto> toCompleteJoinForOAuth2(@Valid @RequestBody OAuth2CompleteJoinRequestDto dto,
-                                                   @AuthenticationPrincipal SecurityUser securityUser) {
-        User user = userService.toCompleteJoinOAuth2User(securityUser.getId(), dto);
+    @Operation(summary = "OAuth2 회원 가입 완료 및 로그인을 위한 추가 API")
+    public RsData<UserDto> toCompleteJoinForOAuth2(@Valid @RequestBody OAuth2CompleteJoinRequestDto dto) {
+        User user = userService.toCompleteJoinOAuth2User(dto);
+
+        refreshTokenService.deleteRefreshTokenByUserId(user.getId());
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), "ROLE_USER");
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        refreshTokenService.saveRefreshToken(user.getId(), refreshToken);
+
+        rq.setCookie("accessToken", accessToken);
+        rq.setCookie("refreshToken", refreshToken);
+
         return new RsData<>(
                 "201-1",
                 "%s 님 가입을 환영합니다!".formatted(user.getUsername()),

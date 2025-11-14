@@ -27,16 +27,22 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
         Long userId = securityUser.getId();
 
-        System.out.println("securityUser : " + securityUser.getId() + ", " + securityUser.getEmail());
-
-        // 소셜 가입 후 추가 정보가 없는 경우 프로필 완성 페이지로 리다이렉트
+        // 소셜 가입은 프로필 완성 페이지로 리다이렉트, 이후 컨트롤러에서 별도 토큰 발급
         String nickname = securityUser.getNickname();
         if (nickname == null) {
-            redirectStrategy.sendRedirect(request, response, "/tmp-for-complete-join-of-oauth2-user");
-//            response.sendRedirect("/tmp-for-complete-join-of-oauth2-user"); // todo 추후 프론트 페이지 URL로 변경
+            String targetUrl = "/tmp-for-complete-join-of-oauth2-user";     // todo 추후 프론트 Next.js 페이지 URL로 변경
+            String token = jwtTokenProvider.generateTemporaryToken(userId);
+            System.out.println("임시 토큰이 발급되었습니다. : " + token);
+            String redirectUrlWithToken = targetUrl + "?token=" + token;
+
+            redirectStrategy.sendRedirect(request, response, redirectUrlWithToken);
             return;
         }
 
+        // 가입되어있는 소셜 사용자
+        // 기존 리프레시 토큰 삭제 후
+        refreshTokenService.deleteRefreshTokenByUserId(userId);
+        // 새로운 토큰 발급
         String accessToken = jwtTokenProvider.generateAccessToken(userId, "ROLE_USER");
         String refreshToken = jwtTokenProvider.generateRefreshToken(userId);
         refreshTokenService.saveRefreshToken(userId, refreshToken);

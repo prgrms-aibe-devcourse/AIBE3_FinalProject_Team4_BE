@@ -75,6 +75,7 @@
 <div class="modal">
     <h2>가입 (2/2)</h2>
     <form id="onboardingForm">
+        <input type="hidden" name="token" th:value="${token}"/>
 
         <div class="input-group">
             <label for="nickname" style="display: none;">닉네임</label>
@@ -90,7 +91,7 @@
         <div class="input-group gender-group">
             <button type="button" class="gender-btn" data-gender="MALE">남자</button>
             <button type="button" class="gender-btn" data-gender="FEMALE">여자</button>
-            <button type="button" class="gender-btn" data-gender="NONE">선택안함</button>
+            <button type="button" class="gender-btn" data-gender="OTHER">선택안함</button>
             <input type="hidden" id="gender" name="gender" required>
             <p class="info-text">생년월일과 성별은 공개되지 않습니다.</p>
         </div>
@@ -119,6 +120,7 @@
             const nickname = document.getElementById('nickname').value;
             const dateOfBirth = document.getElementById('dateOfBirth').value;
             const gender = document.getElementById('gender').value;
+            const token = document.querySelector('input[name="token"]').value;
 
             // ⭐ API 경로를 확인하고 필요시 변경하세요.
             const apiPath = '/api/v1/auth/complete-oauth2-join';
@@ -126,7 +128,8 @@
             const data = {
                 nickname: nickname,
                 dateOfBirth: dateOfBirth,
-                gender: gender
+                gender: gender,
+                temporaryToken: token
             };
 
             // Fetch API를 사용하여 JSON 전송
@@ -135,7 +138,6 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
                 body: JSON.stringify(data)
             })
                 .then(response => {
