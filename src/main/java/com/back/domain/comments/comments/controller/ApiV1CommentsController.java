@@ -47,7 +47,7 @@ public class ApiV1CommentsController {
             @AuthenticationPrincipal SecurityUser user,
             @Valid @RequestBody CommentCreateRequestDto req
     ) {
-        return commentsService.createComment(req.withUserId(user.getId()));
+        return commentsService.createComment(user.getId(), req);
     }
 
     /**
