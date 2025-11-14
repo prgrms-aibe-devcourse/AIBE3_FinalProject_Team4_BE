@@ -25,7 +25,7 @@ public class ShorlogDraft extends BaseEntity {
     @Column(name = "thumbnail_urls", columnDefinition = "JSON")
     private String thumbnailUrls;
 
-    @Column(name = "hashtags", columnDefinition = "JSON")
+    @Column(name = "hashtagName", columnDefinition = "JSON")
     private String hashtags;
 
     public void update(String content, List<String> thumbnailUrls, String hashtags) {

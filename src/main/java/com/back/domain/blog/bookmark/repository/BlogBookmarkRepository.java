@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -50,7 +51,9 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
 
     boolean existsByBlog_IdAndUser_Id(Long blogId, Long userId);
 
-    long deleteByBlog_IdAndUser_Id(Long postId, Long userId);
+    @Modifying(clearAutomatically = true)
+    @Query("delete from BlogBookmark bb where bb.blog.id = :blogId and bb.user.id = :userId")
+    long deleteByBlog_IdAndUser_Id(Long blogId, Long userId);
 
     @Query("select count(bm) from BlogBookmark bm where bm.blog.id = :blogId")
     long countBlogBookmarkBy(Long blogId);

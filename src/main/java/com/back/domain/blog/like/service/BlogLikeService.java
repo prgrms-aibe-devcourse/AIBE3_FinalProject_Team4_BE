@@ -1,6 +1,7 @@
 package com.back.domain.blog.like.service;
 
 import com.back.domain.blog.blog.entity.Blog;
+import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.like.entity.BlogLike;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
@@ -8,6 +9,7 @@ import com.back.domain.notification.entity.NotificationType;
 import com.back.domain.notification.service.NotificationService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -36,17 +38,13 @@ public class BlogLikeService {
         if (blog.getUser().getId().equals(userId)) {
             throw new RuntimeException("본인의 글에는 좋아요할 수 없습니다.");
         }
-
-        BlogLike like = new BlogLike();
-        like.setBlog(new Blog());
-        like.getBlog().setId(blogId);
-        like.setUser(new User());
-        like.getUser().setId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
+        BlogLike like = new BlogLike(blog, user);
 
         try {
             likeRepository.save(like);
-            blogRepository.increaseBookmark(blogId);
-
+            blogRepository.increaseLikeCount(blogId);
             // 🔔 알림 전송
             User sender = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -58,7 +56,6 @@ public class BlogLikeService {
                     blogId,                         // target
                     sender.getNickname()            // sender nickname
             );
-
             return true;
         } catch (DataIntegrityViolationException e) {
             return true;
@@ -67,9 +64,16 @@ public class BlogLikeService {
 
     @Transactional
     public boolean likeOff(Long userId, Long blogId) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
+        if (likeRepository.findByBlogIdAndUserId(blog.getId(), user.getId()).isEmpty())
+            throw new ServiceException(BlogErrorCase.REACTION_NOT_FOUND);
+
         long deleted = likeRepository.deleteByBlog_IdAndUser_Id(blogId, userId);
         if (deleted > 0) {
-            blogRepository.decreaseBookmark(blogId);
+            blogRepository.decreaseLikeCount(blogId);
             return true;
         }
         return false;
@@ -80,6 +84,6 @@ public class BlogLikeService {
     }
 
     public long getLikeCount(Long blogId) {
-        return likeRepository.countBlogBookmarkBy(blogId);
+        return blogRepository.getLikeCountById(blogId);
     }
 }

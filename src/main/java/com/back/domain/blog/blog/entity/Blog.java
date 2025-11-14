@@ -6,10 +6,14 @@ import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.like.entity.BlogLike;
+import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.user.user.entity.User;
 import com.back.global.exception.ServiceException;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -22,10 +26,8 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 
 @EntityListeners(AuditingEntityListener.class)
 @AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @Getter
-@Setter
 @Entity
 @Table(name = "blogs")
 public class Blog {
@@ -46,12 +48,12 @@ public class Blog {
     private LocalDateTime modifiedAt;
 
     private String thumbnailUrl;
-    private Integer viewCount;
-    private Integer likeCount;
-    private Integer bookmarkCount;
-    private Integer commentCount;
+    private long viewCount = 0;
+    private long likeCount = 0;
+    private long bookmarkCount = 0;
+    private long commentCount = 0;
 
-    @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = {CascadeType.MERGE, CascadeType.REFRESH})
+    @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = CascadeType.ALL)
     private List<BlogHashtag> blogHashtags = new ArrayList<>();
 
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -60,28 +62,40 @@ public class Blog {
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BlogBookmark> bookmark = new ArrayList<>();
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;
+
+
+    public Blog(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
+        this.user = user;
+        this.title = title;
+        this.content = content;
+        this.thumbnailUrl = thumbnailUrl;
+        this.status = status;
+        this.blogHashtags = new ArrayList<>();
+        this.viewCount = 0;
+        this.likeCount = 0;
+        this.bookmarkCount = 0;
+        this.commentCount = 0;
+    }
 
     public static Blog create(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
         if (title == null || title.isBlank()) {
             throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
         }
+        Blog blog = new Blog(user, title, content, thumbnailUrl, status);
+        return blog;
+    }
 
-        return Blog.builder()
-                .user(user)
-                .title(title)
-                .content(content)
-                .thumbnailUrl(thumbnailUrl)
-                .status(status)
-                .createdAt(LocalDateTime.now())
-                .modifiedAt(LocalDateTime.now())
-                .viewCount(0)
-                .likeCount(0)
-                .bookmarkCount(0)
-                .commentCount(0)
-                .build();
+    public void updateHashtags(List<Hashtag> hashtags) {
+        this.blogHashtags.clear();
+
+        for (Hashtag hashtag : hashtags) {
+            BlogHashtag blogHashtag = new BlogHashtag(this, hashtag);
+            this.blogHashtags.add(blogHashtag);
+        }
     }
 
     public void publish() {
@@ -110,31 +124,17 @@ public class Blog {
         this.viewCount += 1;
     }
 
-    public void modify(BlogWriteReqDto reqBody, List<Long> hashtagIds) {
+    public void modify(BlogWriteReqDto reqBody, List<String> hashtagNames) {
         this.title = reqBody.title();
         this.content = reqBody.content();
         this.thumbnailUrl = reqBody.thumbnailUrl();
         this.status = reqBody.status();
         this.modifiedAt = LocalDateTime.now();
-
-        this.updateHashtags(hashtagIds);
     }
 
     public void increaseLikeCount() {
         this.likeCount += 1;
     }
 
-    public void updateHashtags(List<Long> hashtagIds) {
-        if (this.blogHashtags != null) {
-            this.blogHashtags.clear();
-        } else {
-            this.blogHashtags = new ArrayList<>();
-        }
 
-        if (hashtagIds != null) {
-            hashtagIds.stream()
-                    .map(id -> new BlogHashtag(id, this))
-                    .forEach(this.blogHashtags::add);
-        }
-    }
 }

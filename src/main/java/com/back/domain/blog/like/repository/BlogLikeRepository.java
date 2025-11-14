@@ -16,7 +16,7 @@ import java.util.Set;
 @Repository
 public interface BlogLikeRepository extends JpaRepository<BlogLike, Long> {
     boolean existsByBlogIdAndUserId(Long blogId, Long userId);
-    
+
     Optional<BlogLike> findByBlogIdAndUserId(Long blogId, Long userId);
 
     // 사용자의 북마크 목록 조회 (Fetch Join으로 N+1 방지)
@@ -47,7 +47,7 @@ public interface BlogLikeRepository extends JpaRepository<BlogLike, Long> {
 
     boolean existsByBlog_IdAndUser_Id(Long blogId, Long userId);
 
-    long deleteByBlog_IdAndUser_Id(Long postId, Long userId);
+    long deleteByBlog_IdAndUser_Id(Long blogId, Long userId);
 
     @Query("select count(bm) from BlogBookmark bm where bm.blog.id = :blogId")
     long countBlogBookmarkBy(Long blogId);

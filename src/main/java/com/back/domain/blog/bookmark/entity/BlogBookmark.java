@@ -3,10 +3,8 @@ package com.back.domain.blog.bookmark.entity;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.user.user.entity.User;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -14,7 +12,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @Table(name = "blog_bookmarks",
         uniqueConstraints = {
                 @UniqueConstraint(
@@ -27,7 +24,7 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_blog_id", columnList = "blog_id")
         })
 @EntityListeners(AuditingEntityListener.class)
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class BlogBookmark {
 
     @Id
@@ -47,7 +44,6 @@ public class BlogBookmark {
     @Column(name = "bookmarked_at", updatable = false, nullable = false)
     private LocalDateTime bookmarkedAt;
 
-    @Builder
     public BlogBookmark(Blog blog, User user) {
         this.blog = blog;
         this.user = user;

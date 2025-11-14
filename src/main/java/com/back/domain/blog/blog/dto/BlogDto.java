@@ -1,7 +1,6 @@
 package com.back.domain.blog.blog.dto;
 
 import com.back.domain.blog.blog.entity.Blog;
-import com.back.domain.blog.bloghashtag.dto.BlogHashtagDto;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.user.user.dto.UserDto;
 
@@ -14,20 +13,20 @@ public record BlogDto(
         String content,
         UserDto author,
         String thumbnailUrl,
-        List<BlogHashtagDto> hashtags,
+        List<String> hashtagNames,
         String status,
-        Integer viewCount,
-        Integer likeCount,
-        Integer bookmarkCount,
+        long viewCount,
+        long likeCount,
+        long bookmarkCount,
+        long commentCount,
         Boolean isLiked,
         Boolean isBookmarked,
-        Integer commentCount,
         List<CommentResponseDto> comments,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
         Integer relatedShorlogCount,
-        Long relatedShorlogId,
-        Object[] sortValues
+        List<Long> relatedShorlogIds,
+        Object[] sortValues,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
     public BlogDto(Blog blog) {
         this(
@@ -37,22 +36,22 @@ public record BlogDto(
                 blog.getUser() != null ? new UserDto(blog.getUser()) : null,
                 blog.getThumbnailUrl(),
                 blog.getBlogHashtags().stream()
-                        .filter(blogHashtag -> blogHashtag.getHashtag() != null)
-                        .map(blogHashtag -> new BlogHashtagDto(blogHashtag.getHashtag())).toList(),
+                        .map(blogHashtag -> blogHashtag.getHashtag().getName())
+                        .toList(),
                 blog.getStatus().name(),
                 blog.getViewCount(),
                 blog.getLikeCount(),
                 blog.getBookmarkCount(),
-//TODO: 댓글, 좋아요, 북마크 기능 리팩토링 후 수정
-                null,
-                null,
                 blog.getCommentCount(),
+                //TODO: 댓글, 좋아요, 북마크 기능 리팩토링 후 수정
+                false,
+                false,
+                null,
+                0,
+                null,
                 null,
                 blog.getCreatedAt(),
-                blog.getModifiedAt(),
-                null,
-                null,
-                null
+                blog.getModifiedAt()
         );
     }
 }
