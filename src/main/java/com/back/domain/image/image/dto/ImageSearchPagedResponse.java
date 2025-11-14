@@ -67,34 +67,11 @@ public record ImageSearchPagedResponse(
                 .map(ImageSearchContentDto::new)
                 .toList();
 
-        String totalElementsString = result.searchInformation().totalResults();
-        long totalElements;
-        int totalPages;
-
-        try {
-            totalElements = Long.parseLong(totalElementsString);
-            totalPages = (int) ((totalElements + size - 1) / size);
-        } catch (NumberFormatException e) {
-            String errorMessage = String.format(
-                    "Google API 데이터 오류: 'searchInformation.totalResults' 필드('%s')를 숫자로 변환할 수 없습니다.",
-                    totalElementsString
-            );
-            throw new IllegalArgumentException(errorMessage, e);
-        } catch (Exception e) {
-            String errorMessage = String.format(
-                    "Google API 응답 처리 중 예상치 못한 오류 발생: 'searchInformation.totalResults' = '%s'",
-                    totalElementsString
-            );
-            throw new RuntimeException(errorMessage, e);
-        }
+        long totalElements = getTotalElements(size, result);
+        int totalPages = (int) ((totalElements + size - 1) / size);
 
         boolean first = number == 0;               // result.queries().previousPage() == null;
         boolean last = number >= (totalPages - 1); // result.queries().nextPage() == null;
-
-        if (totalPages * size > MAX_RESULTS_LIMIT) {
-            totalElements = (long) (MAX_RESULTS_LIMIT / size) * size;
-            totalPages = MAX_RESULTS_LIMIT / size;
-        }
 
         return new ImageSearchPagedResponse(
                 keyword,
@@ -106,5 +83,25 @@ public record ImageSearchPagedResponse(
                 last,
                 content
         );
+    }
+
+    private static long getTotalElements(int size, GoogleImageSearchResult result) {
+        String totalElementsString = result.searchInformation().totalResults();
+        long maxTotalElements = (long) (MAX_RESULTS_LIMIT / size) * size;
+        long totalElements;
+
+        try {
+            totalElements = Long.parseLong(totalElementsString);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(String.format(
+                    "Google API 데이터 오류: 'searchInformation.totalResults' 필드('%s')를 숫자로 변환할 수 없습니다.", totalElementsString),
+                    e);
+        }
+
+        if (totalElements > maxTotalElements) {
+            totalElements = maxTotalElements;
+        }
+
+        return totalElements;
     }
 }
