@@ -55,7 +55,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/","/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/password-reset").permitAll()
+                        .requestMatchers("/api/v1/auth/complete-oauth2-join").permitAll()
                         .requestMatchers("/api/v1/auth/send-code", "/api/v1/auth/verify-code").permitAll()
+                        .requestMatchers("/tmp-for-complete-join-of-oauth2-user").permitAll()       // todo 추후 프론트 페이지 개발 후 제거
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/feed").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/search").permitAll()
