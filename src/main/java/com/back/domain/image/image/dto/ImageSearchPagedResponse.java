@@ -67,9 +67,6 @@ public record ImageSearchPagedResponse(
                 .map(ImageSearchContentDto::new)
                 .toList();
 
-        boolean first = result.queries().previousPage() == null;
-        boolean last = result.queries().nextPage() == null;
-
         String totalElementsString = result.searchInformation().totalResults();
         long totalElements;
         int totalPages;
@@ -91,10 +88,12 @@ public record ImageSearchPagedResponse(
             throw new RuntimeException(errorMessage, e);
         }
 
+        boolean first = number == 0;               // result.queries().previousPage() == null;
+        boolean last = number >= (totalPages - 1); // result.queries().nextPage() == null;
+
         if (totalPages * size > MAX_RESULTS_LIMIT) {
             totalElements = (long) (MAX_RESULTS_LIMIT / size) * size;
             totalPages = MAX_RESULTS_LIMIT / size;
-            last = (number + 1) >= totalPages;
         }
 
         return new ImageSearchPagedResponse(

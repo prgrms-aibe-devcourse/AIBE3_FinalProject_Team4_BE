@@ -1,39 +1,40 @@
 package com.back.domain.image.image.config;
 
 import com.back.domain.image.image.dto.GoogleImageSearchResult;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 import static com.back.domain.image.image.constants.GoogleImageConstants.MAX_PAGE_SIZE;
 import static com.back.domain.image.image.constants.GoogleImageConstants.MAX_RESULTS_LIMIT;
 
 @Component
+@Slf4j
 public class GoogleImageClient {
 
     private final WebClient webClient;
     private final String apiKey;
     private final String cxId;
 
-    public GoogleImageClient(WebClient.Builder webClientBuilder,
+    public GoogleImageClient(@Qualifier("customWebClientBuilder") WebClient.Builder webClientBuilder,
                              @Value("${google.base-url}") String baseUrl,
                              @Value("${google.api-key}") String apiKey,
                              @Value("${google.cx-id}") String cxId) {
 
         this.apiKey = apiKey;
         this.cxId = cxId;
-
         this.webClient = webClientBuilder
                 .baseUrl(baseUrl)
                 .build();
     }
 
     public GoogleImageSearchResult searchImages(String query, int page, int size) {
-
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
-        }
 
         int finalSize = Math.min(size, MAX_PAGE_SIZE); // 반환할 검색결과 수: 1에서 10 사이의 정수
         int startIndex = (page - 1) * finalSize + 1;     // 반환할 첫 번째 결과의 색인
@@ -54,9 +55,19 @@ public class GoogleImageClient {
                 .retrieve()
 
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                        clientResponse -> Mono.error(new RuntimeException("Google API 호출 오류: " + clientResponse.statusCode())))
+                        clientResponse -> Mono.error(new RuntimeException("Google API 호출 오류: 상태 코드 " + clientResponse.statusCode())))
 
                 .bodyToMono(GoogleImageSearchResult.class)
+                .timeout(Duration.ofSeconds(20))
+
+                .onErrorResume(throwable -> {
+                    if (throwable instanceof WebClientResponseException e) {
+                        log.error("Google API HTTP 오류: 상태 코드 {}, 응답 {}", e.getStatusCode(), e.getResponseBodyAsString(), e);
+                    } else {
+                        log.error("Google API 네트워크/타임아웃 등 오류: {}", throwable.getMessage(), throwable);
+                    }
+                    return Mono.just(new GoogleImageSearchResult());
+                })
                 .block();
     }
 }

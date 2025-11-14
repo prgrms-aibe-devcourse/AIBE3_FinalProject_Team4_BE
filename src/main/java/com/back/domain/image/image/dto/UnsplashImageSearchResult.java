@@ -12,6 +12,10 @@ public record UnsplashImageSearchResult(
 
         List<UnsplashImageItem> results
 ) {
+    public UnsplashImageSearchResult() {
+        this(0, 0, List.of());
+    }
+
     public UnsplashImageSearchResult withItems(List<UnsplashImageItem> newResults) {
         return new UnsplashImageSearchResult(
                 this.total,

@@ -7,6 +7,10 @@ public record GoogleImageSearchResult(
         SearchInformation searchInformation,
         List<GoogleImageItem> items
 ) {
+    public GoogleImageSearchResult() {
+        this(new Queries(), new SearchInformation(), List.of());
+    }
+
     public GoogleImageSearchResult withItems(List<GoogleImageItem> newItems) {
         return new GoogleImageSearchResult(
                 this.queries,
@@ -20,9 +24,15 @@ record Queries(
         List<Object> previousPage,
         List<Object> nextPage
 ) {
+    Queries() {
+        this(null, null);
+    }
 }
 
 record SearchInformation(
         String totalResults
 ) {
+    SearchInformation() {
+        this("0");
+    }
 }

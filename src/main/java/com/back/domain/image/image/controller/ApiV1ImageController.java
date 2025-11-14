@@ -25,6 +25,10 @@ public class ApiV1ImageController {
     public RsData<ImageSearchPagedResponse> searchUnsplashImages(@RequestParam(required = false) String keyword,
                                                                  @RequestParam(defaultValue = "0") Integer number,
                                                                  @RequestParam(defaultValue = "10") Integer size) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
+        }
+
         number = Math.max(0, number);
         if (size < 0) size = 10;
 
@@ -36,6 +40,10 @@ public class ApiV1ImageController {
     public RsData<ImageSearchPagedResponse> searchGoogleImages(@RequestParam(required = false) String keyword,
                                                                @RequestParam(defaultValue = "0") Integer number,
                                                                @RequestParam(defaultValue = "10") Integer size) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
+        }
+
         number = Math.max(0, number);
         if (size < 0 || size > MAX_PAGE_SIZE) size = 10;
 
