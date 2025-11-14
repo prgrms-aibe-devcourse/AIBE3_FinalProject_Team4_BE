@@ -14,7 +14,7 @@ public record NotificationResponseDto(
         Long targetId,
         String message,
         boolean isRead,
-        String relativeTime,        // 🔥 추가
+        String relativeTime,
         LocalDateTime createdAt
 ) {
     public static NotificationResponseDto from(
