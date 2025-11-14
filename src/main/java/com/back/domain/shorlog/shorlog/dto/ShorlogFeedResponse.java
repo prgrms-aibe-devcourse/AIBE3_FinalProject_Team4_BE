@@ -22,10 +22,15 @@ public class ShorlogFeedResponse {
     private String firstLine;
 
     public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags) {
+        List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
+        String firstThumbnail = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
+                ? thumbnailUrls.get(0)
+                : null;
+
         return ShorlogFeedResponse.builder()
                 .id(shorlog.getId())
-                .thumbnailUrl(shorlog.getThumbnailUrl())
                 .profileImgUrl(shorlog.getUser().getProfileImgUrl())
+                .thumbnailUrl(firstThumbnail)
                 .username(shorlog.getUser().getUsername())
                 .hashtags(hashtags)
                 .likeCount(0) // TODO: 좋아요 기능 구현 후

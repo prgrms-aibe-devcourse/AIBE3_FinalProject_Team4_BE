@@ -1,7 +1,7 @@
 package com.back.domain.shorlog.shorlog.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,12 +21,9 @@ public class CreateShorlogRequest {
     @Size(max = 800, message = "내용은 최대 800자까지 입력 가능합니다.")
     private String content;
 
-    @NotBlank(message = "썸네일은 필수입니다.")
-    private String thumbnailUrl;
-
-    @NotBlank(message = "썸네일 타입은 필수입니다.")
-    @Pattern(regexp = "^(upload|blog|ai)$", message = "썸네일 타입은 'upload', 'blog', 'ai' 중 하나여야 합니다.")
-    private String thumbnailType;
+    @NotEmpty(message = "썸네일은 최소 1개 이상 필수입니다.")
+    @Size(min = 1, max = 10, message = "썸네일은 최소 1개, 최대 10개까지 가능합니다.")
+    private List<String> thumbnailUrls;
 
     @Size(max = 10, message = "해시태그는 최대 10개까지 가능합니다.")
     @Builder.Default

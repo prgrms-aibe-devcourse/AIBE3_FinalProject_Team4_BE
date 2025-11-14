@@ -12,6 +12,7 @@ import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
+import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class ShorlogService {
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
+    private final ImageUploadService imageUploadService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -45,13 +47,21 @@ public class ShorlogService {
         Shorlog shorlog = Shorlog.builder()
                 .user(user)
                 .content(request.getContent())
-                .thumbnailUrl(request.getThumbnailUrl())
-                .thumbnailType(request.getThumbnailType())
                 .viewCount(0)
                 .build();
 
+        shorlog.setThumbnailUrlList(request.getThumbnailUrls());
+
         Shorlog savedShorlog = shorlogRepository.save(shorlog);
         List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
+
+        if (request.getThumbnailUrls() != null && !request.getThumbnailUrls().isEmpty()) {
+            for (String thumbnailUrl : request.getThumbnailUrls()) {
+                if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+                    imageUploadService.incrementImageReference(thumbnailUrl);
+                }
+            }
+        }
 
         return CreateShorlogResponse.from(savedShorlog, hashtagNames);
     }
@@ -106,7 +116,7 @@ public class ShorlogService {
 
         switch (sort.toLowerCase()) {
             case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
-            case "views" -> shorlogs = shorlogRepository.findByUserIdOrderByViewCountDesc(userId, pageable);
+            case "oldest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
             case "latest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'views', 'latest' 중 하나여야 합니다.");
         }
@@ -126,9 +136,14 @@ public class ShorlogService {
             throw new IllegalArgumentException("작성자만 수정할 수 있습니다.");
         }
 
-        shorlog.update(request.getContent(), request.getThumbnailUrl(), request.getThumbnailType());
+        List<String> oldThumbnailUrls = shorlog.getThumbnailUrlList();
+
+        shorlog.update(request.getContent(), request.getThumbnailUrls());
         shorlogHashtagRepository.deleteByShorlogId(shorlogId);
         List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
+
+        updateImageReferences(oldThumbnailUrls, request.getThumbnailUrls());
+
         return UpdateShorlogResponse.from(shorlog, hashtagNames);
     }
 
@@ -141,7 +156,34 @@ public class ShorlogService {
             throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
         }
 
+        List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
+        if (thumbnailUrls != null && !thumbnailUrls.isEmpty()) {
+            for (String thumbnailUrl : thumbnailUrls) {
+                imageUploadService.decrementImageReference(thumbnailUrl);
+            }
+        }
+
         shorlogRepository.delete(shorlog);
+    }
+
+    private void updateImageReferences(List<String> oldUrls, List<String> newUrls) {
+        if (oldUrls != null) {
+            for (String oldUrl : oldUrls) {
+                if (newUrls == null || !newUrls.contains(oldUrl)) {
+                    imageUploadService.decrementImageReference(oldUrl);
+                }
+            }
+        }
+
+        if (newUrls != null) {
+            for (String newUrl : newUrls) {
+                if (oldUrls == null || !oldUrls.contains(newUrl)) {
+                    if (newUrl != null && !newUrl.isEmpty()) {
+                        imageUploadService.incrementImageReference(newUrl);
+                    }
+                }
+            }
+        }
     }
 
     private List<String> saveHashtags(Shorlog shorlog, List<String> hashtagNames) {

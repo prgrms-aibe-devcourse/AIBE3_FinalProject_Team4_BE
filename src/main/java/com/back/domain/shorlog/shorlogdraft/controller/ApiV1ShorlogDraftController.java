@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/shorlog/draft")
 @RequiredArgsConstructor
-public class ShorlogDraftController {
+public class ApiV1ShorlogDraftController {
 
     private final ShorlogDraftService draftService;
 

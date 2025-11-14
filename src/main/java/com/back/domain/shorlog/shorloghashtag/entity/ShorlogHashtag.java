@@ -7,8 +7,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(uniqueConstraints = { // 같은 숏로그에 같은 해시태그 중복 방지
-        @UniqueConstraint(
+@Table(uniqueConstraints = {
+        @UniqueConstraint( // 같은 숏로그에 같은 해시태그 중복 방지
                 name = "uk_shorlog_hashtag",
                 columnNames = {"shorlog_id", "hashtag_id"}
         )

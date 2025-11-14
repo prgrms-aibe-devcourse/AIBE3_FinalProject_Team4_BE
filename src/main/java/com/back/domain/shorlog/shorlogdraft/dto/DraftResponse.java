@@ -16,7 +16,7 @@ import java.util.List;
 public class DraftResponse {
     private Long id;
     private String content;
-    private String thumbnailUrl;
+    private List<String> thumbnailUrls;
     private List<String> hashtags;
     private LocalDateTime createdAt;
 
@@ -24,7 +24,7 @@ public class DraftResponse {
         return DraftResponse.builder()
                 .id(draft.getId())
                 .content(draft.getContent())
-                .thumbnailUrl(draft.getThumbnailUrl())
+                .thumbnailUrls(draft.getThumbnailUrlList())
                 .hashtags(hashtags)
                 .createdAt(draft.getCreatedAt())
                 .build();
