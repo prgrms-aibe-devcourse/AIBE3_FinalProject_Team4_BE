@@ -124,17 +124,11 @@ public class Blog {
         this.viewCount += 1;
     }
 
-    public void modify(BlogWriteReqDto reqBody, List<String> hashtagNames) {
+    public void modify(BlogWriteReqDto reqBody) {
         this.title = reqBody.title();
         this.content = reqBody.content();
         this.thumbnailUrl = reqBody.thumbnailUrl();
         this.status = reqBody.status();
         this.modifiedAt = LocalDateTime.now();
     }
-
-    public void increaseLikeCount() {
-        this.likeCount += 1;
-    }
-
-
 }

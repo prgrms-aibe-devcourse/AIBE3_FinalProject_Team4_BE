@@ -1,23 +1,28 @@
 package com.back.domain.blog.blog.service;
 
-import com.back.domain.blog.blog.dto.BlogDraftDto;
-import com.back.domain.blog.blog.dto.BlogDto;
-import com.back.domain.blog.blog.dto.BlogWriteReqDto;
+import com.back.domain.blog.blog.dto.*;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
+import com.back.domain.blog.bookmark.service.BlogBookmarkService;
+import com.back.domain.blog.like.service.BlogLikeService;
+import com.back.domain.comments.comments.dto.CommentResponseDto;
+import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
-import com.back.domain.shared.hashtag.repository.HashtagRepository;
+import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,45 +30,55 @@ import java.util.List;
 public class BlogService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
-    private final HashtagRepository hashtagRepository;
+    private final BlogLikeService blogLikeService;
+    private final BlogBookmarkService blogBookmarkService;
+    private final CommentsService commentsService;
+    private final HashtagService hashtagService;
 
     public void truncate() {
         blogRepository.deleteAll();
     }
 
-    public List<BlogDto> findAll() {
-        List<Blog> blogs = blogRepository.findAll();
-        return blogs.stream()
-                .map(b -> new BlogDto(b))
-                .toList();
+    public Page<BlogDto> findAll(Long userId, Pageable pageable) {
+        Page<Blog> blogs = blogRepository.findAll(pageable);
+        List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
+
+        // 좋아요/북마크 여부를 한 번에 조회 (N+1 해결)
+        Set<Long> likedIds = blogLikeService.findLikedBlogIds(userId, blogIds);
+        Set<Long> bookmarkedIds = blogBookmarkService.findBookmarkedBlogIds(userId, blogIds);
+
+        return blogs.map(blog -> new BlogDto(
+                blog,
+                likedIds.contains(blog.getId()),
+                bookmarkedIds.contains(blog.getId())
+        ));
     }
 
     @Transactional
-    public BlogDto findById(Long id) {
+    public BlogDetailDto findById(Long userId, Long id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
-
-        return new BlogDto(blog);
+        boolean liked = blogLikeService.isLiked(id, userId);
+        boolean bookmarked = blogBookmarkService.isBookmarked(id, userId);
+        List<CommentResponseDto> comments = commentsService.getCommentsForBlog(id);
+        return new BlogDetailDto(blog, liked, bookmarked, comments);
     }
 
     @Transactional
-    public Blog write(Long userId, BlogWriteReqDto reqBody, String thumbnailUrl) {
+    public BlogWriteDto write(Long userId, BlogWriteReqDto reqBody, String thumbnailUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
         Blog blog = new Blog(user, reqBody.title(), reqBody.content(), reqBody.thumbnailUrl(), BlogStatus.PUBLISHED);
 
-        List<Hashtag> hashtags = reqBody.hashtagNames().stream()
-                .map(name -> hashtagRepository.findByName(name)
-                        .orElseGet(() -> hashtagRepository.save(new Hashtag(name))))
-                .toList();
+        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
 
         blog.updateHashtags(hashtags);
-
-        return blogRepository.save(blog);
+        blog = blogRepository.save(blog);
+        return new BlogWriteDto(blog);
     }
 
     @Transactional
-    public BlogDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody, String thumbnailUrl) {
+    public BlogModifyDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody, String thumbnailUrl) {
         if (userRepository.findById(userId).isEmpty()) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
@@ -72,15 +87,12 @@ public class BlogService {
         if (!blog.getUser().getId().equals(userId)) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
-        List<Hashtag> hashtags = reqBody.hashtagNames().stream()
-                .map(name -> hashtagRepository.findByName(name)
-                        .orElseGet(() -> hashtagRepository.save(new Hashtag(name))))
-                .toList();
+        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
 
-        blog.modify(reqBody, reqBody.hashtagNames());
+        blog.modify(reqBody);
         blog.updateHashtags(hashtags);
 
-        return new BlogDto(blog);
+        return new BlogModifyDto(blog);
     }
 
     @Transactional
@@ -103,14 +115,11 @@ public class BlogService {
     }
 
     @Transactional
-    public Blog saveDraft(Long userId, @Valid BlogWriteReqDto reqbody, String thumbnailUrl) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
-
+    public BlogWriteDto saveDraft(Long userId, @Valid BlogWriteReqDto reqbody, String thumbnailUrl) {
         Blog blog = createDraft(userId, reqbody, thumbnailUrl);     // 존재하지 않으면 새로 생성
         updateDraft(blog, reqbody, thumbnailUrl);
 
-        return blog;
+        return new BlogWriteDto(blog);
     }
 
     private Blog createDraft(Long userId, BlogWriteReqDto reqBody, String thumbnailUrl) {
@@ -119,17 +128,14 @@ public class BlogService {
 
         Blog newBlog = Blog.create(user, reqBody.title(), reqBody.content(), thumbnailUrl, BlogStatus.DRAFT);
 
-        List<Hashtag> hashtags = reqBody.hashtagNames().stream()
-                .map(name -> hashtagRepository.findByName(name)
-                        .orElseGet(() -> hashtagRepository.save(new Hashtag(name))))
-                .toList();
+        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         newBlog.updateHashtags(hashtags);
         newBlog.setStatus(BlogStatus.DRAFT);
         return blogRepository.save(newBlog);
     }
 
     private void updateDraft(Blog blog, BlogWriteReqDto req, String thumbnailUrl) {
-        blog.modify(req, req.hashtagNames());
+        blog.modify(req);
         blog.setStatus(BlogStatus.DRAFT);
     }
 
@@ -141,9 +147,13 @@ public class BlogService {
     }
 
     public List<BlogDto> findAllByUserId(Long userId) {
+
         List<Blog> blogs = blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED);
         return blogs.stream()
-                .map(b -> new BlogDto(b))
+                .map(b -> new BlogDto(b,
+                        false,
+                        false
+                ))
                 .toList();
     }
 

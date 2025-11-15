@@ -23,23 +23,38 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
     // 북마크 조회
     Optional<BlogBookmark> findByBlogIdAndUserId(Long blogId, Long userId);
 
-    // 사용자의 북마크 목록 조회 (Fetch Join으로 N+1 방지)
-    @EntityGraph(attributePaths = {"blog", "blog.author"})
-    @Query("SELECT bm FROM BlogBookmark bm " +
-            "WHERE bm.user.id = :userId " +
-            "ORDER BY bm.bookmarkedAt DESC")
-    Page<BlogBookmark> findByUserIdWithBlog(@Param("userId") Long userId, Pageable pageable);
+    // 1. 유저의 북마크 목록 (페이지네이션 N+1 방지)
+    @EntityGraph(attributePaths = {"blog", "blog.user"})
+    @Query("""
+                SELECT bm 
+                FROM BlogBookmark bm
+                WHERE bm.user.id = :userId
+                ORDER BY bm.bookmarkedAt DESC
+            """)
+    Page<BlogBookmark> findByUserIdWithBlog(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 
-    // 특정 블로그들의 북마크 여부 일괄 조회 (N+1 방지)
-    @Query("SELECT bm.blog.id FROM BlogBookmark bm " +
-            "WHERE bm.blog.id IN :blogIds AND bm.user.id = :userId")
-    Set<Long> findBookmarkedBlogIdsByUserId(@Param("blogIds") List<Long> blogIds,
-                                            @Param("userId") Long userId);
+    // 2. 특정 블로그들이 북마크되었는지 일괄 조회 (N+1 방지)
+    @Query("""
+                SELECT bm.blog.id
+                FROM BlogBookmark bm 
+                WHERE bm.blog.id IN :blogIds
+                  AND bm.user.id = :userId
+            """)
+    Set<Long> findBookmarkedBlogIdsByUserId(
+            @Param("blogIds") List<Long> blogIds,
+            @Param("userId") Long userId
+    );
 
-    // 블로그별 북마크 수 조회 (여러 블로그를 한 번에)
-    @Query("SELECT bm.blog.id, COUNT(bm) FROM BlogBookmark bm " +
-            "WHERE bm.blog.id IN :blogIds " +
-            "GROUP BY bm.blog.id")
+    // 3. 블로그별 북마크 수 일괄 조회
+    @Query("""
+                SELECT bm.blog.id, COUNT(bm)
+                FROM BlogBookmark bm
+                WHERE bm.blog.id IN :blogIds
+                GROUP BY bm.blog.id
+            """)
     List<Object[]> countByBlogIds(@Param("blogIds") List<Long> blogIds);
 
     // 사용자의 북마크 수

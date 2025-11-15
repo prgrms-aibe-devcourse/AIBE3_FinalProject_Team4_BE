@@ -1,11 +1,12 @@
 package com.back.domain.blog.blog.dto;
 
 import com.back.domain.blog.blog.entity.Blog;
+import com.back.domain.comments.comments.dto.CommentResponseDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record BlogDto(
+public record BlogDetailDto(
         Long id,
         String title,
         String content,
@@ -17,15 +18,16 @@ public record BlogDto(
         long viewCount,
         long likeCount,
         long bookmarkCount,
-        boolean isLiked,
-        boolean isBookmarked,
         long commentCount,
+        Boolean isLiked,
+        Boolean isBookmarked,
+        List<CommentResponseDto> comments,// 기본과 다르게 댓글 포함
         Integer relatedShorlogCount,
         List<Long> relatedShorlogIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public BlogDto(Blog blog, boolean isLiked, boolean isBookmarked) {
+    public BlogDetailDto(Blog blog, boolean isBookmarked, boolean isLiked, List<CommentResponseDto> comments) {
         this(
                 blog.getId(),
                 blog.getTitle(),
@@ -40,14 +42,17 @@ public record BlogDto(
                 blog.getViewCount(),
                 blog.getLikeCount(),
                 blog.getBookmarkCount(),
+                blog.getCommentCount(),
+                //TODO: 댓글, 좋아요, 북마크 기능 리팩토링 후 수정
                 isLiked,
                 isBookmarked,
-                blog.getCommentCount(),
-                //TODO: 댓글 기능 추후 수정
+                comments,
                 0,
                 null,
                 blog.getCreatedAt(),
                 blog.getModifiedAt()
         );
     }
+
 }
+

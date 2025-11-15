@@ -15,6 +15,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -32,11 +35,11 @@ public class BlogLikeService {
 
         // 게시글 정보 조회 (receiver 확인 목적)
         Blog blog = blogRepository.findById(blogId)
-                .orElseThrow(() -> new RuntimeException("블로그 게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("블로그 게시글을 찾을 수 없습니다."));
 
         // 자기 글 좋아요 금지
         if (blog.getUser().getId().equals(userId)) {
-            throw new RuntimeException("본인의 글에는 좋아요할 수 없습니다.");
+            throw new IllegalArgumentException("본인의 글에는 좋아요할 수 없습니다.");
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
@@ -79,11 +82,16 @@ public class BlogLikeService {
         return false;
     }
 
-    public boolean isLike(Long blogId, Long userId) {
-        return likeRepository.existsByBlogIdAndUserId(blogId, userId);
-    }
-
     public long getLikeCount(Long blogId) {
         return blogRepository.getLikeCountById(blogId);
+    }
+
+    public boolean isLiked(Long id, Long userId) {
+        return likeRepository.existsByBlog_IdAndUser_Id(id, userId);
+    }
+
+    public Set<Long> findLikedBlogIds(Long userId, List<Long> blogIds) {
+        if (userId == null) return Set.of();
+        return likeRepository.findLikedBlogIdsByUserId(blogIds, userId);
     }
 }

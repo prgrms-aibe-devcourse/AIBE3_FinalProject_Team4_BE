@@ -15,6 +15,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -32,11 +35,11 @@ public class BlogBookmarkService {
         }
         // blog 조회 (receiver 확인 필요)
         Blog blog = blogRepository.findById(blogId)
-                .orElseThrow(() -> new RuntimeException("블로그 게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("블로그 게시글을 찾을 수 없습니다."));
 
         // 자기 글 북마크 금지
         if (blog.getUser().getId().equals(userId)) {
-            throw new RuntimeException("본인의 글은 북마크할 수 없습니다.");
+            throw new IllegalArgumentException("본인의 글은 북마크할 수 없습니다.");
         }
 
         User user = userRepository.findById(userId)
@@ -88,5 +91,10 @@ public class BlogBookmarkService {
     @Transactional
     public long getBookmarkCount(Long blogId) {
         return blogRepository.getBookmarkCountById(blogId).orElse(0L);
+    }
+
+    public Set<Long> findBookmarkedBlogIds(Long userId, List<Long> blogIds) {
+        if (userId == null) return Set.of();
+        return bookmarkRepository.findBookmarkedBlogIdsByUserId(blogIds, userId);
     }
 }
