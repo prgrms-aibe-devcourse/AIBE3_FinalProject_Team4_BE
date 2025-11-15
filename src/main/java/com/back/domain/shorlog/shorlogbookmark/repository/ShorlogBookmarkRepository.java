@@ -27,5 +27,22 @@ public interface ShorlogBookmarkRepository extends JpaRepository<ShorlogBookmark
            "WHERE sb.user = :user " +
            "ORDER BY sb.createdAt DESC")
     Page<ShorlogBookmark> findByUserOrderByCreatedAtDesc(@Param("user") User user, Pageable pageable);
+
+    @Query("SELECT sb FROM ShorlogBookmark sb " +
+           "JOIN FETCH sb.shorlog s " +
+           "JOIN FETCH s.user " +
+           "WHERE sb.user = :user " +
+           "ORDER BY sb.createdAt ASC")
+    Page<ShorlogBookmark> findByUserOrderByCreatedAtAsc(@Param("user") User user, Pageable pageable);
+
+    // 인기순 (좋아요*2 + 조회수 종합 점수)
+    @Query("SELECT sb FROM ShorlogBookmark sb " +
+           "JOIN FETCH sb.shorlog s " +
+           "JOIN FETCH s.user u " +
+           "LEFT JOIN ShorlogLike sl ON sl.shorlog.id = s.id " +
+           "WHERE sb.user = :user " +
+           "GROUP BY sb.shorlog.id, sb.user.id, s.id, u.id " +
+           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
+    Page<ShorlogBookmark> findByUserOrderByPopularity(@Param("user") User user, Pageable pageable);
 }
 

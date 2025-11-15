@@ -88,10 +88,11 @@ public class ShorlogService {
                 (int) likeCount, (int) bookmarkCount);
     }
 
-     // 격자형 피드 조회 (전체, AI 추천)
-     // TODO: AI 추천 알고리즘 연동 (5번 이지연)
     public Page<ShorlogFeedResponse> getFeed(int page) {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
+
+        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
+        // 현재: 최신순 정렬
         Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
         return shorlogs.map(shorlog -> {
@@ -101,10 +102,9 @@ public class ShorlogService {
         });
     }
 
-     // 팔로잉 피드 조회 (최신순만)
-     // TODO: Follow 테이블 연동 (1번 주권영)
     public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {
-        // TODO: 실제 팔로잉 목록 조회 (임시로 빈 리스트)
+        // TODO: 실제 팔로잉 목록 조회 (1번 주권영 API 연동)
+        // 현재는 임시로 빈 리스트 반환
         List<Long> followingUserIds = List.of(); // 임시
 
         if (followingUserIds.isEmpty()) {
@@ -129,7 +129,7 @@ public class ShorlogService {
             case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
             case "oldest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
             case "latest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'views', 'latest' 중 하나여야 합니다.");
+            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
         return shorlogs.map(shorlog -> {

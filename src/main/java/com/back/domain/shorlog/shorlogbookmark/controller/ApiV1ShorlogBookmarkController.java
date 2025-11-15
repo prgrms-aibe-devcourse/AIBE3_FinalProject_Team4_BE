@@ -43,9 +43,10 @@ public class ApiV1ShorlogBookmarkController {
     @Operation(summary = "내 북마크 목록 조회 (30개씩, 6열 격자형)")
     public RsData<BookmarkListResponse> getMyBookmarks(
             @AuthenticationPrincipal SecurityUser securityUser,
+            @RequestParam(defaultValue = "latest") String sort,
             @RequestParam(defaultValue = "0") int page
     ) {
-        BookmarkListResponse response = shorlogBookmarkService.getMyBookmarks(securityUser.getId(), page);
+        BookmarkListResponse response = shorlogBookmarkService.getMyBookmarks(securityUser.getId(), sort, page);
         return RsData.successOf(response);
     }
 }
