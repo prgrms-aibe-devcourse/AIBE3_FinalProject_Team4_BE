@@ -1,6 +1,6 @@
 package com.back.domain.ai.ai.service;
 
-import com.back.domain.ai.ai.dto.AiChatReqBody;
+import com.back.domain.ai.ai.dto.AiChatRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -29,25 +29,25 @@ public class AiChatService {
             .build();
     private final VectorStore vectorStore;
 
-    private final String SYSTEM_DETAIL_PROMPT = """
+    private static final String SYSTEM_DETAIL_PROMPT = """
             * 전문적이면서도 친근한 톤을 유지합니다.
             * 모든 답변은 명확하고 자연스러운 문체로, 실제 블로그 작성에 바로 쓸 수 있게 작성해야 합니다.
             * 답변은 마크다운(Markdown) 형식으로 구조화해야 합니다.
             """;
 
-    public String chatOnce(AiChatReqBody req) {
+    public String chatOnce(AiChatRequest req) {
         return openAiChatClient.prompt(buildPrompt(req))
                 .call()
                 .content();
     }
 
-    public Flux<String> chatStream(AiChatReqBody req) {
+    public Flux<String> chatStream(AiChatRequest req) {
         return openAiChatClient.prompt(buildPrompt(req))
                 .stream()
                 .content();
     }
 
-    private Prompt buildPrompt(AiChatReqBody req) {
+    private Prompt buildPrompt(AiChatRequest req) {
         SystemMessage systemMessage = SystemMessage.builder()
                 .text(AiGenerateService.SYSTEM_BASE_PROMPT)
                 .text(SYSTEM_DETAIL_PROMPT)

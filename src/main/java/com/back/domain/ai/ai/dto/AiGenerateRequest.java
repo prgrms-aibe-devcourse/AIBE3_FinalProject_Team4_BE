@@ -2,7 +2,7 @@ package com.back.domain.ai.ai.dto;
 
 import jakarta.validation.constraints.NotNull;
 
-public record AiGenerateReqBody(
+public record AiGenerateRequest(
         @NotNull
         AiGenerateMode mode,
 

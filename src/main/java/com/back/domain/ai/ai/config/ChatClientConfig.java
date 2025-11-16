@@ -1,4 +1,4 @@
-package com.back.global.config.ai;
+package com.back.domain.ai.ai.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.huggingface.HuggingfaceChatModel;

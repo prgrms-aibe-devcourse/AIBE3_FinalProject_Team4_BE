@@ -2,7 +2,7 @@ package com.back.domain.ai.ai.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record AiChatReqBody(
+public record AiChatRequest(
         String model,
         @NotBlank
         String message,
