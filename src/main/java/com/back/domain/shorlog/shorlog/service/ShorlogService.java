@@ -42,6 +42,7 @@ public class ShorlogService {
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
+    private static final int SEARCH_PAGE_SIZE = 30;
 
     @Transactional
     public CreateShorlogResponse createShorlog(Long userId, CreateShorlogRequest request) {
@@ -222,5 +223,30 @@ public class ShorlogService {
         return hashtags.stream()
                 .map(Hashtag::getName)
                 .toList();
+    }
+
+    public Page<ShorlogFeedResponse> searchShorlogs(String query, String sort, int page) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new IllegalArgumentException("검색어를 입력해주세요.");
+        }
+
+        // 검색어에서 # 제거
+        String processedQuery = query.trim().replace("#", "");
+
+        Pageable pageable = PageRequest.of(page, SEARCH_PAGE_SIZE);
+        Page<Shorlog> shorlogs;
+
+        switch (sort.toLowerCase()) {
+            case "popular" -> shorlogs = shorlogRepository.searchByPopularity(processedQuery, pageable);
+            case "views" -> shorlogs = shorlogRepository.searchByViews(processedQuery, pageable);
+            case "latest" -> shorlogs = shorlogRepository.searchByLatest(processedQuery, pageable);
+            default -> throw new IllegalArgumentException("정렬 기준은 'latest', 'popular', 'views' 중 하나여야 합니다.");
+        }
+
+        return shorlogs.map(shorlog -> {
+            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
+            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
+        });
     }
 }

@@ -99,4 +99,14 @@ public class ApiV1ShorlogController {
     ) {
         return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, aspectRatios));
     }
+
+    @GetMapping("/search")
+    @Operation(summary = "숏로그 검색 (내용 + 해시태그)")
+    public RsData<Page<ShorlogFeedResponse>> searchShorlogs(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        return RsData.successOf(shorlogService.searchShorlogs(q, sort, page));
+    }
 }
