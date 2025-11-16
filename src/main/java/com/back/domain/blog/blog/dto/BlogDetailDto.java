@@ -27,7 +27,7 @@ public record BlogDetailDto(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public BlogDetailDto(Blog blog, boolean isBookmarked, boolean isLiked, List<CommentResponseDto> comments) {
+    public BlogDetailDto(Blog blog, boolean isBookmarked, boolean isLiked, List<CommentResponseDto> comments, long commentCount) {
         this(
                 blog.getId(),
                 blog.getTitle(),
@@ -42,8 +42,8 @@ public record BlogDetailDto(
                 blog.getViewCount(),
                 blog.getLikeCount(),
                 blog.getBookmarkCount(),
-                blog.getCommentCount(),
-                //TODO: 댓글, 좋아요, 북마크 기능 리팩토링 후 수정
+                commentCount,
+                //TODO: 연결 관련추가 후 수정
                 isLiked,
                 isBookmarked,
                 comments,

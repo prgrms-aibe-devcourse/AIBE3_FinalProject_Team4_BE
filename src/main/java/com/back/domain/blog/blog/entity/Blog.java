@@ -9,20 +9,16 @@ import com.back.domain.blog.like.entity.BlogLike;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.user.user.entity.User;
 import com.back.global.exception.ServiceException;
+import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import static jakarta.persistence.GenerationType.IDENTITY;
 
 @EntityListeners(AuditingEntityListener.class)
 @AllArgsConstructor
@@ -30,11 +26,7 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 @Getter
 @Entity
 @Table(name = "blogs")
-public class Blog {
-    @Id
-    @GeneratedValue(strategy = IDENTITY)
-    private Long id;
-
+public class Blog extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -42,16 +34,11 @@ public class Blog {
     private String title;
     @Column(columnDefinition = "TEXT")
     private String content;
-    @CreatedDate
-    private LocalDateTime createdAt;
-    @LastModifiedDate
-    private LocalDateTime modifiedAt;
 
     private String thumbnailUrl;
     private long viewCount = 0;
     private long likeCount = 0;
     private long bookmarkCount = 0;
-    private long commentCount = 0;
 
     @OneToMany(mappedBy = "blog", orphanRemoval = true, cascade = CascadeType.ALL)
     private List<BlogHashtag> blogHashtags = new ArrayList<>();
@@ -78,7 +65,6 @@ public class Blog {
         this.viewCount = 0;
         this.likeCount = 0;
         this.bookmarkCount = 0;
-        this.commentCount = 0;
     }
 
     public static Blog create(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
@@ -129,6 +115,5 @@ public class Blog {
         this.content = reqBody.content();
         this.thumbnailUrl = reqBody.thumbnailUrl();
         this.status = reqBody.status();
-        this.modifiedAt = LocalDateTime.now();
     }
 }

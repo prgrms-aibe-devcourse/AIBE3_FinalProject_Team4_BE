@@ -8,6 +8,7 @@ import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
+import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -46,11 +48,14 @@ public class BlogService {
         // 좋아요/북마크 여부를 한 번에 조회 (N+1 해결)
         Set<Long> likedIds = blogLikeService.findLikedBlogIds(userId, blogIds);
         Set<Long> bookmarkedIds = blogBookmarkService.findBookmarkedBlogIds(userId, blogIds);
+        // 댓글 수 batch 조회 (N+1 해결)
+        Map<Long, Long> commentCounts = commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
 
         return blogs.map(blog -> new BlogDto(
                 blog,
                 likedIds.contains(blog.getId()),
-                bookmarkedIds.contains(blog.getId())
+                bookmarkedIds.contains(blog.getId()),
+                commentCounts.getOrDefault(blog.getId(), 0L)
         ));
     }
 
@@ -60,8 +65,10 @@ public class BlogService {
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         boolean liked = blogLikeService.isLiked(id, userId);
         boolean bookmarked = blogBookmarkService.isBookmarked(id, userId);
-        List<CommentResponseDto> comments = commentsService.getCommentsForBlog(id);
-        return new BlogDetailDto(blog, liked, bookmarked, comments);
+        List<CommentResponseDto> comments = commentsService.getCommentsByType(id, CommentsTargetType.BLOG);
+        Map<Long, Long> commentCount = commentsService.getCommentCounts(List.of(id), CommentsTargetType.BLOG);
+
+        return new BlogDetailDto(blog, liked, bookmarked, comments, commentCount.getOrDefault(id, 0L));
     }
 
     @Transactional
@@ -147,12 +154,13 @@ public class BlogService {
     }
 
     public List<BlogDto> findAllByUserId(Long userId) {
-
         List<Blog> blogs = blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED);
+
         return blogs.stream()
                 .map(b -> new BlogDto(b,
                         false,
-                        false
+                        false,
+                        0
                 ))
                 .toList();
     }
