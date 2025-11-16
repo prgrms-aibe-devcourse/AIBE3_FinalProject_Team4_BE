@@ -28,7 +28,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별
 
-    // 추가 가입 정보까지 받는 생성자, 추후 확장 가능성 고려
+    // 일반 가입용 생성자
     public User(String email, String username, String password, String nickname, LocalDate dateOfBirth, Gender gender) {
         this.email = email;
         this.username = username;
@@ -36,6 +36,30 @@ public class User extends BaseEntity {
         this.nickname = nickname;
         this.profileImgUrl = null;  //가입 시 기본 프로필 이미지 URL은 null
         this.bio = null;            //가입 시 기본 자기소개는 null
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+    }
+
+    // OAuth2 가입용 생성자
+    public User(String username, String profileImgUrl) {
+        this.username = username;
+        this.profileImgUrl = profileImgUrl;
+        this.nickname = null;       // 가입 직후 nickname 설정
+        this.dateOfBirth = null;    // 가입 직후 dateOfBirth 설정
+        this.gender = null;         // 가입 직후 성별 설정
+        this.bio = null;            // 추후 수정 가능
+        this.email = null;          // OAuth2 사용자는 이메일 필요 없음
+        this.password = null;       // OAuth2 사용자는 비밀번호 필요 없음
+    }
+
+    // OAuth2 로그인 시 사용자 정보 업데이트용 함수
+    public void updateProfileImgUrl(String profileImgUrl) {
+        this.profileImgUrl = profileImgUrl;
+    }
+
+    // OAuth2 가입 완료용 함수
+    public void completeOAuth2Join(String nickname, LocalDate dateOfBirth, Gender gender) {
+        this.nickname = nickname;
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
     }

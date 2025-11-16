@@ -35,13 +35,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
 
         // 인증 인가 필요 없는 요청
-        if(req.getRequestURI().startsWith("/swagger-ui") ||
+        if(req.getRequestURI().equals("/") ||
+                req.getRequestURI().startsWith("/swagger-ui") ||
                 req.getRequestURI().startsWith("/v3/api-docs") ||
                 req.getRequestURI().equals("/api/v1/auth/signup") ||
                 req.getRequestURI().equals("/api/v1/auth/login") ||
                 req.getRequestURI().equals("/api/v1/auth/password-reset") ||
+                req.getRequestURI().equals("/api/v1/auth/complete-oauth2-join") ||
                 req.getRequestURI().equals("/api/v1/auth/send-code") ||
-                req.getRequestURI().equals("/api/v1/auth/verify-code")
+                req.getRequestURI().equals("/api/v1/auth/verify-code") ||
+                req.getRequestURI().equals("/tmp-for-complete-join-of-oauth2-user") // todo 추후 프론트 페이지 개발 후 제거
         ) {
             chain.doFilter(req, res);
             return;

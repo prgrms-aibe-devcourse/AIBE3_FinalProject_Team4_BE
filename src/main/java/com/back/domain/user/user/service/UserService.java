@@ -2,11 +2,13 @@ package com.back.domain.user.user.service;
 
 import com.back.domain.user.mail.service.VerificationTokenService;
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
+import com.back.domain.user.user.dto.OAuth2CompleteJoinRequestDto;
 import com.back.domain.user.user.dto.PasswordResetRequestDto;
 import com.back.domain.user.user.dto.UserJoinRequestDto;
 import com.back.domain.user.user.dto.UserLoginRequestDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +23,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final VerificationTokenService verificationTokenService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
@@ -41,6 +44,29 @@ public class UserService {
         String password = passwordEncoder.encode(dto.password());
         User user = new User(dto.email(), dto.username(), password, dto.nickname(), dto.dateOfBirth(), dto.gender());
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public User joinOrLoginOAuth2User(String username, String profileImgUrl) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if(user == null) {
+            user = new User(username, profileImgUrl);
+            return userRepository.save(user);
+        }
+        user.updateProfileImgUrl(profileImgUrl);
+        return user;
+    }
+
+    @Transactional
+    public User toCompleteJoinOAuth2User(OAuth2CompleteJoinRequestDto dto) {
+        String token = dto.temporaryToken();
+        if(!jwtTokenProvider.validateToken(token)) {
+            throw new AuthException("400-1", "임시토큰이 만료되었습니다. 처음부터 다시 시도해주세요.");
+        }
+        Long userId = jwtTokenProvider.getUserId(token);
+        User user = getUserById(userId);
+        user.completeOAuth2Join(dto.nickname(), dto.dateOfBirth(), dto.gender());
+        return user;
     }
 
     @Transactional
@@ -79,6 +105,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getUserById(Long id) {
         return userRepository.findById(id)
+                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
     }
 

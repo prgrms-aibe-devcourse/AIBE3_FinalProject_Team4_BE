@@ -76,4 +76,14 @@ public class JwtTokenProvider {
 
         return new SecurityUser(userId, email, username, nickname);
     }
+
+    // 임시 토큰 생성 (소셜 로그인 후 추가 정보 입력용)
+    public String generateTemporaryToken(Long userId) {
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5분 유효
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
 }
