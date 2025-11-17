@@ -21,9 +21,9 @@ public class CreateShorlogRequest {
     @Size(max = 800, message = "내용은 최대 800자까지 입력 가능합니다.")
     private String content;
 
-    @NotEmpty(message = "썸네일은 최소 1개 이상 필수입니다.")
-    @Size(min = 1, max = 10, message = "썸네일은 최소 1개, 최대 10개까지 가능합니다.")
-    private List<String> thumbnailUrls;
+    @NotEmpty(message = "이미지는 최소 1개 이상 필수입니다.")
+    @Size(min = 1, max = 10, message = "이미지는 최소 1개, 최대 10개까지 가능합니다.")
+    private List<Long> imageIds;
 
     @Size(max = 10, message = "해시태그는 최대 10개까지 가능합니다.")
     @Builder.Default

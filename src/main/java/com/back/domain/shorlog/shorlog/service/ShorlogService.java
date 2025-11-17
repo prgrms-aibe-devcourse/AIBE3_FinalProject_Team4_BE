@@ -2,18 +2,17 @@ package com.back.domain.shorlog.shorlog.service;
 
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
-import com.back.domain.shorlog.shorlog.dto.CreateShorlogRequest;
-import com.back.domain.shorlog.shorlog.dto.CreateShorlogResponse;
-import com.back.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
-import com.back.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
-import com.back.domain.shorlog.shorlog.dto.UpdateShorlogRequest;
-import com.back.domain.shorlog.shorlog.dto.UpdateShorlogResponse;
+import com.back.domain.shared.image.entity.Image;
+import com.back.domain.shared.image.repository.ImageRepository;
+import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
-import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
+import com.back.domain.shorlog.shorlogimage.entity.ShorlogImages;
+import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
@@ -39,6 +38,8 @@ public class ShorlogService {
     private final ShorlogBookmarkRepository shorlogBookmarkRepository;
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
+    private final ShorlogImagesRepository shorlogImagesRepository;
     private final ImageUploadService imageUploadService;
     private final ShorlogDocService shorlogDocService;
 
@@ -57,18 +58,24 @@ public class ShorlogService {
                 .viewCount(0)
                 .build();
 
-        shorlog.setThumbnailUrlList(request.getThumbnailUrls());
-
         Shorlog savedShorlog = shorlogRepository.save(shorlog);
-        List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
 
-        if (request.getThumbnailUrls() != null && !request.getThumbnailUrls().isEmpty()) {
-            for (String thumbnailUrl : request.getThumbnailUrls()) {
-                if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
-                    imageUploadService.incrementImageReference(thumbnailUrl);
-                }
+        // 이미지 연결
+        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
+            for (int i = 0; i < request.getImageIds().size(); i++) {
+                Long imageId = request.getImageIds().get(i);
+
+                Image image = imageRepository.findById(imageId)
+                        .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다: " + imageId));
+
+                ShorlogImages shorlogImage = ShorlogImages.create(savedShorlog, image, i);
+                shorlogImagesRepository.save(shorlogImage);
+
+                imageRepository.incrementReferenceCount(imageId);
             }
         }
+
+        List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
 
         shorlogDocService.indexShorlog(savedShorlog);
 
@@ -153,13 +160,32 @@ public class ShorlogService {
             throw new IllegalArgumentException("작성자만 수정할 수 있습니다.");
         }
 
-        List<String> oldThumbnailUrls = shorlog.getThumbnailUrlList();
+        shorlog.update(request.getContent());
 
-        shorlog.update(request.getContent(), request.getThumbnailUrls());
+        // 이미지 업데이트
+        if (request.getImageIds() != null) {
+            List<Image> existingImages = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
+            for (Image existingImage : existingImages) {
+                imageRepository.decrementReferenceCount(existingImage.getId());
+            }
+
+            shorlogImagesRepository.deleteByShorlog(shorlog);
+
+            for (int i = 0; i < request.getImageIds().size(); i++) {
+                Long imageId = request.getImageIds().get(i);
+
+                Image image = imageRepository.findById(imageId)
+                        .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다: " + imageId));
+
+                ShorlogImages shorlogImage = ShorlogImages.create(shorlog, image, i);
+                shorlogImagesRepository.save(shorlogImage);
+
+                imageRepository.incrementReferenceCount(imageId);
+            }
+        }
+
         shorlogHashtagRepository.deleteByShorlogId(shorlogId);
         List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
-
-        updateImageReferences(oldThumbnailUrls, request.getThumbnailUrls());
 
         shorlogDocService.indexShorlog(shorlog);
 
@@ -175,11 +201,9 @@ public class ShorlogService {
             throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
         }
 
-        List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
-        if (thumbnailUrls != null && !thumbnailUrls.isEmpty()) {
-            for (String thumbnailUrl : thumbnailUrls) {
-                imageUploadService.decrementImageReference(thumbnailUrl);
-            }
+        List<Image> images = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
+        for (Image image : images) {
+            imageRepository.decrementReferenceCount(image.getId());
         }
 
         shorlogDocService.deleteShorlog(shorlogId);
@@ -187,25 +211,6 @@ public class ShorlogService {
         shorlogRepository.delete(shorlog);
     }
 
-    private void updateImageReferences(List<String> oldUrls, List<String> newUrls) {
-        if (oldUrls != null) {
-            for (String oldUrl : oldUrls) {
-                if (newUrls == null || !newUrls.contains(oldUrl)) {
-                    imageUploadService.decrementImageReference(oldUrl);
-                }
-            }
-        }
-
-        if (newUrls != null) {
-            for (String newUrl : newUrls) {
-                if (oldUrls == null || !oldUrls.contains(newUrl)) {
-                    if (newUrl != null && !newUrl.isEmpty()) {
-                        imageUploadService.incrementImageReference(newUrl);
-                    }
-                }
-            }
-        }
-    }
 
     private List<String> saveHashtags(Shorlog shorlog, List<String> hashtagNames) {
         if (hashtagNames == null || hashtagNames.isEmpty()) {

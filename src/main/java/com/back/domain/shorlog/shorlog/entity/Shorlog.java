@@ -1,11 +1,12 @@
 package com.back.domain.shorlog.shorlog.entity;
 
+import com.back.domain.shorlog.shorlogimage.entity.ShorlogImages;
 import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
-import com.back.global.util.JsonUtil;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -22,25 +23,22 @@ public class Shorlog extends BaseEntity {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "thumbnail_urls", columnDefinition = "JSON", nullable = false)
-    private String thumbnailUrls;
+    @OneToMany(mappedBy = "shorlog", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    @Builder.Default
+    private List<ShorlogImages> images = new ArrayList<>();
 
     @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     @Builder.Default
     private Integer viewCount = 0;
 
-    public void update(String content, List<String> thumbnailUrls) {
+    public void update(String content) {
         this.content = content;
-        setThumbnailUrlList(thumbnailUrls);
     }
 
-    // Helper 메서드: JSON → List<String>
     public List<String> getThumbnailUrlList() {
-        return JsonUtil.toStringList(thumbnailUrls);
-    }
-
-    // Helper 메서드: List<String> → JSON
-    public void setThumbnailUrlList(List<String> urls) {
-        this.thumbnailUrls = JsonUtil.toJson(urls);
+        return images.stream()
+                .map(si -> si.getImage().getS3Url())
+                .toList();
     }
 }

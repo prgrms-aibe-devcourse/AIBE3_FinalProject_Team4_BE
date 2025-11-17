@@ -4,9 +4,10 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.back.domain.shared.image.entity.Image;
+import com.back.domain.shared.image.entity.ImageType;
+import com.back.domain.shared.image.repository.ImageRepository;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
-import com.back.domain.shorlog.shorlogimage.entity.ShorlogImage;
-import com.back.domain.shorlog.shorlogimage.repository.ShorlogImageRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ImageUploadService {
 
-    private final ShorlogImageRepository imageRepository;
+    private final ImageRepository imageRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
 
@@ -100,18 +101,17 @@ public class ImageUploadService {
                 // S3 URL 생성
                 String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-                // DB 저장 (URL만 저장)
-                ShorlogImage image = ShorlogImage.builder()
-                        .user(user)
-                        .originalFilename(originalFilename)
-                        .savedFilename(savedFilename)
-                        .s3Url(s3Url)
-                        .fileSize((long) imageBytes.length)
-                        .contentType(file.getContentType())
-                        .referenceCount(0)
-                        .build();
+                Image image = Image.create(
+                        user,
+                        ImageType.THUMBNAIL,
+                        originalFilename,
+                        savedFilename,
+                        s3Url,
+                        imageBytes.length,
+                        file.getContentType()
+                );
 
-                ShorlogImage savedImage = imageRepository.save(image);
+                Image savedImage = imageRepository.save(image);
                 responses.add(UploadImageResponse.from(savedImage));
 
                 log.info("S3 업로드 성공: {} → {}", originalFilename, s3Url);
@@ -230,9 +230,10 @@ public class ImageUploadService {
     @Transactional
     public void incrementImageReference(String imageUrl) {
         String filename = extractFilenameFromUrl(imageUrl);
-        ShorlogImage image = imageRepository.findBySavedFilename(filename)
+        Image image = imageRepository.findBySavedFilename(filename)
                 .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-        image.incrementReference();
+
+        imageRepository.incrementReferenceCount(image.getId());
     }
 
     @Transactional
@@ -243,8 +244,7 @@ public class ImageUploadService {
 
         String filename = extractFilenameFromUrl(imageUrl);
         imageRepository.findBySavedFilename(filename).ifPresent(image -> {
-            image.decrementReference();
-            log.info("이미지 참조 감소: {} (현재 참조 수: {})", filename, image.getReferenceCount());
+            imageRepository.decrementReferenceCount(image.getId());
         });
     }
 
@@ -252,9 +252,9 @@ public class ImageUploadService {
     @Scheduled(cron = "0 0 3 * * *")
     public void cleanupUnusedImages() {
         LocalDateTime expiryDate = LocalDateTime.now().minusDays(7);
-        List<ShorlogImage> unusedImages = imageRepository.findUnusedImages(expiryDate);
+        List<Image> unusedImages = imageRepository.findUnusedImages(expiryDate);
 
-        for (ShorlogImage image : unusedImages) {
+        for (Image image : unusedImages) {
             try {
                 String s3Key = S3_FOLDER + image.getSavedFilename();
                 amazonS3.deleteObject(new DeleteObjectRequest(bucket, s3Key));
