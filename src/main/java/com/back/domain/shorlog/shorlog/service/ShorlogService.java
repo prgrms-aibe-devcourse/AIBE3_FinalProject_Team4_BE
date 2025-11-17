@@ -13,6 +13,7 @@ import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
@@ -39,9 +40,11 @@ public class ShorlogService {
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
+    private final ShorlogDocService shorlogDocService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
+    private static final int SEARCH_PAGE_SIZE = 30;
 
     @Transactional
     public CreateShorlogResponse createShorlog(Long userId, CreateShorlogRequest request) {
@@ -67,6 +70,8 @@ public class ShorlogService {
             }
         }
 
+        shorlogDocService.indexShorlog(savedShorlog);
+
         return CreateShorlogResponse.from(savedShorlog, hashtagNames);
     }
 
@@ -88,10 +93,11 @@ public class ShorlogService {
                 (int) likeCount, (int) bookmarkCount);
     }
 
-     // 격자형 피드 조회 (전체, AI 추천)
-     // TODO: AI 추천 알고리즘 연동 (5번 이지연)
     public Page<ShorlogFeedResponse> getFeed(int page) {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
+
+        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
+        // 현재: 최신순 정렬
         Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
         return shorlogs.map(shorlog -> {
@@ -101,10 +107,9 @@ public class ShorlogService {
         });
     }
 
-     // 팔로잉 피드 조회 (최신순만)
-     // TODO: Follow 테이블 연동 (1번 주권영)
     public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {
-        // TODO: 실제 팔로잉 목록 조회 (임시로 빈 리스트)
+        // TODO: 실제 팔로잉 목록 조회 (1번 주권영 API 연동)
+        // 현재는 임시로 빈 리스트 반환
         List<Long> followingUserIds = List.of(); // 임시
 
         if (followingUserIds.isEmpty()) {
@@ -129,7 +134,7 @@ public class ShorlogService {
             case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
             case "oldest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
             case "latest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'views', 'latest' 중 하나여야 합니다.");
+            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
         return shorlogs.map(shorlog -> {
@@ -156,6 +161,8 @@ public class ShorlogService {
 
         updateImageReferences(oldThumbnailUrls, request.getThumbnailUrls());
 
+        shorlogDocService.indexShorlog(shorlog);
+
         return UpdateShorlogResponse.from(shorlog, hashtagNames);
     }
 
@@ -174,6 +181,8 @@ public class ShorlogService {
                 imageUploadService.decrementImageReference(thumbnailUrl);
             }
         }
+
+        shorlogDocService.deleteShorlog(shorlogId);
 
         shorlogRepository.delete(shorlog);
     }
@@ -222,5 +231,26 @@ public class ShorlogService {
         return hashtags.stream()
                 .map(Hashtag::getName)
                 .toList();
+    }
+
+    public Page<ShorlogFeedResponse> searchShorlogs(String query, String sort, int page) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new IllegalArgumentException("검색어를 입력해주세요.");
+        }
+
+        // 검색어에서 # 제거
+        String processedQuery = query.trim().replace("#", "");
+
+        return shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE)
+                .map(doc -> ShorlogFeedResponse.builder()
+                        .id(Long.parseLong(doc.getId()))
+                        .thumbnailUrl(doc.getThumbnailUrl())
+                        .profileImgUrl(doc.getProfileImgUrl())
+                        .nickname(doc.getNickname())
+                        .hashtags(doc.getHashtags())
+                        .likeCount(doc.getLikeCount())
+                        .commentCount(doc.getCommentCount())
+                        .firstLine(ShorlogFeedResponse.extractFirstLine(doc.getContent()))
+                        .build());
     }
 }

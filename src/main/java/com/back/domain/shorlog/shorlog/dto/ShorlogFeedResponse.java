@@ -15,7 +15,7 @@ public class ShorlogFeedResponse {
     private Long id;
     private String thumbnailUrl;
     private String profileImgUrl;
-    private String username;
+    private String nickname;
     private List<String> hashtags;
     private Integer likeCount;
     private Integer commentCount;
@@ -24,14 +24,14 @@ public class ShorlogFeedResponse {
     public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags, Integer likeCount) {
         List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
         String firstThumbnail = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
-                ? thumbnailUrls.get(0)
+                ? thumbnailUrls.getFirst()
                 : null;
 
         return ShorlogFeedResponse.builder()
                 .id(shorlog.getId())
                 .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .thumbnailUrl(firstThumbnail)
-                .username(shorlog.getUser().getUsername())
+                .nickname(shorlog.getUser().getNickname())
                 .hashtags(hashtags)
                 .likeCount(likeCount)
                 .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
@@ -40,7 +40,7 @@ public class ShorlogFeedResponse {
     }
 
     // 콘텐츠에서 첫 줄 추출 - 줄바꿈(\n) 기준으로 첫 줄만 반환
-    private static String extractFirstLine(String content) {
+    public static String extractFirstLine(String content) {
         if (content == null || content.isEmpty()) {
             return "";
         }

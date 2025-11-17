@@ -42,19 +42,21 @@ public class ApiV1ShorlogController {
     }
 
     @GetMapping("/feed")
-    @Operation(summary = "숏로그 피드 조회")
+    @Operation(summary = "숏로그 전체 피드 조회")
     public RsData<Page<ShorlogFeedResponse>> getFeed(
             @RequestParam(defaultValue = "0") int page
     ) {
+        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
         return RsData.successOf(shorlogService.getFeed(page));
     }
 
     @GetMapping("/following")
-    @Operation(summary = "팔로잉 피드 조회")
+    @Operation(summary = "팔로잉 피드 조회 (최신순)")
     public RsData<Page<ShorlogFeedResponse>> getFollowingFeed(
             @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
+        // TODO: 팔로우 API 연동 (Issue #12 - 1번 주권영)
         return RsData.successOf(shorlogService.getFollowingFeed(securityUser.getId(), page));
     }
 
@@ -96,5 +98,15 @@ public class ApiV1ShorlogController {
             @RequestParam(value = "aspectRatios", required = false) List<String> aspectRatios
     ) {
         return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, aspectRatios));
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "숏로그 검색 (내용 + 해시태그)")
+    public RsData<Page<ShorlogFeedResponse>> searchShorlogs(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        return RsData.successOf(shorlogService.searchShorlogs(q, sort, page));
     }
 }
