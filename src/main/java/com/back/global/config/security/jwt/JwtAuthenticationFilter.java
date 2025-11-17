@@ -79,7 +79,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
             SecurityUser securityUser = jwtProvider.parseUserFromToken(refreshToken);
-            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), "ROLE_USER");
+            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), securityUser.getRole().toString());
             rq.setCookie("accessToken", newAccessToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);

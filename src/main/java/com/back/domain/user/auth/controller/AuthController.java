@@ -45,7 +45,7 @@ public class AuthController {
 
         refreshTokenService.deleteRefreshTokenByUserId(user.getId());
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), "ROLE_USER");
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().toString());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         refreshTokenService.saveRefreshToken(user.getId(), refreshToken);
 
@@ -64,7 +64,7 @@ public class AuthController {
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), "ROLE_USER");
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().toString());
         rq.setCookie("accessToken", accessToken);
 
         refreshTokenService.deleteRefreshTokenByUserId(user.getId());

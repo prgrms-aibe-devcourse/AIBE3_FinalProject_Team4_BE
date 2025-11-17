@@ -43,7 +43,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         // 기존 리프레시 토큰 삭제 후
         refreshTokenService.deleteRefreshTokenByUserId(userId);
         // 새로운 토큰 발급
-        String accessToken = jwtTokenProvider.generateAccessToken(userId, "ROLE_USER");
+        String accessToken = jwtTokenProvider.generateAccessToken(userId, securityUser.getRole().toString());
         String refreshToken = jwtTokenProvider.generateRefreshToken(userId);
         refreshTokenService.saveRefreshToken(userId, refreshToken);
 

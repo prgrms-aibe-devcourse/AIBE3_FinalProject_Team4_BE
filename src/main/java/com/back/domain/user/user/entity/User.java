@@ -28,6 +28,10 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.USER; // 기본 권한 USER
+
     // 일반 가입용 생성자
     public User(String email, String username, String password, String nickname, LocalDate dateOfBirth, Gender gender) {
         this.email = email;
