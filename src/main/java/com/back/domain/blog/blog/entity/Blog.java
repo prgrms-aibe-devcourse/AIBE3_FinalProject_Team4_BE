@@ -1,8 +1,8 @@
 package com.back.domain.blog.blog.entity;
 
-
 import com.back.domain.blog.blog.dto.BlogWriteReqDto;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
+import com.back.domain.blog.blogFile.entity.BlogFile;
 import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.like.entity.BlogLike;
@@ -49,11 +49,13 @@ public class Blog extends BaseEntity {
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BlogBookmark> bookmark = new ArrayList<>();
 
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BlogFile> blogFiles = new ArrayList<>();
+
     @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;
-
 
     public Blog(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
         this.user = user;
