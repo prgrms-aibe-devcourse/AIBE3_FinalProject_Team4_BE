@@ -1,7 +1,6 @@
 package com.back.domain.shorlog.shorlogimage.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.shared.image.entity.Image;
@@ -13,7 +12,6 @@ import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -227,54 +224,9 @@ public class ImageUploadService {
         return resizedImage;
     }
 
-    @Transactional
-    public void incrementImageReference(String imageUrl) {
-        String filename = extractFilenameFromUrl(imageUrl);
-        Image image = imageRepository.findBySavedFilename(filename)
-                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-
-        imageRepository.incrementReferenceCount(image.getId());
-    }
-
-    @Transactional
-    public void decrementImageReference(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty()) {
-            return;
-        }
-
-        String filename = extractFilenameFromUrl(imageUrl);
-        imageRepository.findBySavedFilename(filename).ifPresent(image -> {
-            imageRepository.decrementReferenceCount(image.getId());
-        });
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 0 3 * * *")
-    public void cleanupUnusedImages() {
-        LocalDateTime expiryDate = LocalDateTime.now().minusDays(7);
-        List<Image> unusedImages = imageRepository.findUnusedImages(expiryDate);
-
-        for (Image image : unusedImages) {
-            try {
-                String s3Key = S3_FOLDER + image.getSavedFilename();
-                amazonS3.deleteObject(new DeleteObjectRequest(bucket, s3Key));
-                log.info("S3 파일 삭제 완료: {}", s3Key);
-
-                imageRepository.delete(image);
-                log.info("DB 메타데이터 삭제 완료: {}", image.getSavedFilename());
-
-            } catch (Exception e) {
-                log.error("이미지 삭제 실패: {}", image.getSavedFilename(), e);
-            }
-        }
-
-        if (!unusedImages.isEmpty()) {
-            log.info("총 {}개의 미사용 이미지 정리 완료", unusedImages.size());
-        }
-    }
-
-    private String extractFilenameFromUrl(String imageUrl) {
-        return imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
-    }
+    // 참조 카운트 관리 및 자동 정리는 ImageLifecycleService 사용
+    // - imageLifecycleService.incrementReference(imageUrl)
+    // - imageLifecycleService.decrementReference(imageUrl)
+    // - imageLifecycleService.cleanupUnusedImages() (스케줄러)
 }
 

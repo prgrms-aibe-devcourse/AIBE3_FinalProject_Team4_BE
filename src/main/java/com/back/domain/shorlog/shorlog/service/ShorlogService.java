@@ -13,7 +13,6 @@ import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
 import com.back.domain.shorlog.shorlogimage.entity.ShorlogImages;
 import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
-import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -40,7 +39,6 @@ public class ShorlogService {
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
     private final ShorlogImagesRepository shorlogImagesRepository;
-    private final ImageUploadService imageUploadService;
     private final ShorlogDocService shorlogDocService;
 
     private static final int MAX_HASHTAGS = 10;
