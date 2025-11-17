@@ -39,30 +39,4 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "GROUP BY s.id " +
            "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
-
-    @Query("SELECT DISTINCT s FROM Shorlog s " +
-           "LEFT JOIN ShorlogHashtag sh ON sh.shorlog.id = s.id " +
-           "LEFT JOIN Hashtag h ON sh.hashtag.id = h.id " +
-           "WHERE s.content LIKE %:query% " +
-           "   OR h.name LIKE %:query% " +
-           "ORDER BY s.createdAt DESC")
-    Page<Shorlog> searchByLatest(@Param("query") String query, Pageable pageable);
-
-    @Query("SELECT DISTINCT s FROM Shorlog s " +
-           "LEFT JOIN ShorlogHashtag sh ON sh.shorlog.id = s.id " +
-           "LEFT JOIN Hashtag h ON sh.hashtag.id = h.id " +
-           "LEFT JOIN ShorlogLike sl ON sl.shorlog.id = s.id " +
-           "WHERE s.content LIKE %:query% " +
-           "   OR h.name LIKE %:query% " +
-           "GROUP BY s.id " +
-           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
-    Page<Shorlog> searchByPopularity(@Param("query") String query, Pageable pageable);
-
-    @Query("SELECT DISTINCT s FROM Shorlog s " +
-           "LEFT JOIN ShorlogHashtag sh ON sh.shorlog.id = s.id " +
-           "LEFT JOIN Hashtag h ON sh.hashtag.id = h.id " +
-           "WHERE s.content LIKE %:query% " +
-           "   OR h.name LIKE %:query% " +
-           "ORDER BY s.viewCount DESC")
-    Page<Shorlog> searchByViews(@Param("query") String query, Pageable pageable);
 }

@@ -13,6 +13,7 @@ import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
@@ -39,6 +40,7 @@ public class ShorlogService {
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
+    private final ShorlogDocService shorlogDocService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -67,6 +69,8 @@ public class ShorlogService {
                 }
             }
         }
+
+        shorlogDocService.indexShorlog(savedShorlog);
 
         return CreateShorlogResponse.from(savedShorlog, hashtagNames);
     }
@@ -157,6 +161,8 @@ public class ShorlogService {
 
         updateImageReferences(oldThumbnailUrls, request.getThumbnailUrls());
 
+        shorlogDocService.indexShorlog(shorlog);
+
         return UpdateShorlogResponse.from(shorlog, hashtagNames);
     }
 
@@ -175,6 +181,8 @@ public class ShorlogService {
                 imageUploadService.decrementImageReference(thumbnailUrl);
             }
         }
+
+        shorlogDocService.deleteShorlog(shorlogId);
 
         shorlogRepository.delete(shorlog);
     }
@@ -233,20 +241,16 @@ public class ShorlogService {
         // 검색어에서 # 제거
         String processedQuery = query.trim().replace("#", "");
 
-        Pageable pageable = PageRequest.of(page, SEARCH_PAGE_SIZE);
-        Page<Shorlog> shorlogs;
-
-        switch (sort.toLowerCase()) {
-            case "popular" -> shorlogs = shorlogRepository.searchByPopularity(processedQuery, pageable);
-            case "views" -> shorlogs = shorlogRepository.searchByViews(processedQuery, pageable);
-            case "latest" -> shorlogs = shorlogRepository.searchByLatest(processedQuery, pageable);
-            default -> throw new IllegalArgumentException("정렬 기준은 'latest', 'popular', 'views' 중 하나여야 합니다.");
-        }
-
-        return shorlogs.map(shorlog -> {
-            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
-        });
+        return shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE)
+                .map(doc -> ShorlogFeedResponse.builder()
+                        .id(Long.parseLong(doc.getId()))
+                        .thumbnailUrl(doc.getThumbnailUrl())
+                        .profileImgUrl(doc.getProfileImgUrl())
+                        .nickname(doc.getNickname())
+                        .hashtags(doc.getHashtags())
+                        .likeCount(doc.getLikeCount())
+                        .commentCount(doc.getCommentCount())
+                        .firstLine(ShorlogFeedResponse.extractFirstLine(doc.getContent()))
+                        .build());
     }
 }
