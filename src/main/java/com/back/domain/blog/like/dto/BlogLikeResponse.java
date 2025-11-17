@@ -1,8 +1,8 @@
 package com.back.domain.blog.like.dto;
 
-public record LikeResponse(
+public record BlogLikeResponse(
         Long blogId,
-        boolean liked,
+        boolean isLiked,
         long likeCount
 ) {
 
