@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Auth API", description = "회원 및 인증/인가 토큰 API")
+@Tag(name = "Auth API", description = "인증 관련 API")
 public class AuthController {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -45,7 +45,7 @@ public class AuthController {
 
         refreshTokenService.deleteRefreshTokenByUserId(user.getId());
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().toString());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         refreshTokenService.saveRefreshToken(user.getId(), refreshToken);
 
@@ -64,7 +64,7 @@ public class AuthController {
     public RsData<UserLoginResponseDto> login(@Valid @RequestBody UserLoginRequestDto dto) {
         User user = userService.login(dto);
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().toString());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().name());
         rq.setCookie("accessToken", accessToken);
 
         refreshTokenService.deleteRefreshTokenByUserId(user.getId());

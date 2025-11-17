@@ -74,7 +74,8 @@ public class JwtTokenProvider {
         String email = claims.get("email", String.class);
         String username = claims.get("username", String.class);
         String nickname = claims.get("nickname", String.class);
-        UserRole role = claims.get("role", UserRole.class);
+        String roleStr = claims.get("role", String.class);
+        UserRole role = UserRole.valueOf(roleStr.replace("ROLE_", ""));
 
         return new SecurityUser(userId, email, username, nickname, role);
     }
