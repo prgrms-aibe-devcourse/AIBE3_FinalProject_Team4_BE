@@ -1,7 +1,6 @@
 package com.back.domain.blog.blogdoc.document;
 
 
-import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,7 +38,7 @@ public class BlogDoc {
     private String categoryName;
 
 //    @Field(type = FieldType.Keyword)
-//    private List<BlogHashtag> hashtags;
+//    private List<BlogHashtag> hashtagName;
 
     @Field(type = FieldType.Keyword)
     private String status;

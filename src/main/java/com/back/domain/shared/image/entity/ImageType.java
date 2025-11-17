@@ -4,4 +4,3 @@ public enum ImageType {
     THUMBNAIL,
     CONTENT
 }
-

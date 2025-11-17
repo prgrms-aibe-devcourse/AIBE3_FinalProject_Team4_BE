@@ -8,9 +8,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.util.Objects;
+
 @Entity
-@Getter
 @EntityListeners(AuditingEntityListener.class)
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
     name = "images",
@@ -46,24 +48,25 @@ public class Image extends BaseEntity {
     @Column(name = "reference_count", nullable = false)
     private Integer referenceCount = 0;
 
-    private Image(User user, ImageType type, String originalFilename, String savedFilename,
-                  String s3Url, long fileSize, String contentType, int referenceCount) {
-        this.user = user;
-        this.type = type;
-        this.originalFilename = originalFilename;
-        this.savedFilename = savedFilename;
-        this.s3Url = s3Url;
+    private Image(User user, ImageType type, String originalFilename, String savedFilename, String s3Url, long fileSize, String contentType, int referenceCount) {
+
+        this.user = Objects.requireNonNull(user);
+        this.type = Objects.requireNonNull(type);
+        this.originalFilename = Objects.requireNonNull(originalFilename);
+        this.savedFilename = Objects.requireNonNull(savedFilename);
+        this.s3Url = Objects.requireNonNull(s3Url);
         this.fileSize = fileSize;
-        this.contentType = contentType;
+        this.contentType = Objects.requireNonNull(contentType);
         this.referenceCount = referenceCount;
     }
 
-    public static Image create(User user, ImageType type, String originalFilename,
-                               String savedFilename, String s3Url, long fileSize, String contentType) {
-        return new Image(user, type, originalFilename, savedFilename, s3Url, fileSize, contentType, 0);
+    public static Image create(User user, ImageType type, String originalFilename, String savedFilename, String s3Url, long fileSize, String contentType) {
+
+        return new Image(user, type, originalFilename, savedFilename, s3Url, fileSize, contentType, 1 // 첫 생성 시 refCount = 1
+        );
+    }
+
+    public boolean isUnused() {
+        return referenceCount <= 0;
     }
 }
-
-
-
-

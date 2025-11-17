@@ -9,8 +9,10 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum BlogErrorCase implements ErrorCase {
     BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, 101, "존재하지 않는 블로그 글입니다."),
-    PERMISSION_DENIED(HttpStatus.FORBIDDEN, 102, "해당 글을 수정/삭제할 권한이 없습니다."),
+    PERMISSION_DENIED(HttpStatus.FORBIDDEN, 102, "해당 글을 수정할 권한이 없습니다."),
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, 103, "잘못된 블로그 형식입니다."),
+    REACTION_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, 104, "이미 누르신 반응입니다."),
+    REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, 105, "반응을 찾을 수 없습니다."),
 
     BLOG_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 199, "블로그 저장 중 오류 발생");
 

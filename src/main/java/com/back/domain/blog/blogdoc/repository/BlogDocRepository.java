@@ -31,6 +31,4 @@ public interface BlogDocRepository extends ElasticsearchRepository<BlogDoc, Stri
                 }
             """)
     List<BlogDoc> searchByKeyword(String keyword);
-
-    
 }

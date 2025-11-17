@@ -30,19 +30,41 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             """)
     List<Blog> findByStatusAndUserId(BlogStatus blogStatus, Long id);
 
-    @Modifying
-    @Query("""
-            update Blog b set b.bookmarkCount = b.bookmarkCount + 1 where b.id = :blogId
-            """)
+    List<Blog> findAllByUserIdAndStatus(Long userId, BlogStatus blogStatus);
+
+    // reaction 관련 메서드
+    @Modifying(clearAutomatically = true)
+    @Query("update Blog b set b.bookmarkCount = b.bookmarkCount + 1 where b.id = :blogId")
     void increaseBookmark(Long blogId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
             update Blog b set b.bookmarkCount = 
               case when b.bookmarkCount > 0 then b.bookmarkCount - 1 else 0 end
             where b.id = :blogId
             """)
-    void decreaseBookmark(Long postId);
+    int decreaseBookmark(Long blogId);
 
-    List<Blog> findAllByUserIdAndStatus(Long userId, BlogStatus blogStatus);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Blog b set b.likeCount = b.likeCount + 1 where b.id = :blogId
+            """)
+    int increaseLikeCount(Long blogId);
+
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Blog b set b.likeCount = 
+              case when b.likeCount > 0 then b.likeCount - 1 else 0 end
+            where b.id = :blogId
+            """)
+    int decreaseLikeCount(Long blogId);
+
+    @Query("select coalesce(b.likeCount, 0) from Blog b where b.id = :blogId")
+    long getLikeCountById(Long blogId);
+
+    @Query("select coalesce(b.bookmarkCount, 0) from Blog b where b.id = :blogId")
+    Optional<Long> getBookmarkCountById(Long blogId);
+
 }
