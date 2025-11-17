@@ -1,13 +1,9 @@
 package com.back.domain.shorlog.shorlog.service;
 
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
-import com.back.domain.shorlog.shorlog.dto.CreateShorlogRequest;
-import com.back.domain.shorlog.shorlog.dto.CreateShorlogResponse;
-import com.back.domain.shorlog.shorlog.dto.ShorlogDetailResponse;
-import com.back.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
-import com.back.domain.shorlog.shorlog.dto.UpdateShorlogRequest;
-import com.back.domain.shorlog.shorlog.dto.UpdateShorlogResponse;
+import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
@@ -39,6 +35,7 @@ public class ShorlogService {
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
+    private final NotificationService notificationService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;

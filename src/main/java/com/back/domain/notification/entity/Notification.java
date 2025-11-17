@@ -1,6 +1,7 @@
 package com.back.domain.notification.entity;
 
 import com.back.global.jpa.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -21,6 +22,7 @@ public class Notification extends BaseEntity {
     private Long senderId;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50, nullable = false)
     private NotificationType type;
 
     private Long targetId;  // 관련된 엔티티 ID (댓글 ID 등)

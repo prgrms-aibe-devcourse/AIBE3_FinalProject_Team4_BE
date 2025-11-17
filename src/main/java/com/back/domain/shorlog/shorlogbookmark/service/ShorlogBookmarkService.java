@@ -1,5 +1,7 @@
 package com.back.domain.shorlog.shorlogbookmark.service;
 
+import com.back.domain.notification.entity.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
@@ -32,6 +34,7 @@ public class ShorlogBookmarkService {
     private final UserRepository userRepository;
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
+    private final NotificationService notificationService;
 
     private static final int BOOKMARK_PAGE_SIZE = 30; // 6열 격자형 피드 (30개씩)
 
@@ -55,6 +58,14 @@ public class ShorlogBookmarkService {
         shorlogBookmarkRepository.save(bookmark);
 
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
+
+        notificationService.send(
+                shorlog.getUser().getId(),
+                userId,
+                NotificationType.SHORLOG_BOOKMARK,
+                shorlogId,
+                user.getNickname()
+        );
 
         return ShorlogBookmarkResponse.builder()
                 .isBookmarked(true)

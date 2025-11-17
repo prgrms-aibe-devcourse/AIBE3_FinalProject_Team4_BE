@@ -1,5 +1,6 @@
 package com.back.domain.comments.comments.service;
 
+import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.comments.comments.dto.CommentCreateRequestDto;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
@@ -8,6 +9,9 @@ import com.back.domain.comments.comments.entity.Comments;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
+import com.back.domain.notification.entity.NotificationType;
+import com.back.domain.notification.service.NotificationService;
+import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -27,6 +31,7 @@ public class CommentsService {
     private final UserRepository userRepository;
     private final BlogRepository blogRepository;
     private final ShorlogRepository shorlogRepository;
+    private final NotificationService notificationService;
 
     // 공통
     private Comments getComment(Long id) {
@@ -70,6 +75,58 @@ public class CommentsService {
                 .build();
 
         commentsRepository.save(comment);
+
+        // ===========================
+        //       🔔 알림 처리 로직
+        // ===========================
+
+        // (1) 대댓글인 경우 → 부모 댓글 작성자에게 알림
+        if (parent != null) {
+            Long receiverId = parent.getUser().getId();
+
+            // 자기 댓글에 대댓글 달면 알림 X
+            if (!receiverId.equals(userId)) {
+
+                notificationService.send(
+                        receiverId,
+                        userId,
+                        NotificationType.COMMENT_REPLY,
+                        comment.getId(),          // target = commentId
+                        user.getNickname()
+                );
+            }
+        }
+        // (2) 일반 댓글: targetType → 게시글/쇼로그 작성자에게 알림
+        else {
+            Long receiverId = null;
+            NotificationType type = null;
+
+            switch (req.targetType()) {
+                case BLOG -> {
+                    Blog blog = blogRepository.findById(req.targetId())
+                            .orElseThrow(() -> new RuntimeException("블로그 게시글을 찾을 수 없습니다."));
+                    receiverId = blog.getUser().getId();
+                    type = NotificationType.BLOG_COMMENT;
+                }
+                case SHORLOG -> {
+                    Shorlog sl = shorlogRepository.findById(req.targetId())
+                            .orElseThrow(() -> new RuntimeException("쇼로그를 찾을 수 없습니다."));
+                    receiverId = sl.getUser().getId();
+                    type = NotificationType.SHORLOG_COMMENT;
+                }
+            }
+
+            // 본인 글에 단 댓글이면 알림 X
+            if (!receiverId.equals(userId)) {
+                notificationService.send(
+                        receiverId,
+                        userId,
+                        type,
+                        req.targetId(),          // target = postId
+                        user.getNickname()
+                );
+            }
+        }
 
         return RsData.of(
                 "200-1",
