@@ -94,12 +94,19 @@ public class ShorlogBookmarkService {
                 .build();
     }
 
-    public BookmarkListResponse getMyBookmarks(Long userId, int page) {
+    public BookmarkListResponse getMyBookmarks(Long userId, String sort, int page) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
         Pageable pageable = PageRequest.of(page, BOOKMARK_PAGE_SIZE);
-        Page<ShorlogBookmark> bookmarkPage = shorlogBookmarkRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        Page<ShorlogBookmark> bookmarkPage;
+
+        switch (sort.toLowerCase()) {
+            case "popular" -> bookmarkPage = shorlogBookmarkRepository.findByUserOrderByPopularity(user, pageable);
+            case "oldest" -> bookmarkPage = shorlogBookmarkRepository.findByUserOrderByCreatedAtAsc(user, pageable);
+            case "latest" -> bookmarkPage = shorlogBookmarkRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+            default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
+        }
 
         // ShorlogBookmark -> ShorlogFeedResponse 변환
         Page<ShorlogFeedResponse> responsePage = bookmarkPage.map(bookmark -> {
