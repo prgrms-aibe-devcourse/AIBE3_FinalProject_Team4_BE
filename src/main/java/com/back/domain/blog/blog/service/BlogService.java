@@ -137,13 +137,13 @@ public class BlogService {
 
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         newBlog.updateHashtags(hashtags);
-        newBlog.setStatus(BlogStatus.DRAFT);
+        newBlog.unpublish();
         return blogRepository.save(newBlog);
     }
 
     private void updateDraft(Blog blog, BlogWriteReqDto req, String thumbnailUrl) {
         blog.modify(req);
-        blog.setStatus(BlogStatus.DRAFT);
+        blog.unpublish();
     }
 
     public List<BlogDraftDto> findDraftsByUserId(Long userId) {

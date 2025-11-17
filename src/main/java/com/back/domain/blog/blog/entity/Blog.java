@@ -14,7 +14,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.ArrayList;
@@ -52,7 +51,6 @@ public class Blog extends BaseEntity {
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BlogFile> blogFiles = new ArrayList<>();
 
-    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;

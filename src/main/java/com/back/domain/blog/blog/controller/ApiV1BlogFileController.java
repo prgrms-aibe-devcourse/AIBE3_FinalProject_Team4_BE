@@ -27,6 +27,6 @@ public class ApiV1BlogFileController {
             @RequestParam(value = "aspectRatios", required = false) String aspectRatios
     ) {
         BlogMediaUploadResponse dto = blogMediaService.uploadBlogMedia(user.getId(), blogId, image, type, aspectRatios);
-        return RsData.of("201-1", "블로그 이미지 업로드가 완료되었습니다.", dto);
+        return RsData.of("201-1", "블로그 파일 업로드가 완료되었습니다.", dto);
     }
 }

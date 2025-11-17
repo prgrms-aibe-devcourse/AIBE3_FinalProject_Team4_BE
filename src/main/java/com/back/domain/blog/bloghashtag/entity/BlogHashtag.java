@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import static jakarta.persistence.GenerationType.IDENTITY;
 
@@ -19,13 +18,11 @@ public class BlogHashtag {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
-
-    @Setter
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blog_id", nullable = false)
     private Blog blog;
 
-    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hashtag_id")
     private Hashtag hashtag;
@@ -33,12 +30,5 @@ public class BlogHashtag {
     public BlogHashtag(Blog blog, Hashtag hashtag) {
         this.blog = blog;
         this.hashtag = hashtag;
-    }
-
-    public static BlogHashtag createBlogHashtag(Blog blog, Hashtag hashtag) {
-        BlogHashtag blogHashtag = new BlogHashtag();
-        blogHashtag.setBlog(blog);
-        blogHashtag.setHashtag(hashtag);
-        return blogHashtag;
     }
 }
