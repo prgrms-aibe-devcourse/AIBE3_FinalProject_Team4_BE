@@ -3,7 +3,6 @@ package com.back.domain.blog.like.entity;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.user.user.entity.User;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,7 +20,7 @@ import java.time.LocalDateTime;
                         columnNames = {"blog_id", "user_id"}
                 )
         })
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 public class BlogLike {
     @Id
@@ -41,8 +40,7 @@ public class BlogLike {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime likedAt;
-
-    @Builder
+    
     public BlogLike(Blog blog, User user) {
         this.blog = blog;
         this.user = user;

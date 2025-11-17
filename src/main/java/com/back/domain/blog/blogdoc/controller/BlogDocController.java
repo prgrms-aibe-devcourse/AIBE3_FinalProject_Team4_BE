@@ -34,7 +34,7 @@ public class BlogDocController {
 //    @GetMapping("/search")
 //    public List<BlogDoc> search(@RequestParam(required = false) String keyword,
 //                                @RequestParam(required = false) Long categoryId,
-//                                @RequestParam(required = false) List<String> hashtags,
+//                                @RequestParam(required = false) List<String> hashtagName,
 //                                @RequestParam(defaultValue = "false") Boolean followingOnly,
 //                                @RequestParam(defaultValue = "latest") String sort,
 //                                @RequestParam(defaultValue = "20") Integer size,
@@ -45,7 +45,7 @@ public class BlogDocController {
 //        BlogSearchReqDto request = new BlogSearchReqDto(
 //                keyword,
 //                categoryId,
-//                hashtags,
+//                hashtagName,
 //                followingOnly,
 //                sort,
 //                searchAfter,

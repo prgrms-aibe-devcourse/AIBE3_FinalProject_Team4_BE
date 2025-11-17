@@ -6,6 +6,7 @@ import com.back.domain.blog.blog.entity.BlogStatus;
 import java.time.LocalDateTime;
 
 public record BlogDraftDto(
+        Long id,
         String title,
         String content,
         String thumbnailUrl,
@@ -15,6 +16,7 @@ public record BlogDraftDto(
 ) {
     public BlogDraftDto(Blog blog) {
         this(
+                blog.getId(),
                 blog.getTitle(),
                 blog.getContent(),
                 blog.getThumbnailUrl(),

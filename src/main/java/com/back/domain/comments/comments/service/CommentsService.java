@@ -11,7 +11,10 @@ import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
 import com.back.domain.notification.entity.NotificationType;
 import com.back.domain.notification.service.NotificationService;
+<<<<<<< HEAD
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
+=======
+>>>>>>> d42b2eeb9fdabdd2298889a89ab7d94309e5000b
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -22,6 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -220,5 +226,22 @@ public class CommentsService {
                 "댓글 좋아요를 취소했습니다.",
                 CommentResponseDto.fromEntity(comment)
         );
+    }
+
+    public List<CommentResponseDto> getCommentsByType(Long blogId, CommentsTargetType targetType) {
+        List<Comments> comment = commentsRepository
+                .findByTargetTypeAndTargetIdAndParentIsNullOrderByCreatedAtAsc(targetType, blogId);
+        return comment.stream()
+                .map(CommentResponseDto::fromEntity)
+                .toList();
+    }
+
+    public Map<Long, Long> getCommentCounts(List<Long> targetIds, CommentsTargetType targetType) {
+        return commentsRepository.countByTargetIdsAndType(targetIds, targetType)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],  // targetId
+                        row -> (Long) row[1]   // count
+                ));
     }
 }

@@ -1,8 +1,8 @@
 package com.back.domain.blog.bookmark.dto;
 
-public record BookmarkResponse(
+public record BlogBookmarkResponse(
         Long blogId,
-        boolean bookmarked,
+        boolean isBookmarked,
         long bookmarkCount
 ) {
 

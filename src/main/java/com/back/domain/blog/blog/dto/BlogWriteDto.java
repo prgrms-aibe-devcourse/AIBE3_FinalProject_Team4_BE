@@ -1,7 +1,6 @@
 package com.back.domain.blog.blog.dto;
 
-import com.back.domain.blog.blog.entity.BlogStatus;
-import com.back.domain.shared.hashtag.HashtagDto;
+import com.back.domain.blog.blog.entity.Blog;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,13 +9,27 @@ public record BlogWriteDto(
         Long id,
         String title,
         String content,
-        List<String> hashTagNames,
-        List<HashtagDto> hashtags,
+        Long userId,
         String thumbnailUrl,
-        boolean isPublished,
-        BlogStatus status,
+        List<String> hashtagNames,
+        String status,
         LocalDateTime createdAt,
         LocalDateTime modifiedAt
 ) {
 
+    public BlogWriteDto(Blog blog) {
+        this(
+                blog.getId(),
+                blog.getTitle(),
+                blog.getContent(),
+                blog.getUser().getId(),
+                blog.getThumbnailUrl(),
+                blog.getBlogHashtags().stream()
+                        .map(blogHashtag -> blogHashtag.getHashtag().getName())
+                        .toList(),
+                blog.getStatus().name(),
+                blog.getCreatedAt(),
+                blog.getModifiedAt()
+        );
+    }
 }

@@ -13,9 +13,9 @@ public record BlogWriteReqDto(
         String title,
         @NotBlank(message = "내용을 입력해주세요")
         String content,
-        List<Long> hashtagIds,
         @NotNull
         BlogStatus status,
-        String thumbnailUrl
+        String thumbnailUrl,
+        List<String> hashtagNames
 ) {
 }
