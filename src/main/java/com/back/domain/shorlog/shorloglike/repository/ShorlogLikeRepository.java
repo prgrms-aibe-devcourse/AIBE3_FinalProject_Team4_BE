@@ -16,5 +16,7 @@ public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, Shorlo
     boolean existsByShorlogAndUser(Shorlog shorlog, User user);
 
     Optional<ShorlogLike> findByShorlogAndUser(Shorlog shorlog, User user);
+
+    long countAllByUser(User user);
 }
 

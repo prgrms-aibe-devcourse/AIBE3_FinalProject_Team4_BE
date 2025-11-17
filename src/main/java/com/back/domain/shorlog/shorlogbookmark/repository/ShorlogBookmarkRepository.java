@@ -44,5 +44,7 @@ public interface ShorlogBookmarkRepository extends JpaRepository<ShorlogBookmark
            "GROUP BY sb.shorlog.id, sb.user.id, s.id, u.id " +
            "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
     Page<ShorlogBookmark> findByUserOrderByPopularity(@Param("user") User user, Pageable pageable);
+
+    int countAllByUser(User user);
 }
 

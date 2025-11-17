@@ -1,6 +1,7 @@
 package com.back.domain.shorlog.shorlog.repository;
 
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
+import com.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,4 +40,6 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "GROUP BY s.id " +
            "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
+
+    int countAllByUser(User user);
 }

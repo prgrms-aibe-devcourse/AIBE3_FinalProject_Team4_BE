@@ -24,6 +24,16 @@ public class User extends BaseEntity {
     private String nickname;        // 닉네임
     private String profileImgUrl;   // 프로필 이미지 URL
     private String bio;             // 간단 자기소개
+
+    private long followersCount = 0L;   // 팔로워 수
+    private long followingCount = 0L;   // 팔로잉 수
+    private long likesCount = 0L;       // 좋아요 수
+
+    private int shorlogsCount = 0;     // 쇼로그 수
+    private int blogsCount = 0;        // 블로그 수
+    private int shorlogBookmarksCount = 0; // 북마크한 쇼로그 수
+    private int blogBookmarksCount = 0; // 북마크한 블로그 수
+
     private LocalDate dateOfBirth;       // 생년월일
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별

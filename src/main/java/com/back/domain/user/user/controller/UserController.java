@@ -1,8 +1,6 @@
 package com.back.domain.user.user.controller;
 
-import com.back.domain.user.user.dto.UpdateProfileRequestDto;
-import com.back.domain.user.user.dto.UserDto;
-import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.service.UserService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
@@ -22,21 +20,21 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping()
-    public RsData<List<UserDto>> getUsers() {
-        List<UserDto> userDtos =  userService.getAllUsers();
+    public RsData<List<UserListResponseDto>> getUsers() {
+        List<UserListResponseDto> userDtos =  userService.getAllUsers();
         return RsData.of("200", "유저 목록 조회 성공", userDtos);
     }
 
     @GetMapping("/{id}")
-    public RsData<UserDto> getUserById(@PathVariable Long id) {
-        UserDto userDto = userService.getUserById(id);
-        return RsData.of("200", "유저 조회 성공", userDto);
+    public RsData<ProfileResponseDto> getUserById(@PathVariable Long id) {
+        ProfileResponseDto userProfileResponseDto = userService.getUserById(id);
+        return RsData.of("200", "유저 조회 성공", userProfileResponseDto);
     }
 
     @GetMapping("/me")
-    public RsData<UserDto> getMyProfile(@AuthenticationPrincipal SecurityUser user) {
-        UserDto userDto = userService.getUserById(user.getId());
-        return RsData.of("200", "내 프로필 조회 성공", userDto);
+    public RsData<MyProfileResponseDto> getMyProfile(@AuthenticationPrincipal SecurityUser user) {
+        MyProfileResponseDto myProfileResponseDto = userService.getMyUser(user.getId());
+        return RsData.of("200", "내 프로필 조회 성공", myProfileResponseDto);
     }
 
     @PutMapping("/update")
