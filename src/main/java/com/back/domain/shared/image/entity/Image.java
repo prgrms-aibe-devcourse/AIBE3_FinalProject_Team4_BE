@@ -64,14 +64,4 @@ public class Image extends BaseEntity {
     public boolean isUnused() {
         return referenceCount <= 0;
     }
-
-    public void incrementReference() {
-        this.referenceCount++;
-    }
-
-    public void decrementReference() {
-        if (this.referenceCount > 0) {
-            this.referenceCount--;
-        }
-    }
 }

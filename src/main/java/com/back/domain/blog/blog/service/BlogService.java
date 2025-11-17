@@ -12,6 +12,7 @@ import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
+import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
@@ -36,6 +37,7 @@ public class BlogService {
     private final BlogBookmarkService blogBookmarkService;
     private final CommentsService commentsService;
     private final HashtagService hashtagService;
+    private final ImageLifecycleService imageLifecycleService;
 
     public void truncate() {
         blogRepository.deleteAll();
@@ -78,8 +80,11 @@ public class BlogService {
         Blog blog = new Blog(user, reqBody.title(), reqBody.content(), reqBody.thumbnailUrl(), BlogStatus.PUBLISHED);
 
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
-
         blog.updateHashtags(hashtags);
+
+        blog.changeThumbnailUrl(thumbnailUrl);
+        imageLifecycleService.incrementReference(thumbnailUrl);
+        blog.publish();
         blog = blogRepository.save(blog);
         return new BlogWriteDto(blog);
     }
@@ -94,11 +99,13 @@ public class BlogService {
         if (!blog.getUser().getId().equals(userId)) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
-        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
-
         blog.modify(reqBody);
+        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         blog.updateHashtags(hashtags);
 
+        blog.changeThumbnailUrl(thumbnailUrl);
+        imageLifecycleService.incrementReference(thumbnailUrl);
+        blog.publish();
         return new BlogModifyDto(blog);
     }
 
@@ -118,6 +125,7 @@ public class BlogService {
         if (!blog.getUser().getId().equals(userId)) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
+        imageLifecycleService.decrementReference(blog.getThumbnailUrl());
         blogRepository.delete(blog);
     }
 

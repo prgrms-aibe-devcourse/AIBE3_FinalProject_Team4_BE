@@ -1,7 +1,6 @@
 package com.back.domain.blog.blogFile.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.blog.blog.entity.Blog;
@@ -16,21 +15,19 @@ import com.back.domain.blog.blogFile.util.VideoResizeUtil;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
+import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,6 +47,7 @@ public class BlogMediaService {
     private final BlogFileRepository blogFileRepository;
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
+    private final ImageLifecycleService imageLifecycleService;
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
     private final VideoResizeUtil videoResizeUtil;
@@ -163,56 +161,6 @@ public class BlogMediaService {
         if (!List.of(ALLOWED_EXTENSIONS).contains(ext.toLowerCase())) {
             throw new IllegalArgumentException("허용되지 않는 파일 형식입니다. (JPG, JPEG, PNG, WEBP)");
         }
-    }
-
-    @Transactional
-    public void incrementImageReference(String imageUrl) {
-        String filename = extractFilenameFromUrl(imageUrl);
-        Image image = imageRepository.findBySavedFilename(filename)
-                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-        image.incrementReference();
-    }
-
-    @Transactional
-    public void decrementImageReference(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty()) {
-            return;
-        }
-
-        String filename = extractFilenameFromUrl(imageUrl);
-        imageRepository.findBySavedFilename(filename).ifPresent(image -> {
-            image.decrementReference();
-            log.info("이미지 참조 감소: {} (현재 참조 수: {})", filename, image.getReferenceCount());
-        });
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 0 3 * * *")
-    public void cleanupUnusedImages() {
-        LocalDateTime expiryDate = LocalDateTime.now().minusDays(7);
-        List<Image> unusedImages = imageRepository.findUnusedImages(expiryDate);
-
-        for (Image image : unusedImages) {
-            try {
-                String s3Key = BLOG_FOLDER + image.getSavedFilename();
-                amazonS3.deleteObject(new DeleteObjectRequest(bucket, s3Key));
-                log.info("S3 파일 삭제 완료: {}", s3Key);
-
-                imageRepository.delete(image);
-                log.info("DB 메타데이터 삭제 완료: {}", image.getSavedFilename());
-
-            } catch (Exception e) {
-                log.error("이미지 삭제 실패: {}", image.getSavedFilename(), e);
-            }
-        }
-
-        if (!unusedImages.isEmpty()) {
-            log.info("총 {}개의 미사용 이미지 정리 완료", unusedImages.size());
-        }
-    }
-
-    private String extractFilenameFromUrl(String imageUrl) {
-        return imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
     }
 
 }
