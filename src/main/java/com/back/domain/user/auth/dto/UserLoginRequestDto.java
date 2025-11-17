@@ -1,4 +1,4 @@
-package com.back.domain.user.user.dto;
+package com.back.domain.user.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
