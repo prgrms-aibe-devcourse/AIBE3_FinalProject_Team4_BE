@@ -104,10 +104,6 @@ public class Blog extends BaseEntity {
         return this.status == BlogStatus.PUBLISHED;
     }
 
-    public boolean isDraft() {
-        return this.status == BlogStatus.DRAFT;
-    }
-
     public void increaseViewCount() {
         this.viewCount += 1;
     }
@@ -117,5 +113,9 @@ public class Blog extends BaseEntity {
         this.content = reqBody.content();
         this.thumbnailUrl = reqBody.thumbnailUrl();
         this.status = reqBody.status();
+    }
+
+    public void changeThumbnailUrl(String s3Url) {
+        this.thumbnailUrl = s3Url;
     }
 }
