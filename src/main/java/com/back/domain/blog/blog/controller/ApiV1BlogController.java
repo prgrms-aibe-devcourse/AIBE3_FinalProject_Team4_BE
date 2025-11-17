@@ -91,7 +91,6 @@ public class ApiV1BlogController {
     @Operation(summary = "블로그 임시저장 글 다건 조회")
     public RsData<List<BlogDraftDto>> getDrafts(@AuthenticationPrincipal SecurityUser userDetails) {
         List<BlogDraftDto> draftDtos = blogService.findDraftsByUserId(userDetails.getId());
-
         return RsData.of("200-2", "블로그 임시저장 글 조회가 완료되었습니다.", draftDtos);
     }
 
