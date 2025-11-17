@@ -113,7 +113,7 @@ public class ApiV1BlogController {
     @PutMapping("/{id}/like")
     @Operation(summary = "블로그 글 좋아요 수 증가")
     public RsData<LikeResponse> increaseLike(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
-        boolean on = blogLikeService.likeOn(userDetails.getUserId(), id);
+        boolean on = blogLikeService.likeOn(userDetails.getId(), id);
         long likeCount = blogLikeService.getLikeCount(id);
         return new RsData<>("200-2", "블로그 글 좋아요 수가 증가되었습니다.", new LikeResponse(id, on, likeCount));
     }
@@ -121,7 +121,7 @@ public class ApiV1BlogController {
     @DeleteMapping("/{id}/like")
     @Operation(summary = "블로그 글 좋아요 수 감소")
     public RsData<LikeResponse> decreaseLike(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
-        boolean off = blogLikeService.likeOff(userDetails.getUserId(), id);
+        boolean off = blogLikeService.likeOff(userDetails.getId(), id);
         long likeCount = blogLikeService.getLikeCount(id);
         return new RsData<>("200-2", "블로그 글 좋아요 수가 감소되었습니다.", new LikeResponse(id, !off, likeCount));
     }
