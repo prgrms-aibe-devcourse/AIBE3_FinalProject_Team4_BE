@@ -55,11 +55,10 @@ public class Blog extends BaseEntity {
     @Column(nullable = false, length = 20)
     private BlogStatus status = BlogStatus.DRAFT;
 
-    public Blog(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
+    public Blog(User user, String title, String content, BlogStatus status) {
         this.user = user;
         this.title = title;
         this.content = content;
-        this.thumbnailUrl = thumbnailUrl;
         this.status = status;
         this.blogHashtags = new ArrayList<>();
         this.viewCount = 0;
@@ -67,11 +66,11 @@ public class Blog extends BaseEntity {
         this.bookmarkCount = 0;
     }
 
-    public static Blog create(User user, String title, String content, String thumbnailUrl, BlogStatus status) {
+    public static Blog create(User user, String title, String content, BlogStatus status) {
         if (title == null || title.isBlank()) {
             throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
         }
-        Blog blog = new Blog(user, title, content, thumbnailUrl, status);
+        Blog blog = new Blog(user, title, content, status);
         return blog;
     }
 
@@ -85,16 +84,10 @@ public class Blog extends BaseEntity {
     }
 
     public void publish() {
-        if (this.status == BlogStatus.PUBLISHED) {
-            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
-        }
         this.status = BlogStatus.PUBLISHED;
     }
 
     public void unpublish() {
-        if (this.status == BlogStatus.DRAFT) {
-            throw new ServiceException(BlogErrorCase.INVALID_FORMAT);
-        }
         this.status = BlogStatus.DRAFT;
     }
 
@@ -109,7 +102,6 @@ public class Blog extends BaseEntity {
     public void modify(BlogWriteReqDto reqBody) {
         this.title = reqBody.title();
         this.content = reqBody.content();
-        this.thumbnailUrl = reqBody.thumbnailUrl();
         this.status = reqBody.status();
     }
 

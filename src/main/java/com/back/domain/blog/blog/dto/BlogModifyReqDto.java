@@ -15,7 +15,6 @@ public record BlogModifyReqDto(
         String content,
         @NotNull
         BlogStatus status,
-        String thumbnailUrl,
         List<String> hashtagNames
 ) {
 }

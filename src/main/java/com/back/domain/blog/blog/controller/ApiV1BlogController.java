@@ -8,8 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,29 +24,28 @@ public class ApiV1BlogController {
     @Operation(summary = "블로그 글 작성")
     public RsData<BlogWriteDto> create(
             @Valid @RequestBody BlogWriteReqDto reqbody,
-            @RequestParam(required = false) String thumbnailUrl,
             @AuthenticationPrincipal SecurityUser userDetails
     ) {
-        BlogWriteDto blogDto = blogService.write(userDetails.getId(), reqbody, thumbnailUrl);
+        BlogWriteDto blogDto = blogService.write(userDetails.getId(), reqbody);
 
         return RsData.of("201-1", "블로그 글 작성이 완료되었습니다.", blogDto);
     }
 
     //TODO: 아래 두개의 api 추후 pagination, 검색/filtering api만들 예정
-    @GetMapping("")
-    @Operation(summary = "블로그 글 다건 조회")
-    public RsData<Page<BlogDto>> getItems(@AuthenticationPrincipal SecurityUser userDetails) {
-        Long userId = (userDetails != null) ? userDetails.getId() : null;
-        Page<BlogDto> blogDtos = blogService.findAll(userId, PageRequest.of(0, 20));
-        return new RsData<>("200-1", "블로그 글 조회가 완료되었습니다.", blogDtos);
-    }
-
-    @GetMapping("/my")
-    @Operation(summary = "내 블로그 글 다건 조회")
-    public RsData<List<BlogDto>> getMyItems(@AuthenticationPrincipal SecurityUser userDetails) {
-        List<BlogDto> blogDtos = blogService.findAllByUserId(userDetails.getId());
-        return new RsData<>("200-1", "내 블로그 글 조회가 완료되었습니다.", blogDtos);
-    }
+//    @GetMapping("")
+//    @Operation(summary = "블로그 글 다건 조회")
+//    public RsData<Page<BlogDto>> getItems(@AuthenticationPrincipal SecurityUser userDetails) {
+//        Long userId = (userDetails != null) ? userDetails.getId() : null;
+//        Page<BlogDto> blogDtos = blogService.findAll(userId, PageRequest.of(0, 20));
+//        return new RsData<>("200-1", "블로그 글 조회가 완료되었습니다.", blogDtos);
+//    }
+//
+//    @GetMapping("/my")
+//    @Operation(summary = "내 블로그 글 다건 조회")
+//    public RsData<List<BlogDto>> getMyItems(@AuthenticationPrincipal SecurityUser userDetails) {
+//        List<BlogDto> blogDtos = blogService.findAllByUserId(userDetails.getId());
+//        return new RsData<>("200-1", "내 블로그 글 조회가 완료되었습니다.", blogDtos);
+//    }
 
     @GetMapping("/{id}")
     @Operation(summary = "블로그 글 단건 조회")
@@ -62,10 +59,9 @@ public class ApiV1BlogController {
     public RsData<BlogModifyDto> modify(
             @PathVariable Long id,
             @Valid @RequestBody BlogWriteReqDto reqbody,
-            @RequestParam(required = false) String thumbnailUrl,
             @AuthenticationPrincipal SecurityUser userDetails
     ) {
-        BlogModifyDto blogdto = blogService.modify(userDetails.getId(), id, reqbody, thumbnailUrl);
+        BlogModifyDto blogdto = blogService.modify(userDetails.getId(), id, reqbody);
         return RsData.of("200-3", "블로그 글 수정이 완료되었습니다.", blogdto);
     }
 
@@ -80,10 +76,9 @@ public class ApiV1BlogController {
     @Operation(summary = "블로그 임시저장")
     public RsData<BlogWriteDto> saveDraft(
             @Valid @RequestBody BlogWriteReqDto reqbody,
-            @RequestParam(required = false) String thumbnailUrl,
             @AuthenticationPrincipal SecurityUser userDetails
     ) {
-        BlogWriteDto blogDto = blogService.saveDraft(userDetails.getId(), reqbody, thumbnailUrl);
+        BlogWriteDto blogDto = blogService.saveDraft(userDetails.getId(), reqbody);
         return RsData.of("201-1", "블로그 임시저장이 완료되었습니다.", blogDto);
     }
 
