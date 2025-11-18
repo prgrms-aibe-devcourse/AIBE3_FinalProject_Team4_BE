@@ -25,11 +25,24 @@ public class User extends BaseEntity {
     private String nickname;        // 닉네임
     private String profileImgUrl;   // 프로필 이미지 URL
     private String bio;             // 간단 자기소개
+
+    private long followersCount = 0L;   // 팔로워 수
+    private long followingCount = 0L;   // 팔로잉 수
+    private long likesCount = 0L;       // 좋아요 수
+
+    private int shorlogsCount = 0;     // 쇼로그 수
+    private int blogsCount = 0;        // 블로그 수
+    private int shorlogBookmarksCount = 0; // 북마크한 쇼로그 수
+    private int blogBookmarksCount = 0; // 북마크한 블로그 수
+
     private LocalDate dateOfBirth;       // 생년월일
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별
+  
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.USER; // 기본 권한 USER
 
-    // TTS 관련 필드
     @Column(name = "tts_token")
     private Integer ttsToken = 100;  // TTS 토큰 (기본 100개)
 
@@ -80,7 +93,12 @@ public class User extends BaseEntity {
         this.password = newPassword;
     }
 
-    // TTS 토큰 차감
+    public void updateProfile(String nickname, String bio, String profileImgUrl) {
+        this.nickname = nickname;
+        this.bio = bio;
+        this.profileImgUrl = profileImgUrl;
+  
+      // TTS 토큰 차감
     public void useTtsToken(int amount) {
         // 기존 사용자의 경우 null일 수 있으므로 초기화
         if (this.ttsToken == null) {

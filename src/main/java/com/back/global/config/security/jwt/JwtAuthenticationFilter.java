@@ -70,6 +70,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long userId = jwtProvider.getUserId(refreshToken);
             RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByUserId(userId);
 
+            // todo 리프레시 토큰값 다른거 확인하기
+            System.out.println("storedRefreshToken = " + storedRefreshToken.getToken());
+            System.out.println("refreshToken = " + refreshToken);
+
             // 1. 리프레시 토큰이 유효하지 않은 경우
             if (!storedRefreshToken.getToken().equals(refreshToken)) {
                 SecurityContextHolder.clearContext();
@@ -79,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
             SecurityUser securityUser = jwtProvider.parseUserFromToken(refreshToken);
-            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), "ROLE_USER");
+            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), securityUser.getRole().name());
             rq.setCookie("accessToken", newAccessToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
