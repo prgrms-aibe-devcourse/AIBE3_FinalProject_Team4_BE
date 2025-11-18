@@ -33,8 +33,13 @@ public class Follow{
     private LocalDateTime createdAt;
 
 
-    public static Follow createFollow(User follower, User following) {
-        return new Follow(null, follower, following, null);
+    private Follow(User follower, User following) {
+        this.follower = follower;
+        this.following = following;
+    }
+
+    public static Follow create(User follower, User following) {
+        return new Follow(follower, following);
     }
 
 }
