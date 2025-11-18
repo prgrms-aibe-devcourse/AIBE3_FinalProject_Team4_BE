@@ -1,18 +1,17 @@
 package com.back.domain.shorlog.shorlogimage.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.back.domain.shared.image.entity.Image;
+import com.back.domain.shared.image.entity.ImageType;
+import com.back.domain.shared.image.repository.ImageRepository;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
-import com.back.domain.shorlog.shorlogimage.entity.ShorlogImage;
-import com.back.domain.shorlog.shorlogimage.repository.ShorlogImageRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -35,7 +33,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ImageUploadService {
 
-    private final ShorlogImageRepository imageRepository;
+    private final ImageRepository imageRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
 
@@ -100,18 +98,17 @@ public class ImageUploadService {
                 // S3 URL 생성
                 String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-                // DB 저장 (URL만 저장)
-                ShorlogImage image = ShorlogImage.builder()
-                        .user(user)
-                        .originalFilename(originalFilename)
-                        .savedFilename(savedFilename)
-                        .s3Url(s3Url)
-                        .fileSize((long) imageBytes.length)
-                        .contentType(file.getContentType())
-                        .referenceCount(0)
-                        .build();
+                Image image = Image.create(
+                        user,
+                        ImageType.THUMBNAIL,
+                        originalFilename,
+                        savedFilename,
+                        s3Url,
+                        imageBytes.length,
+                        file.getContentType()
+                );
 
-                ShorlogImage savedImage = imageRepository.save(image);
+                Image savedImage = imageRepository.save(image);
                 responses.add(UploadImageResponse.from(savedImage));
 
                 log.info("S3 업로드 성공: {} → {}", originalFilename, s3Url);
@@ -225,56 +222,6 @@ public class ImageUploadService {
         graphics.dispose();
 
         return resizedImage;
-    }
-
-    @Transactional
-    public void incrementImageReference(String imageUrl) {
-        String filename = extractFilenameFromUrl(imageUrl);
-        ShorlogImage image = imageRepository.findBySavedFilename(filename)
-                .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다."));
-        image.incrementReference();
-    }
-
-    @Transactional
-    public void decrementImageReference(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty()) {
-            return;
-        }
-
-        String filename = extractFilenameFromUrl(imageUrl);
-        imageRepository.findBySavedFilename(filename).ifPresent(image -> {
-            image.decrementReference();
-            log.info("이미지 참조 감소: {} (현재 참조 수: {})", filename, image.getReferenceCount());
-        });
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 0 3 * * *")
-    public void cleanupUnusedImages() {
-        LocalDateTime expiryDate = LocalDateTime.now().minusDays(7);
-        List<ShorlogImage> unusedImages = imageRepository.findUnusedImages(expiryDate);
-
-        for (ShorlogImage image : unusedImages) {
-            try {
-                String s3Key = S3_FOLDER + image.getSavedFilename();
-                amazonS3.deleteObject(new DeleteObjectRequest(bucket, s3Key));
-                log.info("S3 파일 삭제 완료: {}", s3Key);
-
-                imageRepository.delete(image);
-                log.info("DB 메타데이터 삭제 완료: {}", image.getSavedFilename());
-
-            } catch (Exception e) {
-                log.error("이미지 삭제 실패: {}", image.getSavedFilename(), e);
-            }
-        }
-
-        if (!unusedImages.isEmpty()) {
-            log.info("총 {}개의 미사용 이미지 정리 완료", unusedImages.size());
-        }
-    }
-
-    private String extractFilenameFromUrl(String imageUrl) {
-        return imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
     }
 }
 

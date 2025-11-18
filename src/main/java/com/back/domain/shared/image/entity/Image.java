@@ -11,10 +11,15 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.Objects;
 
 @Entity
-@Table(name = "images")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+    name = "images",
+    indexes = {
+        @Index(name = "idx_user_id", columnList = "user_id")
+    }
+)
 public class Image extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -23,25 +28,25 @@ public class Image extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
-    private ImageType type;   // THUMBNAIL, CONTENT 등
+    private ImageType type;
 
-    @Column(name = "original_filename", nullable = false)
+    @Column(name = "content_type", nullable = false, length = 100)
+    private String contentType;
+
+    @Column(name = "original_filename", nullable = false, length = 255)
     private String originalFilename;
 
-    @Column(name = "saved_filename", nullable = false)
+    @Column(name = "saved_filename", nullable = false, unique = true, length = 255)
     private String savedFilename;
 
     @Column(name = "s3_url", nullable = false, length = 512)
-    private String s3Url; // 실제 접근용 URL
+    private String s3Url;
 
     @Column(name = "file_size", nullable = false)
-    private long fileSize;
-
-    @Column(name = "content_type", nullable = false, length = 100)
-    private String contentType;   // image/png, video/mp4 ...
+    private Long fileSize;
 
     @Column(name = "reference_count", nullable = false)
-    private int referenceCount;
+    private Integer referenceCount = 0;
 
     private Image(User user, ImageType type, String originalFilename, String savedFilename, String s3Url, long fileSize, String contentType, int referenceCount) {
 

@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface ImageRepository extends JpaRepository<Image, Long> {
     Optional<Image> findBySavedFilename(String savedFilename);
 
-    @Query("SELECT si FROM Image si WHERE si.referenceCount = 0 AND si.createdAt < :expiryDate")
+    @Query("SELECT i FROM Image i WHERE i.referenceCount = 0 AND i.createdAt < :expiryDate")
     List<Image> findUnusedImages(@Param("expiryDate") LocalDateTime expiryDate);
 
     @Modifying

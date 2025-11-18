@@ -1,6 +1,6 @@
 package com.back.domain.shorlog.shorlogimage.dto;
 
-import com.back.domain.shorlog.shorlogimage.entity.ShorlogImage;
+import com.back.domain.shared.image.entity.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,7 +16,7 @@ public class UploadImageResponse {
     private String originalFilename;
     private Long fileSize;
 
-    public static UploadImageResponse from(ShorlogImage image) {
+    public static UploadImageResponse from(Image image) {
         return UploadImageResponse.builder()
                 .id(image.getId())
                 .imageUrl(image.getS3Url())  // S3 URL 직접 반환
