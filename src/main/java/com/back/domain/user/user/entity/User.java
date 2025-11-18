@@ -97,8 +97,9 @@ public class User extends BaseEntity {
         this.nickname = nickname;
         this.bio = bio;
         this.profileImgUrl = profileImgUrl;
-  
-      // TTS 토큰 차감
+    }
+
+    // TTS 토큰 차감
     public void useTtsToken(int amount) {
         // 기존 사용자의 경우 null일 수 있으므로 초기화
         if (this.ttsToken == null) {
