@@ -17,6 +17,6 @@ public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, Shorlo
 
     Optional<ShorlogLike> findByShorlogAndUser(Shorlog shorlog, User user);
 
-    long countAllByUser(User user);
+    long countAllByUserId(Long userId);
 }
 

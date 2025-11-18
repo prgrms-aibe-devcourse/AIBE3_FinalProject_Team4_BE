@@ -41,5 +41,5 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
 
-    int countAllByUser(User user);
+    int countAllByUserId(Long userId);
 }

@@ -68,5 +68,5 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
     @Query("select coalesce(b.bookmarkCount, 0) from Blog b where b.id = :blogId")
     Optional<Long> getBookmarkCountById(Long blogId);
 
-    int countAllByUser(User user);
+    int countAllByUserId(Long userId);
 }

@@ -74,5 +74,5 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
     @Query("select count(bm) from BlogBookmark bm where bm.blog.id = :blogId")
     long countBlogBookmarkBy(Long blogId);
 
-    int countAllByUser(User user);
+    int countAllByUserId(Long userId);
 }

@@ -47,11 +47,11 @@ public class UserService {
 
         long followersCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
         long followingCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
-        long bloglikesCount = blogLikeRepository.countAllByUser(user);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUser(user);
+        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
-        int shorlogsCount = shorlogRepository.countAllByUser(user);
-        int blogsCount = blogRepository.countAllByUser(user);
+        int shorlogsCount = shorlogRepository.countAllByUserId(userId);
+        int blogsCount = blogRepository.countAllByUserId(userId);
 
         return new ProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount);
     }
@@ -63,13 +63,13 @@ public class UserService {
 
         long followersCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
         long followingCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
-        long bloglikesCount = blogLikeRepository.countAllByUser(user);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUser(user);
+        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
-        int shorlogsCount = shorlogRepository.countAllByUser(user);
-        int blogsCount = blogRepository.countAllByUser(user);
-        int shorlogBookmarksCount = shorlogBookmarkRepository.countAllByUser(user);
-        int blogBookmarksCount = blogBookmarkRepository.countAllByUser(user);
+        int shorlogsCount = shorlogRepository.countAllByUserId(userId);
+        int blogsCount = blogRepository.countAllByUserId(userId);
+        int shorlogBookmarksCount = shorlogBookmarkRepository.countAllByUserId(userId);
+        int blogBookmarksCount = blogBookmarkRepository.countAllByUserId(userId);
 
         return new MyProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount, shorlogBookmarksCount, blogBookmarksCount);
     }
