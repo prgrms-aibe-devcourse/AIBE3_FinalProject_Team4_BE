@@ -1,5 +1,6 @@
 package com.back.domain.user.follow.service;
 
+import com.back.domain.user.follow.dto.FollowCountResponseDto;
 import com.back.domain.user.follow.dto.FollowResponseDto;
 import com.back.domain.user.follow.entity.Follow;
 import com.back.domain.user.follow.exception.FollowErrorCase;
@@ -8,6 +9,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.exception.UserErrorCase;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,5 +88,12 @@ public class FollowService {
 
     public long countFollowings(Long userId) {
         return followRepository.countByFromUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public FollowCountResponseDto getFollowCounts(@Valid Long userId) {
+        long followersCount = followRepository.countByToUserId(userId);
+        long followingsCount = followRepository.countByFromUserId(userId);
+        return new FollowCountResponseDto(followersCount, followingsCount);
     }
 }

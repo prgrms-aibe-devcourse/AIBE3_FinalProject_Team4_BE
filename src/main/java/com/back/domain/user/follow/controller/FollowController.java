@@ -1,5 +1,6 @@
 package com.back.domain.user.follow.controller;
 
+import com.back.domain.user.follow.dto.FollowCountResponseDto;
 import com.back.domain.user.follow.dto.FollowResponseDto;
 import com.back.domain.user.follow.entity.Follow;
 import com.back.domain.user.follow.service.FollowService;
@@ -50,5 +51,11 @@ public class FollowController {
     public RsData<List<FollowResponseDto>> getFollowings(@Valid @PathVariable Long userId) {
         List<FollowResponseDto> followingResponseDtos = followService.getFollowings(userId);
         return RsData.of("200", "팔로잉 목록 조회 성공", followingResponseDtos);
+    }
+
+    @GetMapping("/counts/{userId}")
+    public RsData<FollowCountResponseDto> getFollowCounts(@Valid @PathVariable Long userId) {
+        FollowCountResponseDto followCountResponseDto = followService.getFollowCounts(userId);
+        return RsData.of("200", "팔로워/팔로잉 카운트 조회 성공", followCountResponseDto);
     }
 }
