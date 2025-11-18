@@ -1,5 +1,7 @@
 package com.back.domain.shorlog.shorloglike.service;
 
+import com.back.domain.notification.entity.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorloglike.dto.ShorlogLikeResponse;
@@ -22,6 +24,7 @@ public class ShorlogLikeService {
     private final ShorlogLikeRepository shorlogLikeRepository;
     private final ShorlogRepository shorlogRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ShorlogLikeResponse addLike(Long shorlogId, Long userId) {
@@ -43,6 +46,14 @@ public class ShorlogLikeService {
         shorlogLikeRepository.save(shorlogLike);
 
         long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+
+        notificationService.send(
+                shorlog.getUser().getId(),     // 숏로그 작성자에게 알림
+                userId,                        // 좋아요 누른 사람
+                NotificationType.SHORLOG_LIKE,
+                shorlogId,
+                user.getNickname()
+        );
 
         return ShorlogLikeResponse.builder()
                 .likeCount(likeCount)
