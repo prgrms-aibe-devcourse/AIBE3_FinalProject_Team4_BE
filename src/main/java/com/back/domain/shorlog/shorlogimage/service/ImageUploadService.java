@@ -223,10 +223,5 @@ public class ImageUploadService {
 
         return resizedImage;
     }
-
-    // 참조 카운트 관리 및 자동 정리는 ImageLifecycleService 사용
-    // - imageLifecycleService.incrementReference(imageUrl)
-    // - imageLifecycleService.decrementReference(imageUrl)
-    // - imageLifecycleService.cleanupUnusedImages() (스케줄러)
 }
 
