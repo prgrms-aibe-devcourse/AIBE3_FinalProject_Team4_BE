@@ -2,6 +2,8 @@ package com.back.domain.shorlog.shorlog.controller;
 
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
+import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
+import com.back.domain.shorlog.shorlogtts.service.ShorlogTtsService;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.global.config.security.SecurityUser;
@@ -25,6 +27,7 @@ public class ApiV1ShorlogController {
 
     private final ShorlogService shorlogService;
     private final ImageUploadService imageUploadService;
+    private final ShorlogTtsService shorlogTtsService;
 
     @PostMapping
     @Operation(summary = "숏로그 작성")
@@ -108,5 +111,22 @@ public class ApiV1ShorlogController {
             @RequestParam(defaultValue = "0") int page
     ) {
         return RsData.successOf(shorlogService.searchShorlogs(q, sort, page));
+    }
+
+    @PostMapping("/{id}/tts")
+    @Operation(summary = "TTS 생성 (Google Cloud Text-to-Speech)")
+    public RsData<TtsResponse> generateTts(
+            @AuthenticationPrincipal SecurityUser securityUser,
+            @PathVariable Long id
+    ) {
+        String ttsUrl = shorlogTtsService.generateTts(id, securityUser.getId());
+        return RsData.successOf(TtsResponse.of(ttsUrl));
+    }
+
+    @GetMapping("/{id}/tts")
+    @Operation(summary = "TTS URL 조회")
+    public RsData<TtsResponse> getTts(@PathVariable Long id) {
+        String ttsUrl = shorlogTtsService.getTtsUrl(id);
+        return RsData.successOf(TtsResponse.of(ttsUrl));
     }
 }
