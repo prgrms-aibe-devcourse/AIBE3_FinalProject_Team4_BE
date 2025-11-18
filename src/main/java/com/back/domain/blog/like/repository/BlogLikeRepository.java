@@ -1,6 +1,7 @@
 package com.back.domain.blog.like.repository;
 
 import com.back.domain.blog.like.entity.BlogLike;
+import com.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -57,4 +58,6 @@ public interface BlogLikeRepository extends JpaRepository<BlogLike, Long> {
 
     @Query("select count(bm) from BlogBookmark bm where bm.blog.id = :blogId")
     long countBlogBookmarkBy(Long blogId);
+
+    long countAllByUserId(Long userId);
 }

@@ -1,5 +1,6 @@
 package com.back.global.config.security.jwt;
 
+import com.back.domain.user.user.entity.UserRole;
 import com.back.global.config.security.SecurityUser;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -24,7 +25,7 @@ public class JwtTokenProvider {
     public String generateAccessToken(Long userId, String role) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-                .claim("role", role)
+                .claim("role", "ROLE_"+role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessExp()))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
@@ -73,8 +74,10 @@ public class JwtTokenProvider {
         String email = claims.get("email", String.class);
         String username = claims.get("username", String.class);
         String nickname = claims.get("nickname", String.class);
+        String roleStr = claims.get("role", String.class);
+        UserRole role = UserRole.valueOf(roleStr.replace("ROLE_", ""));
 
-        return new SecurityUser(userId, email, username, nickname);
+        return new SecurityUser(userId, email, username, nickname, role);
     }
 
     // 임시 토큰 생성 (소셜 로그인 후 추가 정보 입력용)

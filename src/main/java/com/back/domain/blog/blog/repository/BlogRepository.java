@@ -2,6 +2,7 @@ package com.back.domain.blog.blog.repository;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
+import com.back.domain.user.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -67,4 +68,5 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
     @Query("select coalesce(b.bookmarkCount, 0) from Blog b where b.id = :blogId")
     Optional<Long> getBookmarkCountById(Long blogId);
 
+    int countAllByUserId(Long userId);
 }

@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 
 public record UserDto(
     long id,
-    String username,
     String nickname,
     LocalDateTime createdAt,
     LocalDateTime modifiedAt
@@ -14,7 +13,6 @@ public record UserDto(
     public UserDto(User user) {
         this(
                 user.getId(),
-                user.getUsername(),
                 user.getNickname(),
                 user.getCreatedAt(),
                 user.getModifiedAt()
