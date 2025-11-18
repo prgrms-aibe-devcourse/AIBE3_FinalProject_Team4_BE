@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Table(name = "follow", uniqueConstraints = {@UniqueConstraint(columnNames = {"follower_id", "following_id"})})
+@Table(name = "follow", uniqueConstraints = {@UniqueConstraint(columnNames = {"from_user_id", "to_user_id"})})
 public class Follow{
 
     @Id
@@ -22,24 +22,24 @@ public class Follow{
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "follower_id")
-    private User follower;
+    @JoinColumn(name = "from_user_id")
+    private User fromUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "following_id")
-    private User following;
+    @JoinColumn(name = "to_user_id")
+    private User toUser;
 
     @CreatedDate
     private LocalDateTime createdAt;
 
 
-    private Follow(User follower, User following) {
-        this.follower = follower;
-        this.following = following;
+    private Follow(User fromUser, User toUser) {
+        this.fromUser = fromUser;
+        this.toUser = toUser;
     }
 
-    public static Follow create(User follower, User following) {
-        return new Follow(follower, following);
+    public static Follow create(User fromUser, User toUser) {
+        return new Follow(fromUser, toUser);
     }
 
 }
