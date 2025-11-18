@@ -52,7 +52,7 @@ public class ShorlogDocService {
                 .likeCount(likeCount)
                 .commentCount(0) // TODO: 댓글 수 조회 (4번 이해민 개발자와 협업)
                 .popularityScore(popularityScore)
-                .createdAt(shorlog.getCreatedAt())
+                .createdAt(shorlog.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant())
                 .build();
 
         shorlogDocRepository.save(doc);
