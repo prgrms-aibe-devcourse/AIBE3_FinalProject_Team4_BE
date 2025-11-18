@@ -22,14 +22,14 @@ public class CreateShorlogResponse {
     private List<String> hashtags;
     private LocalDateTime createdAt;
 
-    public static CreateShorlogResponse from(Shorlog shorlog, List<String> hashtags) {
+    public static CreateShorlogResponse of(Shorlog shorlog, List<String> hashtags, List<String> thumbnailUrls) {
         return CreateShorlogResponse.builder()
                 .id(shorlog.getId())
                 .userId(shorlog.getUser().getId())
                 .username(shorlog.getUser().getUsername())
                 .profileImgUrl(shorlog.getUser().getProfileImgUrl())
                 .content(shorlog.getContent())
-                .thumbnailUrls(shorlog.getThumbnailUrlList())
+                .thumbnailUrls(thumbnailUrls)
                 .hashtags(hashtags)
                 .createdAt(shorlog.getCreatedAt())
                 .build();

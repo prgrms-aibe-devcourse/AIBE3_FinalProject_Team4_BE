@@ -24,15 +24,10 @@ public class ShorlogDocService {
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
 
+    // thumbnailUrl과 User 직접 받아서 Lazy Loading 회피
     @Transactional
-    public void indexShorlog(Shorlog shorlog) {
+    public void indexShorlog(Shorlog shorlog, String thumbnailUrl, Long userId, String nickname, String profileImgUrl) {
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-
-        // 대표 썸네일 (첫 번째 이미지)
-        List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
-        String thumbnailUrl = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
-                ? thumbnailUrls.getFirst()
-                : null;
 
         int likeCount = (int) shorlogLikeRepository.countByShorlog(shorlog);
         int viewCount = shorlog.getViewCount();
@@ -42,11 +37,11 @@ public class ShorlogDocService {
 
         ShorlogDoc doc = ShorlogDoc.builder()
                 .id(shorlog.getId().toString())
-                .userId(shorlog.getUser().getId())
-                .nickname(shorlog.getUser().getNickname())
-                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
+                .userId(userId)  // 직접 전달받은 값 사용
+                .nickname(nickname)  // 직접 전달받은 값 사용
+                .profileImgUrl(profileImgUrl)  // 직접 전달받은 값 사용
                 .content(shorlog.getContent())
-                .thumbnailUrl(thumbnailUrl)
+                .thumbnailUrl(thumbnailUrl)  // 직접 전달받은 URL 사용
                 .hashtags(hashtags)
                 .viewCount(viewCount)
                 .likeCount(likeCount)

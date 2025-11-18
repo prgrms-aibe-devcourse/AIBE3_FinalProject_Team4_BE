@@ -20,11 +20,11 @@ public class UpdateShorlogResponse {
     private List<String> hashtags;
     private LocalDateTime updatedAt;
 
-    public static UpdateShorlogResponse from(Shorlog shorlog, List<String> hashtags) {
+    public static UpdateShorlogResponse of(Shorlog shorlog, List<String> hashtags, List<String> thumbnailUrls) {
         return UpdateShorlogResponse.builder()
                 .id(shorlog.getId())
                 .content(shorlog.getContent())
-                .thumbnailUrls(shorlog.getThumbnailUrlList())
+                .thumbnailUrls(thumbnailUrls)
                 .hashtags(hashtags)
                 .updatedAt(shorlog.getModifiedAt())
                 .build();
