@@ -15,8 +15,6 @@ import lombok.*;
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class ShorlogHashtag extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shorlog_id", nullable = false)
@@ -25,4 +23,11 @@ public class ShorlogHashtag extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hashtag_id", nullable = false)
     private Hashtag hashtag;
+
+    public static ShorlogHashtag create(Shorlog shorlog, Hashtag hashtag) {
+        ShorlogHashtag shorlogHashtag = new ShorlogHashtag();
+        shorlogHashtag.shorlog = shorlog;
+        shorlogHashtag.hashtag = hashtag;
+        return shorlogHashtag;
+    }
 }

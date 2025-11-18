@@ -50,10 +50,7 @@ public class ShorlogBookmarkService {
             throw new DataIntegrityViolationException("이미 북마크한 쇼로그입니다.");
         }
 
-        ShorlogBookmark bookmark = ShorlogBookmark.builder()
-                .shorlog(shorlog)
-                .user(user)
-                .build();
+        ShorlogBookmark bookmark = ShorlogBookmark.create(shorlog, user);
 
         shorlogBookmarkRepository.save(bookmark);
 
@@ -67,10 +64,7 @@ public class ShorlogBookmarkService {
                 user.getNickname()
         );
 
-        return ShorlogBookmarkResponse.builder()
-                .isBookmarked(true)
-                .bookmarkCount(bookmarkCount)
-                .build();
+        return new ShorlogBookmarkResponse(true, bookmarkCount);
     }
 
     @Transactional
@@ -88,10 +82,7 @@ public class ShorlogBookmarkService {
 
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
 
-        return ShorlogBookmarkResponse.builder()
-                .isBookmarked(false)
-                .bookmarkCount(bookmarkCount)
-                .build();
+        return new ShorlogBookmarkResponse(false, bookmarkCount);
     }
 
     public BookmarkListResponse getMyBookmarks(Long userId, String sort, int page) {

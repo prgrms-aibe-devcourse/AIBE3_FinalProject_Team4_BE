@@ -50,11 +50,7 @@ public class ShorlogService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        Shorlog shorlog = Shorlog.builder()
-                .user(user)
-                .content(request.getContent())
-                .viewCount(0)
-                .build();
+        Shorlog shorlog = Shorlog.create(user, request.getContent());
 
         Shorlog savedShorlog = shorlogRepository.save(shorlog);
 
@@ -261,10 +257,7 @@ public class ShorlogService {
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(uniqueHashtags);
 
         List<ShorlogHashtag> shorlogHashtags = hashtags.stream()
-                .map(hashtag -> ShorlogHashtag.builder()
-                        .shorlog(shorlog)
-                        .hashtag(hashtag)
-                        .build())
+                .map(hashtag -> ShorlogHashtag.create(shorlog, hashtag))
                 .toList();
 
         shorlogHashtagRepository.saveAll(shorlogHashtags);
@@ -283,15 +276,15 @@ public class ShorlogService {
         String processedQuery = query.trim().replace("#", "");
 
         return shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE)
-                .map(doc -> ShorlogFeedResponse.builder()
-                        .id(Long.parseLong(doc.getId()))
-                        .thumbnailUrl(doc.getThumbnailUrl())
-                        .profileImgUrl(doc.getProfileImgUrl())
-                        .nickname(doc.getNickname())
-                        .hashtags(doc.getHashtags())
-                        .likeCount(doc.getLikeCount())
-                        .commentCount(doc.getCommentCount())
-                        .firstLine(ShorlogFeedResponse.extractFirstLine(doc.getContent()))
-                        .build());
+                .map(doc -> new ShorlogFeedResponse(
+                        Long.parseLong(doc.getId()),
+                        doc.getThumbnailUrl(),
+                        doc.getProfileImgUrl(),
+                        doc.getNickname(),
+                        doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
+                        doc.getLikeCount(),
+                        doc.getCommentCount(),
+                        ShorlogFeedResponse.extractFirstLine(doc.getContent())
+                ));
     }
 }

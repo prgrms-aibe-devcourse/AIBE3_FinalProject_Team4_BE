@@ -38,10 +38,7 @@ public class ShorlogLikeService {
             throw new DataIntegrityViolationException("이미 좋아요를 누른 쇼로그입니다.");
         }
 
-        ShorlogLike shorlogLike = ShorlogLike.builder()
-                .shorlog(shorlog)
-                .user(user)
-                .build();
+        ShorlogLike shorlogLike = ShorlogLike.create(shorlog, user);
 
         shorlogLikeRepository.save(shorlogLike);
 
@@ -55,10 +52,7 @@ public class ShorlogLikeService {
                 user.getNickname()
         );
 
-        return ShorlogLikeResponse.builder()
-                .likeCount(likeCount)
-                .isLiked(true)
-                .build();
+        return new ShorlogLikeResponse(true, likeCount);
     }
 
     @Transactional
@@ -76,10 +70,7 @@ public class ShorlogLikeService {
 
         long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
 
-        return ShorlogLikeResponse.builder()
-                .likeCount(likeCount)
-                .isLiked(false)
-                .build();
+        return new ShorlogLikeResponse(false, likeCount);
     }
 
     public ShorlogLikeResponse getLikeStatus(Long shorlogId, Long userId) {
@@ -95,10 +86,7 @@ public class ShorlogLikeService {
             isLiked = shorlogLikeRepository.existsByShorlogAndUser(shorlog, user);
         }
 
-        return ShorlogLikeResponse.builder()
-                .likeCount(likeCount)
-                .isLiked(isLiked)
-                .build();
+        return new ShorlogLikeResponse(isLiked, likeCount);
     }
 }
 

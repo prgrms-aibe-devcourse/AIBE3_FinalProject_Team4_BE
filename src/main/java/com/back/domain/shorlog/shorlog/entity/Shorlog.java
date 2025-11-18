@@ -13,8 +13,6 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class Shorlog extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -26,19 +24,26 @@ public class Shorlog extends BaseEntity {
 
     @OneToMany(mappedBy = "shorlog", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
-    @Builder.Default
     private List<ShorlogImages> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "shorlog", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
     private List<ShorlogHashtag> hashtags = new ArrayList<>();
 
     @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
-    @Builder.Default
     private Integer viewCount = 0;
 
     @Column(name = "tts_url")
     private String ttsUrl;
+
+    public static Shorlog create(User user, String content) {
+        Shorlog shorlog = new Shorlog();
+        shorlog.user = user;
+        shorlog.content = content;
+        shorlog.images = new ArrayList<>();
+        shorlog.hashtags = new ArrayList<>();
+        shorlog.viewCount = 0;
+        return shorlog;
+    }
 
     public void update(String content) {
         this.content = content;

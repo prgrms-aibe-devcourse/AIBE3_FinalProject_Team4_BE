@@ -15,8 +15,6 @@ import java.time.LocalDateTime;
 @IdClass(ShorlogBookmark.ShorlogBookmarkId.class) // 복합 키
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class ShorlogBookmark {  // BaseEntity 상속 X
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,6 +29,13 @@ public class ShorlogBookmark {  // BaseEntity 상속 X
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static ShorlogBookmark create(Shorlog shorlog, User user) {
+        ShorlogBookmark bookmark = new ShorlogBookmark();
+        bookmark.shorlog = shorlog;
+        bookmark.user = user;
+        return bookmark;
+    }
 
     // 복합 키 클래스
     @NoArgsConstructor

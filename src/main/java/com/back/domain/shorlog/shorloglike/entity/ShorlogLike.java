@@ -15,8 +15,6 @@ import java.time.LocalDateTime;
 @IdClass(ShorlogLike.ShorlogLikeId.class) // 복합 키
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class ShorlogLike {  // BaseEntity 상속 X
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,6 +29,13 @@ public class ShorlogLike {  // BaseEntity 상속 X
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static ShorlogLike create(Shorlog shorlog, User user) {
+        ShorlogLike like = new ShorlogLike();
+        like.shorlog = shorlog;
+        like.user = user;
+        return like;
+    }
 
     // 복합 키 클래스
     @NoArgsConstructor

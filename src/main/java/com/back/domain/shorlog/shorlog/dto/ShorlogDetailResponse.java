@@ -2,7 +2,6 @@ package com.back.domain.shorlog.shorlog.dto;
 
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -10,7 +9,6 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-@Builder
 public class ShorlogDetailResponse {
 
     private Long id;
@@ -31,22 +29,22 @@ public class ShorlogDetailResponse {
 
     public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount,
                                              Integer likeCount, Integer bookmarkCount) {
-        return ShorlogDetailResponse.builder()
-                .id(shorlog.getId())
-                .userId(shorlog.getUser().getId())
-                .username(shorlog.getUser().getUsername())
-                .nickname(shorlog.getUser().getNickname())
-                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
-                .content(shorlog.getContent())
-                .thumbnailUrls(shorlog.getThumbnailUrlList())
-                .viewCount(viewCount)
-                .likeCount(likeCount)
-                .bookmarkCount(bookmarkCount)
-                .commentCount(0) // TODO: 댓글 기능 구현 후 (4번 이해민)
-                .hashtags(hashtags)
-                .createdAt(shorlog.getCreatedAt())
-                .modifiedAt(shorlog.getModifiedAt())
-                .connectedBlogId(null) // TODO: 블로그 연결 기능 구현 후
-                .build();
+        return new ShorlogDetailResponse(
+                shorlog.getId(),
+                shorlog.getUser().getId(),
+                shorlog.getUser().getUsername(),
+                shorlog.getUser().getNickname(),
+                shorlog.getUser().getProfileImgUrl(),
+                shorlog.getContent(),
+                shorlog.getThumbnailUrlList() != null ? List.copyOf(shorlog.getThumbnailUrlList()) : List.of(),
+                viewCount,
+                likeCount,
+                bookmarkCount,
+                0, // TODO: 댓글 기능 구현 후 (4번 이해민)
+                hashtags != null ? List.copyOf(hashtags) : List.of(),
+                shorlog.getCreatedAt(),
+                shorlog.getModifiedAt(),
+                null // TODO: 블로그 연결 기능 구현 후
+        );
     }
 }

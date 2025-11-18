@@ -48,13 +48,7 @@ public class ShorlogDraftService {
 
         String hashtagsJson = convertHashtagsToJson(request.getHashtags());
 
-        ShorlogDraft draft = ShorlogDraft.builder()
-                .user(user)
-                .content(request.getContent())
-                .hashtags(hashtagsJson)
-                .build();
-
-        draft.setThumbnailUrlList(thumbnailUrls);
+        ShorlogDraft draft = ShorlogDraft.create(user, request.getContent(), thumbnailUrls, request.getHashtags());
 
         ShorlogDraft savedDraft = draftRepository.save(draft);
         return DraftResponse.of(savedDraft, request.getHashtags());
