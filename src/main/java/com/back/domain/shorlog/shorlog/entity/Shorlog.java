@@ -1,5 +1,6 @@
 package com.back.domain.shorlog.shorlog.entity;
 
+import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorlogimage.entity.ShorlogImages;
 import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
@@ -27,6 +28,10 @@ public class Shorlog extends BaseEntity {
     @OrderBy("sortOrder ASC")
     @Builder.Default
     private List<ShorlogImages> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "shorlog", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ShorlogHashtag> hashtags = new ArrayList<>();
 
     @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     @Builder.Default
