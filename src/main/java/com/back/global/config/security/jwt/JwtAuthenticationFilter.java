@@ -61,18 +61,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 액세스 토큰이 유효한 경우 그대로 인증 처리
         if (accessToken != null && jwtProvider.validateToken(accessToken)) {
-            SecurityUser securityUser = jwtProvider.parseUserFromToken(accessToken);
+            SecurityUser securityUser = jwtProvider.parseUserFromAccessToken(accessToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } //  액세스 토큰이 유효하지 않은 경우 리프레시 토큰 검사
         else if (refreshToken != null && jwtProvider.validateToken(refreshToken)) {
+            logger.info("액세스 토큰 만료");
 
             Long userId = jwtProvider.getUserId(refreshToken);
             RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByUserId(userId);
-
-            // todo 리프레시 토큰값 다른거 확인하기
-            System.out.println("storedRefreshToken = " + storedRefreshToken.getToken());
-            System.out.println("refreshToken = " + refreshToken);
 
             // 1. 리프레시 토큰이 유효하지 않은 경우
             if (!storedRefreshToken.getToken().equals(refreshToken)) {
@@ -80,16 +77,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 handleCustomAuthError(res, "리프레시 토큰이 유효하지 않습니다. 다시 로그인 해주세요.");
                 return;
             }
+            logger.info("리프레시 토큰 유효 확인 완료");
 
             // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
-            SecurityUser securityUser = jwtProvider.parseUserFromToken(refreshToken);
-            String newAccessToken = jwtProvider.generateAccessToken(securityUser.getId(), securityUser.getRole().name());
+            String newAccessToken = jwtProvider.generateAccessToken(userId, "USER");
+            SecurityUser securityUser = jwtProvider.parseUserFromAccessToken(newAccessToken);
             rq.setCookie("accessToken", newAccessToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            logger.info("액세스 토큰 재발급 완료 / newAccessToken: " + newAccessToken);
         } else {
             SecurityContextHolder.clearContext();
-            handleCustomAuthError(res, "토큰 정보가 없습니다.");
+            handleCustomAuthError(res, "토큰 정보가 없습니다. 다시 로그인 해주세요.");
             return;
         }
 

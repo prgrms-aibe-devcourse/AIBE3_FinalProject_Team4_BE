@@ -16,11 +16,7 @@ import java.util.Map;
 public class SecurityUser implements UserDetails, OAuth2User {
 
     private final Long id;
-    private final String email;
-    private final String username;
-    private final String nickname;
     private final UserRole role;
-
 
     @Override
     public Map<String, Object> getAttributes() {
@@ -38,7 +34,12 @@ public class SecurityUser implements UserDetails, OAuth2User {
     }
 
     @Override
+    public String getUsername() {
+        return String.valueOf(id);
+    }
+
+    @Override
     public String getName() {
-        return this.username;
+        return "";
     }
 }
