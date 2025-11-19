@@ -1,5 +1,6 @@
 package com.back.domain.recommend.recommend;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import com.back.domain.shorlog.shorlogdoc.repository.ShorlogDocRepository;
@@ -9,10 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Random;
+
+import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +25,9 @@ public class PostService {
     private final ShorlogDocRepository shorlogDocRepository;
     private final ShorlogDocService shorlogDocService;
     private final UserRepository userRepository;
+
+    private final ElasticsearchClient esClient;
+    private final EmbeddingService embeddingService;
 
     @Transactional
     public void createPost(Shorlog post) {
@@ -50,5 +57,17 @@ public class PostService {
         }
 
 
+    }
+
+    public void index(ShorlogDoc doc) throws IOException {
+
+        float[] embedding = embeddingService.embed(doc.getContent());
+        doc.setContentEmbedding(embedding);
+
+        esClient.index(i -> i
+                .index(SHORLOG_INDEX_NAME)
+                .id(doc.getId().toString())
+                .document(doc)
+        );
     }
 }

@@ -1,11 +1,16 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.recommend.recommend.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.back.domain.recommend.recommend.constants.EmbeddingConstants;
+import com.back.domain.recommend.recommend.type.PostType;
+import com.back.domain.recommend.recommend.util.ArrayConverter;
+import com.back.domain.recommend.recommend.util.ElasticsearchDtoMapper;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -21,13 +26,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.back.domain.recommend.recommend.constants.PostConstants.BLOG_INDEX_NAME;
+import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
+
 @Service
 @RequiredArgsConstructor
-public class FeedService {
+@Slf4j
+public class RecommendService {
 
     private final ElasticsearchOperations elasticsearchOperations;
     private final ElasticsearchClient esClient;
     private final ElasticsearchDtoMapper esDtoMapper;
+
+    private final RecentPostService recentPostService;
 
     // 기본 메인 피드
     public List<ShorlogDoc> getFeedWithNativeQuery(int page, int size) {
@@ -84,14 +95,19 @@ public class FeedService {
         return result.get().map(SearchHit::getContent).toList();
     }
 
-    public Page<ShorlogDoc> getFeedMap(int pageNumber, int pageSize) {
+    public Page<ShorlogDoc> getPostsOrderByRecommendation(Long userId, int pageNumber, int pageSize, PostType type) {
+        List<Long> recentPosts = recentPostService.getRecentPosts(userId, PostType.SHORLOG);
+        List<String> recentContents = recentPostService.getRecentContents(recentPosts, PostType.SHORLOG);
+        float[] userVector = computeUserVector(recentPosts);
+
+        final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
+
         // 매핑 이슈 해결 위해 우선 Map으로 받기
         SearchResponse<Map> response;
 
         try {
             response = esClient.search(s -> s
-                            .index("app1_shorlogs")
-//                            .knn(k -> k.field(...)) //
+                            .index(indexName)
                             .query(q -> q
                                             .bool(b -> b
                                                             .must(m -> m.matchAll(ma -> ma))
@@ -110,14 +126,14 @@ public class FeedService {
                                                             //                                                .minDocFreq(1)
                                                             //                                                .boost(3.0f)
                                                             //                                        ))
-//                                            // 최근 본 게시물과 유사한 내용
-//                                            .should(sh -> sh.knn(knn -> knn
-//                                                    .field("content_embedding")
-//                                                    .queryVector(userInterestVector) // lastViewdVector
-//                                                    .k(100) // 찾을 이웃 수: 10
-//                                                    .numCandidates(500) // 탐색할 후보군 수 (성능/정확도 트레이드오프)
-//                                                    .boost(1.5f) // 가중치
-//                                            ))
+                                                            // 최근 본 게시물과 유사한 내용
+                                                            .should(sh -> sh.knn(knn -> knn
+                                                                    .field("content_embedding")
+                                                                    .queryVector(ArrayConverter.toFloatList(userVector)) // lastViewdVector
+                                                                    .k(100) // 찾을 이웃 수: 10
+                                                                    .numCandidates(500) // 300 탐색할 후보군 수 (성능/정확도 트레이드오프)
+                                                                    .boost(1.5f) // 가중치 3.0f
+                                                            ))
                                                             // 인기 점수
                                                             .should(sh -> sh.scriptScore(ss -> ss
                                                                     .query(m -> m.matchAll(ma -> ma))
@@ -147,6 +163,7 @@ public class FeedService {
                             )
                             .from(pageNumber * pageSize)
                             .size(pageSize)
+                            // _score: kNN과 Bool Query의 점수 합산
                             .sort(sort -> sort
                                     .field(f -> f.field("_score").order(SortOrder.Desc))
                             ),
@@ -176,5 +193,56 @@ public class FeedService {
 
         return new PageImpl<>(content, pageable, totalHits);
     }
+
+    public float[] computeUserVector(List<Long> recentIds) {
+
+        int defaultDim = EmbeddingConstants.EMBEDDING_DIM;
+
+        if (recentIds == null || recentIds.isEmpty()) {
+            return new float[defaultDim];
+        }
+
+        List<ShorlogDoc> docs;
+
+        try {
+            var response = esClient.mget(m -> m
+                            .index(SHORLOG_INDEX_NAME)
+                            .ids(recentIds.stream().map(String::valueOf).toList()),
+                    ShorlogDoc.class
+            );
+
+            docs = response.docs().stream()
+                    .map(item -> item.result())
+                    .filter(Objects::nonNull)
+                    .map(res -> res.source())
+                    .filter(Objects::nonNull)
+                    .toList();
+
+        } catch (IOException e) {
+            log.error("Elasticsearch에서 최근 본 게시물의 임베딩을 조회할 수 없습니다. 기본 벡터로 대체합니다. 상세: {}", e.getMessage(), e);
+            return new float[defaultDim];
+        }
+
+        if (docs.isEmpty()) {
+            return new float[defaultDim];
+        }
+
+        int dim = docs.get(0).getContentEmbedding().length;
+        float[] avg = new float[dim];
+
+        for (ShorlogDoc doc : docs) {
+            float[] v = doc.getContentEmbedding();
+            for (int i = 0; i < dim; i++) {
+                avg[i] += v[i];
+            }
+        }
+
+        for (int i = 0; i < dim; i++) {
+            avg[i] /= docs.size();
+        }
+
+        return avg;
+    }
+
 
 }

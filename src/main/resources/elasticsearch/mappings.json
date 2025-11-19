@@ -46,6 +46,12 @@
     "updatedAt": {
       "type": "date",
       "format": "date_time"
+    },
+    "content_embedding": {
+      "type": "dense_vector",
+      "dims": 1536,
+      "index": true,
+      "similarity": "cosine"
     }
   }
 }

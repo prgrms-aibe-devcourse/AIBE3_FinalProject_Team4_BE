@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.recommend.recommend.util;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import lombok.RequiredArgsConstructor;
