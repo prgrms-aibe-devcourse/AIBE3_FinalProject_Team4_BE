@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.recommend.recommend.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
