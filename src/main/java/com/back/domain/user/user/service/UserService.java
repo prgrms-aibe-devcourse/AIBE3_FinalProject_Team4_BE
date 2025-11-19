@@ -6,6 +6,7 @@ import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
+import com.back.domain.user.follow.service.FollowService;
 import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.exception.UserErrorCase;
@@ -27,6 +28,7 @@ public class UserService {
     private final BlogRepository blogRepository;
     private final BlogLikeRepository blogLikeRepository;
     private final BlogBookmarkRepository blogBookmarkRepository;
+    private final FollowService followService;
 
     @Transactional(readOnly = true)
 
@@ -34,7 +36,7 @@ public class UserService {
         List<User> users = userRepository.findAll();
         return users.stream()
                 .map(user -> {
-                    long followersCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
+                    long followersCount = followService.countFollowers(user.getId());
                     return new UserListResponseDto(user, followersCount);
                 })
                 .toList();
@@ -45,8 +47,8 @@ public class UserService {
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        long followersCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
-        long followingCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
+        long followersCount = followService.countFollowers(userId);
+        long followingCount = followService.countFollowings(userId);
         long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
         long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
@@ -61,8 +63,8 @@ public class UserService {
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        long followersCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
-        long followingCount = 0L;   // todo : 팔로잉 기능 추가 시 구현
+        long followersCount = followService.countFollowers(userId);
+        long followingCount = followService.countFollowings(userId);
         long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
         long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
