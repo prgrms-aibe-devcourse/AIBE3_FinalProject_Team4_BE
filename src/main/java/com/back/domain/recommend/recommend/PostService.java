@@ -3,11 +3,14 @@ package com.back.domain.recommend.recommend;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import com.back.domain.shorlog.shorlogdoc.repository.ShorlogDocRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
+import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Random;
 
@@ -16,11 +19,12 @@ import java.util.Random;
 public class PostService {
 
     private final ShorlogDocRepository shorlogDocRepository;
+    private final ShorlogDocService shorlogDocService;
+    private final UserRepository userRepository;
 
     @Transactional
     public void createPost(Shorlog post) {
-        if (shorlogDocRepository.count() == 0) {
-
+        if (shorlogDocRepository.count() < 20) {
             Random random = new Random();
             for (int i = 0; i < 20; i++) {
                 ShorlogDoc doc = ShorlogDoc.builder()
@@ -32,11 +36,19 @@ public class PostService {
                         .viewCount(random.nextInt(4000))
                         .likeCount(random.nextInt(500))
                         .commentCount(random.nextInt(50))
-                        .createdAt(LocalDateTime.of(2025, 11, 17, 20 - i, 1))
+                        .createdAt(
+                                LocalDateTime.of(2025, 11, 17, 20 - i, 1, 0)
+                                        .atZone(ZoneId.of("Asia/Seoul"))
+                                        .toInstant()
+                        )
                         .build();
+                // Elasticsearch에서 DateFormat.date_time은 나노초 (9 자리)를 지원하지 않음
+                // 최대 millisecond (3 자리)까지만 가능
 
                 shorlogDocRepository.save(doc);
             }
         }
+
+
     }
 }
