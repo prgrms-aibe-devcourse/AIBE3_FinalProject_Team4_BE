@@ -91,6 +91,11 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-vector-store-pinecone")
     // 스트리밍 및 비동기 처리
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    // QueryDSL
+    implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")
+    annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta")
+    annotationProcessor("jakarta.annotation:jakarta.annotation-api:2.1.1")
+    annotationProcessor("jakarta.persistence:jakarta.persistence-api:3.1.0")
 }
 
 tasks.withType<Test> {

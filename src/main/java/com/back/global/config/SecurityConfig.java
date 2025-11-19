@@ -61,7 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/feed").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/shorlog/search").permitAll()
-                        .requestMatchers("/api/v1/blogs/**").permitAll()
+                        .requestMatchers("/api/v1/blogs/**").permitAll() //TODO: 추후 인증 필요
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
