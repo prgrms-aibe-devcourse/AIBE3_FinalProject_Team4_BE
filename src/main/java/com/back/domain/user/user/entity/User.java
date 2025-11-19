@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -37,10 +38,16 @@ public class User extends BaseEntity {
     private LocalDate dateOfBirth;       // 생년월일
     @Enumerated(EnumType.STRING)
     private Gender gender;          // 성별
-
+  
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role = UserRole.USER; // 기본 권한 USER
+
+    @Column(name = "tts_token")
+    private Integer ttsToken = 100;  // TTS 토큰 (기본 100개)
+
+    @Column(name = "tts_last_reset")
+    private LocalDateTime ttsLastReset = LocalDateTime.now();  // 마지막 리셋 시간
 
     // 일반 가입용 생성자
     public User(String email, String username, String password, String nickname, LocalDate dateOfBirth, Gender gender) {
@@ -52,6 +59,8 @@ public class User extends BaseEntity {
         this.bio = null;            //가입 시 기본 자기소개는 null
         this.dateOfBirth = dateOfBirth;
         this.gender = gender;
+        this.ttsToken = 100;        // TTS 토큰 초기화
+        this.ttsLastReset = LocalDateTime.now();  // TTS 리셋 시간 초기화
     }
 
     // OAuth2 가입용 생성자
@@ -64,6 +73,8 @@ public class User extends BaseEntity {
         this.bio = null;            // 추후 수정 가능
         this.email = null;          // OAuth2 사용자는 이메일 필요 없음
         this.password = null;       // OAuth2 사용자는 비밀번호 필요 없음
+        this.ttsToken = 100;        // TTS 토큰 초기화
+        this.ttsLastReset = LocalDateTime.now();  // TTS 리셋 시간 초기화
     }
 
     // OAuth2 로그인 시 사용자 정보 업데이트용 함수
@@ -86,5 +97,25 @@ public class User extends BaseEntity {
         this.nickname = nickname;
         this.bio = bio;
         this.profileImgUrl = profileImgUrl;
+    }
+
+    // TTS 토큰 차감
+    public void useTtsToken(int amount) {
+        // 기존 사용자의 경우 null일 수 있으므로 초기화
+        if (this.ttsToken == null) {
+            this.ttsToken = 100;
+            this.ttsLastReset = LocalDateTime.now();
+        }
+
+        if (this.ttsToken < amount) {
+            throw new IllegalStateException("TTS 토큰이 부족합니다.");
+        }
+        this.ttsToken -= amount;
+    }
+
+    // TTS 토큰 리셋
+    public void resetTtsToken() {
+        this.ttsToken = 100;
+        this.ttsLastReset = LocalDateTime.now();
     }
 }

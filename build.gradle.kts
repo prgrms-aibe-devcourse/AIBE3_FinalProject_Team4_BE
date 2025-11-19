@@ -69,6 +69,9 @@ dependencies {
     // AWS S3
     implementation("com.amazonaws:aws-java-sdk-s3:1.12.681")
 
+    // Google Cloud Text-to-Speech
+    implementation("com.google.cloud:google-cloud-texttospeech:2.50.0")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

@@ -32,8 +32,15 @@ public class Shorlog extends BaseEntity {
     @Builder.Default
     private Integer viewCount = 0;
 
+    @Column(name = "tts_url")
+    private String ttsUrl;
+
     public void update(String content) {
         this.content = content;
+    }
+
+    public void updateTtsUrl(String ttsUrl) {
+        this.ttsUrl = ttsUrl;
     }
 
     public List<String> getThumbnailUrlList() {
