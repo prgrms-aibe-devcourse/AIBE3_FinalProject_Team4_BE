@@ -31,22 +31,6 @@ public class ApiV1BlogController {
         return RsData.of("201-1", "블로그 글 작성이 완료되었습니다.", blogDto);
     }
 
-    //TODO: 아래 두개의 api 추후 pagination, 검색/filtering api만들 예정
-//    @GetMapping("")
-//    @Operation(summary = "블로그 글 다건 조회")
-//    public RsData<Page<BlogDto>> getItems(@AuthenticationPrincipal SecurityUser userDetails) {
-//        Long userId = (userDetails != null) ? userDetails.getId() : null;
-//        Page<BlogDto> blogDtos = blogService.findAll(userId, PageRequest.of(0, 20));
-//        return new RsData<>("200-1", "블로그 글 조회가 완료되었습니다.", blogDtos);
-//    }
-//
-//    @GetMapping("/my")
-//    @Operation(summary = "내 블로그 글 다건 조회")
-//    public RsData<List<BlogDto>> getMyItems(@AuthenticationPrincipal SecurityUser userDetails) {
-//        List<BlogDto> blogDtos = blogService.findAllByUserId(userDetails.getId());
-//        return new RsData<>("200-1", "내 블로그 글 조회가 완료되었습니다.", blogDtos);
-//    }
-
     @GetMapping("/{id}")
     @Operation(summary = "블로그 글 단건 조회")
     public RsData<BlogDetailDto> getItem(@AuthenticationPrincipal SecurityUser userDetails, @PathVariable Long id) {
