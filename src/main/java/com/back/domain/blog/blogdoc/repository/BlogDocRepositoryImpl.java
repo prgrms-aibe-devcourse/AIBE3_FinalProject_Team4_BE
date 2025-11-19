@@ -1,0 +1,112 @@
+package com.back.domain.blog.blogdoc.repository;
+
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import com.back.domain.blog.blogdoc.document.BlogDoc;
+import com.back.domain.blog.blogdoc.document.BlogSortType;
+import com.back.domain.blog.blogdoc.dto.BlogSearchCondition;
+import com.back.domain.blog.blogdoc.dto.BlogSearchResult;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Repository
+@RequiredArgsConstructor
+public class BlogDocRepositoryImpl implements BlogDocRepository {
+    private final ElasticsearchOperations operations;
+
+    @Override
+    public BlogSearchResult searchBlogs(BlogSearchCondition condition) {
+        List<SortOptions> sorts = buildSorts(condition.sortType());
+        List<Object> searchAfter = parseCursor(condition.cursor());
+
+        Query esQuery = buildQuery(condition);
+        var builder = NativeQuery.builder()
+                .withQuery(esQuery)
+                .withPageable(PageRequest.of(0, condition.size()))
+                .withSort(sorts);
+
+        if (searchAfter != null && !searchAfter.isEmpty()) {
+            builder.withSearchAfter(searchAfter);
+        }
+        NativeQuery nativeQuery = builder.build();
+        SearchHits<BlogDoc> hits = operations.search(nativeQuery, BlogDoc.class);
+        List<SearchHit<BlogDoc>> searchHits = hits.getSearchHits();
+        List<BlogDoc> docs = searchHits.stream()
+                .map(SearchHit::getContent)
+                .toList();
+
+        // 무한스크롤 페이징 처리
+        boolean hasNext = docs.size() == condition.size();
+        String nextCursor = null;
+        if (hasNext && !searchHits.isEmpty()) {
+            List<Object> lastSortValues = searchHits.get(searchHits.size() - 1).getSortValues();
+            nextCursor = toCursor(lastSortValues);
+        }
+
+        return new BlogSearchResult(docs, hasNext, nextCursor);
+    }
+
+    private Query buildQuery(BlogSearchCondition condition) {
+        String keyword = condition.keyword();
+        if (keyword != null && !keyword.isBlank()) {
+            return Query.of(q -> q.multiMatch(m -> m
+                    .fields("title", "content")
+                    .query(keyword)
+            ));
+        }
+        return Query.of(q -> q.matchAll(m -> m));
+    }
+
+    private List<SortOptions> buildSorts(BlogSortType sortType) {
+        if (sortType == null) sortType = BlogSortType.LATEST;
+        return switch (sortType) {
+            case LATEST -> List.of(
+                    SortOptions.of(s -> s.field(f -> f.field("createdAt").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("id").order(SortOrder.Desc)))
+            );
+            case VIEWS -> List.of(
+                    SortOptions.of(s -> s.field(f -> f.field("viewCount").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("createdAt").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("id").order(SortOrder.Desc)))
+            );
+            case POPULAR -> List.of(
+                    SortOptions.of(s -> s.field(f -> f.field("likeCount").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("bookmarkCount").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("viewCount").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("createdAt").order(SortOrder.Desc))),
+                    SortOptions.of(s -> s.field(f -> f.field("id").order(SortOrder.Desc)))
+            );
+        };
+    }
+
+    private List<Object> parseCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) return null;
+
+        String[] parts = cursor.split(",");
+        if (parts.length != 2) return null;
+
+        String sortVal = parts[0];
+        Long id = Long.parseLong(parts[1]);
+
+        List<Object> list = new ArrayList<>();
+        list.add(sortVal);
+        list.add(id);
+        return list;
+    }
+
+    private String toCursor(List<Object> searchAfter) {
+        if (searchAfter == null || searchAfter.size() < 2) return null;
+        Object sortVal = searchAfter.get(0);
+        Object idVal = searchAfter.get(1);
+        return sortVal + "," + idVal;
+    }
+}
