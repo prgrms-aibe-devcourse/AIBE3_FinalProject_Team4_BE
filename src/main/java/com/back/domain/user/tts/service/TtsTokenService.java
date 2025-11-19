@@ -1,4 +1,4 @@
-package com.back.domain.user.user.service;
+package com.back.domain.user.tts.service;
 
 import com.back.domain.shorlog.shorlogtts.dto.TtsTokenResponse;
 import com.back.domain.shorlog.shorlogtts.dto.TtsUseResponse;

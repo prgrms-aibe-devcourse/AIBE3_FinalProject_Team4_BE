@@ -22,7 +22,8 @@ public class CustomSecurityUserService implements UserDetailsService {
                 user.getId(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getNickname()
+                user.getNickname(),
+                user.getRole()
         );
     }
 }

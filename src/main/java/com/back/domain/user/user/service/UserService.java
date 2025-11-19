@@ -1,123 +1,96 @@
 package com.back.domain.user.user.service;
 
-import com.back.domain.user.mail.service.VerificationTokenService;
-import com.back.domain.user.refreshToken.service.RefreshTokenService;
-import com.back.domain.user.user.dto.OAuth2CompleteJoinRequestDto;
-import com.back.domain.user.user.dto.PasswordResetRequestDto;
-import com.back.domain.user.user.dto.UserJoinRequestDto;
-import com.back.domain.user.user.dto.UserLoginRequestDto;
+import com.back.domain.blog.blog.repository.BlogRepository;
+import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
+import com.back.domain.blog.like.repository.BlogLikeRepository;
+import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
+import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
+import com.back.domain.user.follow.service.FollowService;
+import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.exception.UserErrorCase;
 import com.back.domain.user.user.repository.UserRepository;
-import com.back.global.config.security.jwt.JwtTokenProvider;
-import com.back.global.exception.AuthException;
+import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenService refreshTokenService;
-    private final VerificationTokenService verificationTokenService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final ShorlogRepository shorlogRepository;
+    private final ShorlogLikeRepository shorlogLikeRepository;
+    private final ShorlogBookmarkRepository shorlogBookmarkRepository;
+    private final BlogRepository blogRepository;
+    private final BlogLikeRepository blogLikeRepository;
+    private final BlogBookmarkRepository blogBookmarkRepository;
+    private final FollowService followService;
 
-    @Transactional
-    public User join(UserJoinRequestDto dto) {
-        boolean isValid = verificationTokenService.isValidToken(dto.email(), dto.verificationToken());
-        if (!isValid) {
-            throw new AuthException("400-1", "이메일 인증을 먼저 완료해주세요.");
-        }
+    @Transactional(readOnly = true)
 
-        userRepository.findByUsername(dto.username()).ifPresent(_user -> {
-            throw new AuthException("400-2", "이미 가입된 아이디입니다.");
-        });
-        userRepository.findByNickname(dto.nickname()).ifPresent(_user -> {
-            throw new AuthException("400-3", "이미 가입된 닉네임입니다.");
-        });
-
-        verificationTokenService.deleteToken(dto.email());
-
-        String password = passwordEncoder.encode(dto.password());
-        User user = new User(dto.email(), dto.username(), password, dto.nickname(), dto.dateOfBirth(), dto.gender());
-        return userRepository.save(user);
-    }
-
-    @Transactional
-    public User joinOrLoginOAuth2User(String username, String profileImgUrl) {
-        User user = userRepository.findByUsername(username).orElse(null);
-        if(user == null) {
-            user = new User(username, profileImgUrl);
-            return userRepository.save(user);
-        }
-        user.updateProfileImgUrl(profileImgUrl);
-        return user;
-    }
-
-    @Transactional
-    public User toCompleteJoinOAuth2User(OAuth2CompleteJoinRequestDto dto) {
-        String token = dto.temporaryToken();
-        if(!jwtTokenProvider.validateToken(token)) {
-            throw new AuthException("400-1", "임시토큰이 만료되었습니다. 처음부터 다시 시도해주세요.");
-        }
-        Long userId = jwtTokenProvider.getUserId(token);
-        User user = getUserById(userId);
-        user.completeOAuth2Join(dto.nickname(), dto.dateOfBirth(), dto.gender());
-        return user;
-    }
-
-    @Transactional
-    public User login(UserLoginRequestDto dto) {
-        User user = userRepository.findByUsername(dto.username())
-                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."));
-
-        checkPassword(user, dto.password());
-
-        return user;
-    }
-
-    @Transactional
-    public void logout(Long userId) {
-        refreshTokenService.deleteRefreshTokenByUserId(userId);
-        SecurityContextHolder.clearContext();
-    }
-
-    @Transactional
-    public void passwordReset(PasswordResetRequestDto dto) {
-        boolean isValid = verificationTokenService.isValidToken(dto.email(), dto.verificationToken());
-        if (!isValid) {
-            throw new AuthException("400-1", "이메일 인증을 먼저 완료해주세요.");
-        }
-
-        User user = userRepository.findByUsername(dto.username())
-                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."));
-
-        verificationTokenService.deleteToken(dto.email());
-
-        String encodedPassword = passwordEncoder.encode(dto.newPassword());
-        user.updatePassword(encodedPassword);
-        userRepository.save(user);
+    public List<UserListResponseDto> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(user -> {
+                    long followersCount = followService.countFollowers(user.getId());
+                    return new UserListResponseDto(user, followersCount);
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
+    public ProfileResponseDto getUserById(Long userId) {
+        User user = userRepository.findById(userId).
+                orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        long followersCount = followService.countFollowers(userId);
+        long followingCount = followService.countFollowings(userId);
+        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long likesCount = bloglikesCount + shorlogLikesCount;
+        int shorlogsCount = shorlogRepository.countAllByUserId(userId);
+        int blogsCount = blogRepository.countAllByUserId(userId);
+
+        return new ProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount);
     }
 
     @Transactional(readOnly = true)
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 회원입니다."));
+    public MyProfileResponseDto getMyUser(Long userId) {
+        User user = userRepository.findById(userId).
+                orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        long followersCount = followService.countFollowers(userId);
+        long followingCount = followService.countFollowings(userId);
+        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long likesCount = bloglikesCount + shorlogLikesCount;
+        int shorlogsCount = shorlogRepository.countAllByUserId(userId);
+        int blogsCount = blogRepository.countAllByUserId(userId);
+        int shorlogBookmarksCount = shorlogBookmarkRepository.countAllByUserId(userId);
+        int blogBookmarksCount = blogBookmarkRepository.countAllByUserId(userId);
+
+        return new MyProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount, shorlogBookmarksCount, blogBookmarksCount);
     }
 
     @Transactional
-    public void checkPassword(User user, String password) {
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new AuthException("401-1", "비밀번호가 일치하지 않습니다.");
+    public UserDto updateProfile(Long userId, UpdateProfileRequestDto dto) {
+        if (!isAvailableNickname(dto.nickname())) {
+            throw new ServiceException(UserErrorCase.NICKNAME_ALREADY_EXISTS);
         }
+
+        User user = userRepository.findById(userId).
+                orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        user.updateProfile(dto.nickname(), dto.bio(), dto.profileImgUrl());
+        return new UserDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAvailableNickname(String nickname) {
+        return userRepository.findByNickname(nickname).isEmpty();
     }
 }

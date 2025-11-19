@@ -1,5 +1,6 @@
 package com.back.global.config.security;
 
+import com.back.domain.user.user.entity.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,6 +19,7 @@ public class SecurityUser implements UserDetails, OAuth2User {
     private final String email;
     private final String username;
     private final String nickname;
+    private final UserRole role;
 
 
     @Override

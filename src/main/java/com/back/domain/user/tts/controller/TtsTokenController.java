@@ -1,8 +1,8 @@
-package com.back.domain.user.user.controller;
+package com.back.domain.user.tts.controller;
 
 import com.back.domain.shorlog.shorlogtts.dto.TtsTokenResponse;
 import com.back.domain.shorlog.shorlogtts.dto.TtsUseResponse;
-import com.back.domain.user.user.service.TtsTokenService;
+import com.back.domain.user.tts.service.TtsTokenService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
