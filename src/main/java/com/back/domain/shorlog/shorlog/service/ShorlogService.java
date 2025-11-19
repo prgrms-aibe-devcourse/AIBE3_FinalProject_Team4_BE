@@ -202,6 +202,8 @@ public class ShorlogService {
         }
 
         shorlogHashtagRepository.deleteByShorlogId(shorlogId);
+        shorlogHashtagRepository.flush();
+
         List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
 
         // 이미지 URL 직접 조회 (Lazy Loading 회피)
@@ -257,10 +259,13 @@ public class ShorlogService {
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(uniqueHashtags);
 
         List<ShorlogHashtag> shorlogHashtags = hashtags.stream()
+                .filter(hashtag -> !shorlogHashtagRepository.existsByShorlogIdAndHashtagId(shorlog.getId(), hashtag.getId()))
                 .map(hashtag -> ShorlogHashtag.create(shorlog, hashtag))
                 .toList();
 
-        shorlogHashtagRepository.saveAll(shorlogHashtags);
+        if (!shorlogHashtags.isEmpty()) {
+            shorlogHashtagRepository.saveAll(shorlogHashtags);
+        }
 
         return hashtags.stream()
                 .map(Hashtag::getName)
