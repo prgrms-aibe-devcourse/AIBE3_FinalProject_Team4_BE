@@ -2,6 +2,7 @@ package com.back.domain.blog.blog.service;
 
 import com.back.domain.blog.blog.dto.*;
 import com.back.domain.blog.blog.entity.Blog;
+import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
@@ -74,23 +75,21 @@ public class BlogService {
     }
 
     @Transactional
-    public BlogWriteDto write(Long userId, BlogWriteReqDto reqBody, String thumbnailUrl) {
+    public BlogWriteDto write(Long userId, BlogWriteReqDto reqBody) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
-        Blog blog = new Blog(user, reqBody.title(), reqBody.content(), reqBody.thumbnailUrl(), BlogStatus.PUBLISHED);
+        Blog blog = new Blog(user, reqBody.title(), reqBody.content(), BlogStatus.PUBLISHED);
 
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         blog.updateHashtags(hashtags);
 
-        blog.changeThumbnailUrl(thumbnailUrl);
-        imageLifecycleService.incrementReference(thumbnailUrl);
         blog.publish();
         blog = blogRepository.save(blog);
         return new BlogWriteDto(blog);
     }
 
     @Transactional
-    public BlogModifyDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody, String thumbnailUrl) {
+    public BlogModifyDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody) {
         if (userRepository.findById(userId).isEmpty()) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
@@ -103,8 +102,6 @@ public class BlogService {
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         blog.updateHashtags(hashtags);
 
-        blog.changeThumbnailUrl(thumbnailUrl);
-        imageLifecycleService.incrementReference(thumbnailUrl);
         blog.publish();
         return new BlogModifyDto(blog);
     }
@@ -130,18 +127,18 @@ public class BlogService {
     }
 
     @Transactional
-    public BlogWriteDto saveDraft(Long userId, @Valid BlogWriteReqDto reqbody, String thumbnailUrl) {
-        Blog blog = createDraft(userId, reqbody, thumbnailUrl);     // 존재하지 않으면 새로 생성
-        updateDraft(blog, reqbody, thumbnailUrl);
+    public BlogWriteDto saveDraft(Long userId, @Valid BlogWriteReqDto reqbody) {
+        Blog blog = createDraft(userId, reqbody);     // 존재하지 않으면 새로 생성
+        updateDraft(blog, reqbody);
 
         return new BlogWriteDto(blog);
     }
 
-    private Blog createDraft(Long userId, BlogWriteReqDto reqBody, String thumbnailUrl) {
+    private Blog createDraft(Long userId, BlogWriteReqDto reqBody) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
 
-        Blog newBlog = Blog.create(user, reqBody.title(), reqBody.content(), thumbnailUrl, BlogStatus.DRAFT);
+        Blog newBlog = Blog.create(user, reqBody.title(), reqBody.content(), BlogStatus.DRAFT);
 
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         newBlog.updateHashtags(hashtags);
@@ -149,7 +146,7 @@ public class BlogService {
         return blogRepository.save(newBlog);
     }
 
-    private void updateDraft(Blog blog, BlogWriteReqDto req, String thumbnailUrl) {
+    private void updateDraft(Blog blog, BlogWriteReqDto req) {
         blog.modify(req);
         blog.unpublish();
     }
@@ -161,16 +158,12 @@ public class BlogService {
                 .toList();
     }
 
-    public List<BlogDto> findAllByUserId(Long userId) {
-        List<Blog> blogs = blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED);
+    public List<BlogDto> findAllByMy(Long userId, BlogMySortType sortType) {
+        List<Blog> blogs = blogRepository
+                .findAllByUserIdAndStatusWithSort(userId, BlogStatus.PUBLISHED, sortType);
 
         return blogs.stream()
-                .map(b -> new BlogDto(b,
-                        false,
-                        false,
-                        0
-                ))
-                .toList();
+                .map(b -> new BlogDto(b, false, false, 0)).toList();
     }
 
     public void deleteDraft(Long id, Long draftId) {

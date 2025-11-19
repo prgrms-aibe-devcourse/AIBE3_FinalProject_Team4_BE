@@ -22,7 +22,7 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ImageLifecycleService {
-    
+
     private final ImageRepository imageRepository;
     private final AmazonS3 amazonS3;
     @Value("${cloud.aws.s3.bucket}")
@@ -91,6 +91,9 @@ public class ImageLifecycleService {
     }
 
     private String extractFilename(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new IllegalArgumentException("이미지 URL이 유효하지 않습니다.");
+        }
         return imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
     }
 }
