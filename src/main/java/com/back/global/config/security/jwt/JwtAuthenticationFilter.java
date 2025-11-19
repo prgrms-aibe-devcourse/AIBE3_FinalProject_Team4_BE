@@ -34,23 +34,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse res,
                                     FilterChain chain) throws ServletException, IOException {
 
-        // 인증 인가 필요 없는 요청
-        if(req.getRequestURI().equals("/") ||
-                req.getRequestURI().startsWith("/swagger-ui") ||
-                req.getRequestURI().startsWith("/v3/api-docs") ||
-                req.getRequestURI().equals("/api/v1/auth/signup") ||
-                req.getRequestURI().equals("/api/v1/auth/login") ||
-                req.getRequestURI().equals("/api/v1/auth/password-reset") ||
-                req.getRequestURI().equals("/api/v1/auth/complete-oauth2-join") ||
-                req.getRequestURI().equals("/api/v1/auth/send-code") ||
-                req.getRequestURI().equals("/api/v1/auth/verify-code") ||
-                req.getRequestURI().equals("/tmp-for-complete-join-of-oauth2-user") // todo 추후 프론트 페이지 개발 후 제거
-        ) {
-            chain.doFilter(req, res);
-            return;
-        }
-
-
         String accessToken = getTokenFromCookie("accessToken", req);
         String refreshToken = getTokenFromCookie("refreshToken", req);
 
@@ -81,16 +64,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
             String newAccessToken = jwtProvider.generateAccessToken(userId, "USER");
-            SecurityUser securityUser = jwtProvider.parseUserFromAccessToken(newAccessToken);
             rq.setCookie("accessToken", newAccessToken);
+            SecurityUser securityUser = jwtProvider.parseUserFromAccessToken(newAccessToken);
             Authentication authentication = new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             logger.info("액세스 토큰 재발급 완료 / newAccessToken: " + newAccessToken);
-        } else {
-            SecurityContextHolder.clearContext();
-            handleCustomAuthError(res, "토큰 정보가 없습니다. 다시 로그인 해주세요.");
-            return;
         }
 
         chain.doFilter(req, res);
