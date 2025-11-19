@@ -1,6 +1,7 @@
 package com.back.domain.blog.blog.controller;
 
 import com.back.domain.blog.blog.dto.*;
+import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.service.BlogService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
@@ -29,6 +30,14 @@ public class ApiV1BlogController {
         BlogWriteDto blogDto = blogService.write(userDetails.getId(), reqbody);
 
         return RsData.of("201-1", "블로그 글 작성이 완료되었습니다.", blogDto);
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "내 블로그 글 다건 조회")
+    public RsData<List<BlogDto>> getMyItems(@AuthenticationPrincipal SecurityUser userDetails,
+                                            @RequestParam(defaultValue = "LATEST") BlogMySortType sortType) {
+        List<BlogDto> blogDtos = blogService.findAllByMy(userDetails.getId(), sortType);
+        return RsData.of("200-1", "내 블로그 글 조회가 완료되었습니다.", blogDtos);
     }
 
     @GetMapping("/{id}")

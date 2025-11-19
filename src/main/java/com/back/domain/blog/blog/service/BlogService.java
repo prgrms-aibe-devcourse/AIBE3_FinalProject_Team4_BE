@@ -2,6 +2,7 @@ package com.back.domain.blog.blog.service;
 
 import com.back.domain.blog.blog.dto.*;
 import com.back.domain.blog.blog.entity.Blog;
+import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
@@ -157,16 +158,12 @@ public class BlogService {
                 .toList();
     }
 
-    public List<BlogDto> findAllByUserId(Long userId) {
-        List<Blog> blogs = blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED);
+    public List<BlogDto> findAllByMy(Long userId, BlogMySortType sortType) {
+        List<Blog> blogs = blogRepository
+                .findAllByUserIdAndStatusWithSort(userId, BlogStatus.PUBLISHED, sortType);
 
         return blogs.stream()
-                .map(b -> new BlogDto(b,
-                        false,
-                        false,
-                        0
-                ))
-                .toList();
+                .map(b -> new BlogDto(b, false, false, 0)).toList();
     }
 
     public void deleteDraft(Long id, Long draftId) {
