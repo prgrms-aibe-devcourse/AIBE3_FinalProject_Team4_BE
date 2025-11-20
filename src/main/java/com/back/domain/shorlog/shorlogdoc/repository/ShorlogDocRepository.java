@@ -17,16 +17,18 @@ public interface ShorlogDocRepository extends ElasticsearchRepository<ShorlogDoc
                     {
                         "match": {
                             "content": {
-                                "query": ?0,
+                                "query": "?0",
                                 "boost": 2.0,
                                 "operator": "or"
                             }
                         }
                     },
                     {
-                        "term": {
+                        "match": {
                             "hashtags": {
-                                "value": ?0
+                                "query": "?0",
+                                "boost": 1.5,
+                                "operator": "or"
                             }
                         }
                     }

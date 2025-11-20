@@ -4,10 +4,12 @@ import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.repository.ImageRepository;
+import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
+import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
@@ -35,6 +37,7 @@ public class ShorlogService {
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
     private final ShorlogBookmarkRepository shorlogBookmarkRepository;
+    private final ShorlogBlogLinkRepository shorlogBlogLinkRepository;
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
@@ -104,9 +107,10 @@ public class ShorlogService {
         // 좋아요/북마크 개수 조회
         long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
+        Long linkedBlogId = shorlogBlogLinkRepository.findBlogIdByShorlogId(id).orElse(null);
 
         return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1,
-                (int) likeCount, (int) bookmarkCount);
+                (int) likeCount, (int) bookmarkCount, linkedBlogId);
     }
 
     public Page<ShorlogFeedResponse> getFeed(int page) {
@@ -235,6 +239,8 @@ public class ShorlogService {
             throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
         }
 
+        shorlogBlogLinkRepository.deleteByShorlogId(shorlogId);
+
         List<Image> images = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
         for (Image image : images) {
             imageRepository.decrementReferenceCount(image.getId());
@@ -279,17 +285,37 @@ public class ShorlogService {
 
         // 검색어에서 # 제거
         String processedQuery = query.trim().replace("#", "");
+        Page<ShorlogDoc> searchResults = shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE);
 
-        return shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE)
-                .map(doc -> new ShorlogFeedResponse(
-                        Long.parseLong(doc.getId()),
-                        doc.getThumbnailUrl(),
-                        doc.getProfileImgUrl(),
-                        doc.getNickname(),
-                        doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
-                        doc.getLikeCount(),
-                        doc.getCommentCount(),
-                        ShorlogFeedResponse.extractFirstLine(doc.getContent())
-                ));
+        // MySQL에 존재하는 숏로그만 필터링
+        List<ShorlogFeedResponse> filteredResults = searchResults.stream()
+                .map(doc -> {
+                    Long shorlogId = Long.parseLong(doc.getId());
+
+                    if (!shorlogRepository.existsById(shorlogId)) {
+                        shorlogDocService.deleteShorlog(shorlogId);
+                        return null;
+                    }
+
+                    return new ShorlogFeedResponse(
+                            shorlogId,
+                            doc.getThumbnailUrl(),
+                            doc.getProfileImgUrl(),
+                            doc.getNickname(),
+                            doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
+                            doc.getLikeCount(),
+                            doc.getCommentCount(),
+                            ShorlogFeedResponse.extractFirstLine(doc.getContent())
+                    );
+                })
+                .filter(response -> response != null) // null 제거
+                .toList();
+
+        // PageImpl로 반환
+        return new org.springframework.data.domain.PageImpl<>(
+                filteredResults,
+                searchResults.getPageable(),
+                searchResults.getTotalElements()
+        );
     }
 }
