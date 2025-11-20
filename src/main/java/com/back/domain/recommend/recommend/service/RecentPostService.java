@@ -74,6 +74,12 @@ public class RecentPostService {
                 .toList();
     }
 
+    public List<String> getRecentContentsByUserId(Long userId, PostType type, int limit) {
+        List<Long> postIds = getRecentPosts(userId, type);
+
+        return getRecentContents(postIds, type, limit);
+    }
+
     private String buildRecentPostKey(Long userId, PostType type) {
         String typeSuffix = switch (type) {
             case SHORLOG -> "shorlogs";

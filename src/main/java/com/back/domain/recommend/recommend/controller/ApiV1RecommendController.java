@@ -20,12 +20,12 @@ public class ApiV1RecommendController {
     private final RecommendService recommendService;
     private final RecentPostService recentPostService;
 
-    @GetMapping("/test/save-es")
+    @GetMapping("/test/es-save")
     public void save() {
         postService.createPost(null);
     }
 
-    @GetMapping("/test/delete-es")
+    @GetMapping("/test/es-delete")
     public void delete() {
         postService.deleteAll();
     }
@@ -36,15 +36,15 @@ public class ApiV1RecommendController {
         return recommendService.getFeedWithNativeQuery(page, size);
     }
 
-    @GetMapping("/test/feed-native-knn3")
+    @GetMapping("/test/feed-json-knn")
     public void searchKnn3(@RequestParam(defaultValue = "0") int page,
                            @RequestParam(defaultValue = "10") int size) {
-        recommendService.searchKnn3(1L, page, size, PostType.SHORLOG);
+        recommendService.searchKnn(1L, page, size, PostType.SHORLOG);
     }
 
     @GetMapping("/posts/feed")
-    public PageResponse<ShorlogDoc> mainFeedMap(@RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+    public PageResponse<ShorlogDoc> mainFeed(@RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "10") int size) {
         return PageResponse.from(recommendService.getPostsOrderByRecommendation(1L, page, size, PostType.SHORLOG));
     }
 

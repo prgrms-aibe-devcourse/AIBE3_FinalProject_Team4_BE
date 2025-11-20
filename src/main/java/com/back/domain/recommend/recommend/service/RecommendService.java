@@ -1,12 +1,14 @@
 package com.back.domain.recommend.recommend.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.get.GetResult;
 import co.elastic.clients.elasticsearch.core.mget.MultiGetResponseItem;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.back.domain.recommend.recommend.constants.EmbeddingConstants;
 import com.back.domain.recommend.recommend.type.PostType;
@@ -49,53 +51,34 @@ public class RecommendService {
 
     private final RecentPostService recentPostService;
 
-    // 기본 메인 피드
     public List<ShorlogDoc> getFeedWithNativeQuery(int page, int size) {
 
         NativeQuery query = NativeQuery.builder()
                 .withQuery(q -> q.scriptScore(ss -> ss
-//                        .query(q2 -> q2.matchAll(ma -> ma))
-//                                .query(q2 -> q2.moreLikeThis(mlt -> mlt
-//                                        .fields("title", "content", "comments", "hashtags")
-//                                        .like(l -> l.text("recentText"))
-//                                        .minTermFreq(1)
-//                                        .minDocFreq(1)
-//                                ))
-                                .query(q2 -> q2.multiMatch(mm -> mm
-                                        .fields("title", "content", "comments", "hashtags")
-                                        .query("1")
-                                ))
-//                                .query(q2 -> q2.bool(b -> b
-//                                        .should(s -> s.moreLikeThis(mlt -> mlt
-//                                                .fields("title", "content", "comments", "hashtags")
-//                                                .like(l -> l.text(recentText))
-//                                        ))
-//                                        .should(s -> s.multiMatch(mm -> mm
-//                                                .fields("title", "content", "hashtags")
-//                                                .query(userKeyword)
-//                                        ))
-//                                ))
-                                .script(s -> s
-                                        .source("""
-                                                    // 기본 데이터
-                                                    double likes = doc['likeCount'].size() == 0 ? 0 : doc['likeCount'].value;
-                                                    double views = doc['viewCount'].size() == 0 ? 0 : doc['viewCount'].value;
-                                                    double comments = doc['commentCount'].size() == 0 ? 0 : doc['commentCount'].value;
-                                                
-                                                    long now = new Date().getTime();
-                                                    long created = doc['createdAt'].value.getMillis();
-                                                    double hours = (now - created) / 3600000.0;
-                                                    double recency = Math.exp(-0.5 * Math.pow(hours / 240.0, 2)); // scale=10일(240h)
-                                                
-                                                    // 최종 점수
-                                                    return
-                                                        _score * 1.5 +
-                                                        Math.sqrt(likes) * 0.25 +
-                                                        Math.log1p(views) * 0.30 +
-                                                        comments * 0.10 +
-                                                        recency * 1.0;
-                                                """)
-                                )
+                        .query(q2 -> q2.multiMatch(mm -> mm
+                                .fields("title", "content", "comments", "hashtags")
+                                .query("1")
+                        ))
+                        .script(s -> s
+                                .source("""
+                                        double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
+                                        double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
+                                        double comments = doc['commentCount'].size()==0 ? 0 : doc['commentCount'].value;
+                                        
+                                        long now = new Date().getTime();
+                                        long created = doc['createdAt'].value.getMillis();
+                                        double hours = (now - created) / 3600000.0;
+                                        
+                                        double engagement =
+                                            Math.log1p(views) * 0.30 +
+                                            Math.sqrt(likes) * 0.25 +
+                                            comments * 0.10;
+                                        
+                                        double trending = engagement / Math.pow(hours + 2, 1.5);
+                                        
+                                        return trending;
+                                        """)
+                        )
                 ))
                 .withPageable(PageRequest.of(page, size))
                 .build();
@@ -104,14 +87,13 @@ public class RecommendService {
         return result.get().map(SearchHit::getContent).toList();
     }
 
-    public void searchKnn3(Long userId, int pageNumber, int pageSize, PostType type) {
+    public void searchKnn(Long userId, int pageNumber, int pageSize, PostType type) {
         List<Long> recentPostIds = recentPostService.getRecentPosts(userId, PostType.SHORLOG);
         List<String> recentContents = recentPostService.getRecentContents(recentPostIds, PostType.SHORLOG);
         float[] userVector = computeUserVector(recentPostIds);
 
         final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
 
-//        List<Float> userVectorList = ArrayConverter.toFloatList(userVector);
         String vectorContent = IntStream.range(0, userVector.length)
                 .mapToObj(i -> String.valueOf(userVector[i]))
                 .collect(Collectors.joining(", "));
@@ -128,10 +110,6 @@ public class RecommendService {
                 }
                 """.formatted(vectorContent);
 
-//        Response response = restClient.performRequest(
-//                new Request("POST", "/" + indexName + "/_search", Map.of("pretty", "true"),
-//                        new StringEntity(json, ContentType.APPLICATION_JSON))
-//        );
         RestClientTransport transport = (RestClientTransport) esClient._transport();
         RestClient restClient = transport.restClient();
 
@@ -151,14 +129,14 @@ public class RecommendService {
     public Page<ShorlogDoc> getPostsOrderByRecommendation(Long userId, int pageNumber, int pageSize, PostType type) {
         List<Long> recentPostIds = recentPostService.getRecentPosts(userId, PostType.SHORLOG);
         List<String> recentContents = recentPostService.getRecentContents(recentPostIds, PostType.SHORLOG, 3);
-        float[] userVector = computeUserVector(recentPostIds);
+//        float[] userVector = computeUserVector(recentPostIds);
 
         final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
 
-//        List<Float> userVectorList = ArrayConverter.toFloatList(userVector);
-        List<Float> userVectorList = IntStream.range(0, userVector.length)
-                .mapToObj(i -> userVector[i]) // 각 인덱스의 float 값을 가져와 Float 객체로 박싱
-                .collect(Collectors.toList());
+////        List<Float> userVectorList = ArrayConverter.toFloatList(userVector);
+//        List<Float> userVectorList = IntStream.range(0, userVector.length)
+//                .mapToObj(i -> userVector[i]) // 각 인덱스의 float 값을 가져와 Float 객체로 박싱
+//                .toList();
 
 
         // 매핑 이슈 해결 위해 우선 Map으로 받기
@@ -178,54 +156,33 @@ public class RecommendService {
                             .query(q -> q
                                     .bool(b -> b
                                             .must(m -> m.matchAll(ma -> ma))
-                                            // 핫한 주제
-                                            .should(sh -> sh.multiMatch(mm -> mm
-                                                    .fields("content^2", "hashtags^4", "comments") // TODO 블로그: "title^3"
-                                                    .query("1") // TODO
-                                                    .type(TextQueryType.BestFields)
-                                                    .boost(2.0f) // 3.0f
-                                            ))
                                             // 최근 본 게시물 유사도
-                                            .should(buildRecentMLTQueries(recentContents))
-                                            // 최근 본 게시물은 패널티
-//                                            .should(sh -> sh.scriptScore(ss -> ss
-//                                                    .query(m -> m.matchAll(ma -> ma))
-//                                                    .script(sc -> sc
-//                                                            .source("""
-//                                                                        double score = _score;
-//
-//                                                                        if (params.recentIds.contains(doc['id'].value)) {
-//                                                                            score = score * 0.1;
-//                                                                        }
-//                                                                        return score;
-//                                                                    """)
-//                                                            .params("recentIds", JsonData.of(recentPostIds))
-//                                                    )
-//                                            ))
-                                            // 인기 + 최신도
+                                            .should(buildRecentMLTQueries(recentContents, recentPostIds))
+                                            // 트렌딩 점수
                                             .should(sh -> sh.scriptScore(ss -> ss
                                                     .query(m -> m.matchAll(ma -> ma))
                                                     .script(sc -> sc
                                                             .source("""
-                                                                    double views = doc['viewCount'].empty ? 0 : doc['viewCount'].value;
-                                                                    double likes = doc['likeCount'].empty ? 0 : doc['likeCount'].value;
-                                                                    double comments = doc['commentCount'].empty ? 0 : doc['commentCount'].value;
+                                                                    double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
+                                                                    double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
+                                                                    double comments = doc['commentCount'].size()==0 ? 0 : doc['commentCount'].value;
                                                                     
                                                                     long now = new Date().getTime();
                                                                     long created = doc['createdAt'].value.getMillis();
                                                                     double hours = (now - created) / 3600000.0;
-                                                                    double recency = Math.exp(-0.5 * Math.pow(hours / 240.0, 2)); // scale=10일(240h)
                                                                     
-                                                                    return
+                                                                    double engagement =
                                                                         Math.log1p(views) * 0.30 +
                                                                         Math.sqrt(likes) * 0.25 +
-                                                                        comments * 0.10 +
-                                                                        recency * 1.0;
+                                                                        comments * 0.10;
+                                                                    
+                                                                    double trending = engagement / Math.pow(hours + 2, 1.5);
+                                                                    
+                                                                    return trending;
                                                                     """)
                                                     )
                                             ))
-
-                                            // 5) should에 걸리지 않아도 문서 제외되지 않도록 설정
+                                            // should에 걸리지 않아도 문서 제외되지 않도록 설정
                                             .minimumShouldMatch("0")
                                     )
                             )
@@ -246,17 +203,41 @@ public class RecommendService {
         return convertToPage(response, ShorlogDoc.class, pageNumber, pageSize);
     }
 
-    private List<Query> buildRecentMLTQueries(List<String> recentContents) {
-        // String 리스트를 More Like This Query 객체 리스트로 변환합니다.
+    private List<Query> buildRecentMLTQueries(List<String> recentContents, List<Long> recentPostIds) {
         return recentContents.stream()
-                .map(c -> Query.of(q -> q.moreLikeThis(mlt -> mlt
-                        .fields("content", "hashtags")
-                        .like(l -> l.text(c))
-                        .minTermFreq(1)
-                        .minDocFreq(1)
-                        .boost(3.0f)
-                )))
+                .map(recentContent -> {
+                    // 최근 본 게시물과 유사한 게시물
+                    Query mltQuery = buildMLTQuery(recentContent);
+
+                    // 최근 본 게시물은 패널티
+                    return Query.of(q -> q.functionScore(fs -> fs
+                            .query(mltQuery)
+                            .functions(f -> f
+                                    .filter(fq -> fq.terms(t -> t
+                                                    .field("id")
+                                                    .terms(tf -> tf.value(
+                                                            recentPostIds.stream()
+                                                                    .map(FieldValue::of)
+                                                                    .toList()
+                                                    ))
+                                            )
+                                    )
+                                    .weight(0.0)
+                            )
+                            .scoreMode(FunctionScoreMode.Multiply)
+                    ));
+                })
                 .collect(Collectors.toList());
+    }
+
+    private Query buildMLTQuery(String content) {
+        return Query.of(q -> q.moreLikeThis(mlt -> mlt
+                .fields("content", "hashtags")
+                .like(l -> l.text(content))
+                .minTermFreq(1)
+                .minDocFreq(1)
+                .boost(3.0f)
+        ));
     }
 
     private <T> Page<T> convertToPage(SearchResponse<Map> response, Class<T> targetClass, int pageNumber, int pageSize) {
@@ -265,6 +246,22 @@ public class RecommendService {
 
         List<T> content = response.hits().hits().stream()
                 .map(hit -> esDtoMapper.fromHit(hit, targetClass))
+                .filter(Objects::nonNull)
+                .toList();
+
+        long totalHits = response.hits().total() != null
+                ? response.hits().total().value()
+                : content.size();
+
+        return new PageImpl<>(content, pageable, totalHits);
+    }
+
+    private <T> Page<T> convertToPage(SearchResponse<T> response, int pageNumber, int pageSize) {
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+
+        List<T> content = response.hits().hits().stream()
+                .map(Hit::source)
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -331,12 +328,12 @@ public class RecommendService {
         if (vector == null || vector.length == 0) {
             return false;
         }
-        // 벡터의 L2 Norm (크기)이 0에 매우 가까운지 확인합니다.
+        // 벡터의 L2 Norm (크기)이 0에 매우 가까운지 확인
         double magnitudeSquared = 0;
         for (float v : vector) {
             magnitudeSquared += v * v;
         }
-        // 0이 아닌 아주 작은 값(epsilon)보다 크면 유효하다고 판단합니다.
+        // 0이 아닌 아주 작은 값(epsilon)보다 크면 유효하다고 판단
         return Math.sqrt(magnitudeSquared) > 1e-6;
     }
 }
