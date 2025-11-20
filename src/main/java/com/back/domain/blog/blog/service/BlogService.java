@@ -15,6 +15,7 @@ import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.service.ImageLifecycleService;
+import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
@@ -37,6 +38,7 @@ public class BlogService {
     private final HashtagService hashtagService;
     private final ImageLifecycleService imageLifecycleService;
     private final BlogDocIndexer blogDocIndexer;
+    private final ShorlogBlogLinkRepository shorlogBlogLinkRepository;
 
     public void truncate() {
         blogRepository.deleteAll();
@@ -112,6 +114,7 @@ public class BlogService {
 
         if (blog.getStatus() == BlogStatus.PUBLISHED) {
             blogDocIndexer.delete(id);
+            shorlogBlogLinkRepository.deleteByBlogId(id);
         }
         blogRepository.delete(blog);
     }
