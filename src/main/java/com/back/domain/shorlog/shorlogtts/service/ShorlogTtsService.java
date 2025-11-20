@@ -89,7 +89,7 @@ public class ShorlogTtsService {
             // 음성 설정
             VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                     .setLanguageCode("ko-KR")
-                    .setName("ko-KR-Standard-B")  // Standard 음성 (무료)
+                    .setName("ko-KR-Standard-A")  // Standard 음성 (무료)
                     .setSsmlGender(SsmlVoiceGender.FEMALE)
                     .build();
 

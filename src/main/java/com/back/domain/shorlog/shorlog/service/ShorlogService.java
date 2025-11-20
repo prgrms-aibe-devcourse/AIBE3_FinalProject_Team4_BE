@@ -50,18 +50,18 @@ public class ShorlogService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        Shorlog shorlog = Shorlog.builder()
-                .user(user)
-                .content(request.getContent())
-                .viewCount(0)
-                .build();
+        Shorlog shorlog = Shorlog.create(user, request.getContent());
 
         Shorlog savedShorlog = shorlogRepository.save(shorlog);
 
-        // 이미지 연결
+        // 이미지 연결 (중복 제거)
         if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
-            for (int i = 0; i < request.getImageIds().size(); i++) {
-                Long imageId = request.getImageIds().get(i);
+            List<Long> uniqueImageIds = request.getImageIds().stream()
+                    .distinct()
+                    .toList();
+
+            for (int i = 0; i < uniqueImageIds.size(); i++) {
+                Long imageId = uniqueImageIds.get(i);
 
                 Image image = imageRepository.findById(imageId)
                         .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다: " + imageId));
@@ -75,14 +75,25 @@ public class ShorlogService {
 
         List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
 
-        shorlogDocService.indexShorlog(savedShorlog);
+        // 이미지 URL 직접 조회 (Lazy Loading 회피)
+        List<String> thumbnailUrls = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(savedShorlog.getId())
+                .stream()
+                .map(Image::getS3Url)
+                .toList();
 
-        return CreateShorlogResponse.from(savedShorlog, hashtagNames);
+        // 대표 썸네일 (첫 번째 이미지)
+        String thumbnailUrl = !thumbnailUrls.isEmpty() ? thumbnailUrls.get(0) : null;
+
+        // User 정보 직접 전달 (Lazy Loading 회피)
+        shorlogDocService.indexShorlog(savedShorlog, thumbnailUrl,
+                user.getId(), user.getNickname(), user.getProfileImgUrl());
+
+        return CreateShorlogResponse.of(savedShorlog, hashtagNames, thumbnailUrls);
     }
 
     @Transactional
     public ShorlogDetailResponse getShorlog(Long id) {
-        Shorlog shorlog = shorlogRepository.findById(id)
+        Shorlog shorlog = shorlogRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
         // 조회수 증가 (Bulk Update - 영속성 컨텍스트를 거치지 않는 방식)
@@ -167,10 +178,18 @@ public class ShorlogService {
                 imageRepository.decrementReferenceCount(existingImage.getId());
             }
 
-            shorlogImagesRepository.deleteByShorlog(shorlog);
+            // shorlogId 전달하여 Lazy Loading 회피
+            shorlogImagesRepository.deleteByShorlogId(shorlogId);
 
-            for (int i = 0; i < request.getImageIds().size(); i++) {
-                Long imageId = request.getImageIds().get(i);
+            // 즉시 DB에 반영
+            shorlogImagesRepository.flush();
+
+            List<Long> uniqueImageIds = request.getImageIds().stream()
+                    .distinct()
+                    .toList();
+
+            for (int i = 0; i < uniqueImageIds.size(); i++) {
+                Long imageId = uniqueImageIds.get(i);
 
                 Image image = imageRepository.findById(imageId)
                         .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다: " + imageId));
@@ -183,11 +202,28 @@ public class ShorlogService {
         }
 
         shorlogHashtagRepository.deleteByShorlogId(shorlogId);
+        shorlogHashtagRepository.flush();
+
         List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
 
-        shorlogDocService.indexShorlog(shorlog);
+        // 이미지 URL 직접 조회 (Lazy Loading 회피)
+        List<String> thumbnailUrls = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId)
+                .stream()
+                .map(Image::getS3Url)
+                .toList();
 
-        return UpdateShorlogResponse.from(shorlog, hashtagNames);
+        // 대표 썸네일 (첫 번째 이미지)
+        String thumbnailUrl = !thumbnailUrls.isEmpty() ? thumbnailUrls.get(0) : null;
+
+        // User 정보 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
+
+        // User 정보 직접 전달 (Lazy Loading 회피)
+        shorlogDocService.indexShorlog(shorlog, thumbnailUrl,
+                user.getId(), user.getNickname(), user.getProfileImgUrl());
+
+        return UpdateShorlogResponse.of(shorlog, hashtagNames, thumbnailUrls);
     }
 
     @Transactional
@@ -223,13 +259,13 @@ public class ShorlogService {
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(uniqueHashtags);
 
         List<ShorlogHashtag> shorlogHashtags = hashtags.stream()
-                .map(hashtag -> ShorlogHashtag.builder()
-                        .shorlog(shorlog)
-                        .hashtag(hashtag)
-                        .build())
+                .filter(hashtag -> !shorlogHashtagRepository.existsByShorlogIdAndHashtagId(shorlog.getId(), hashtag.getId()))
+                .map(hashtag -> ShorlogHashtag.create(shorlog, hashtag))
                 .toList();
 
-        shorlogHashtagRepository.saveAll(shorlogHashtags);
+        if (!shorlogHashtags.isEmpty()) {
+            shorlogHashtagRepository.saveAll(shorlogHashtags);
+        }
 
         return hashtags.stream()
                 .map(Hashtag::getName)
@@ -245,15 +281,15 @@ public class ShorlogService {
         String processedQuery = query.trim().replace("#", "");
 
         return shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE)
-                .map(doc -> ShorlogFeedResponse.builder()
-                        .id(Long.parseLong(doc.getId()))
-                        .thumbnailUrl(doc.getThumbnailUrl())
-                        .profileImgUrl(doc.getProfileImgUrl())
-                        .nickname(doc.getNickname())
-                        .hashtags(doc.getHashtags())
-                        .likeCount(doc.getLikeCount())
-                        .commentCount(doc.getCommentCount())
-                        .firstLine(ShorlogFeedResponse.extractFirstLine(doc.getContent()))
-                        .build());
+                .map(doc -> new ShorlogFeedResponse(
+                        Long.parseLong(doc.getId()),
+                        doc.getThumbnailUrl(),
+                        doc.getProfileImgUrl(),
+                        doc.getNickname(),
+                        doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
+                        doc.getLikeCount(),
+                        doc.getCommentCount(),
+                        ShorlogFeedResponse.extractFirstLine(doc.getContent())
+                ));
     }
 }

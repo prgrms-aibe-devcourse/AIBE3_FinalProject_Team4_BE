@@ -18,8 +18,8 @@ public class CreateDraftRequest {
     @Size(max = 800, message = "내용은 최대 800자까지 입력 가능합니다.")
     private String content;
 
-    @Size(max = 10, message = "썸네일은 최대 10개까지 가능합니다.")
-    private List<String> thumbnailUrls;
+    @Size(max = 10, message = "이미지는 최대 10개까지 가능합니다.")
+    private List<Long> imageIds;
 
     @Size(max = 10, message = "해시태그는 최대 10개까지 가능합니다.")
     @Builder.Default

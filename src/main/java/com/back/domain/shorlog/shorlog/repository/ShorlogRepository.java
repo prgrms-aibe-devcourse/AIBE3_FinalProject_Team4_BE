@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
@@ -19,26 +20,63 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
     @Query("UPDATE Shorlog s SET s.viewCount = s.viewCount + 1 WHERE s.id = :id")
     void incrementViewCount(@Param("id") Long id);
 
+    // Fetch Join 사용
+    @Query("SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "WHERE s.id = :id")
+    Optional<Shorlog> findByIdWithUser(@Param("id") Long id);
+
      // 전체 피드 조회 (최신순 - AI 추천은 나중에)
      // TODO: AI 추천 알고리즘 연동 (5번 이지연)
-
+    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "ORDER BY s.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s")
     Page<Shorlog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
      // 팔로잉 피드 조회
      // TODO: Follow 기능 구현 후 수정 (1번 주권영)
-    @Query("SELECT s FROM Shorlog s WHERE s.user.id IN :followingUserIds ORDER BY s.createdAt DESC")
+    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "WHERE s.user.id IN :followingUserIds " +
+           "ORDER BY s.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s WHERE s.user.id IN :followingUserIds")
     Page<Shorlog> findByFollowingUsers(@Param("followingUserIds") List<Long> followingUserIds, Pageable pageable);
 
-    Page<Shorlog> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "WHERE s.user.id = :userId " +
+           "ORDER BY s.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s WHERE s.user.id = :userId")
+    Page<Shorlog> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId, Pageable pageable);
 
-    Page<Shorlog> findByUserIdOrderByCreatedAtAsc(Long userId, Pageable pageable);
+    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "WHERE s.user.id = :userId " +
+           "ORDER BY s.createdAt ASC",
+           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s WHERE s.user.id = :userId")
+    Page<Shorlog> findByUserIdOrderByCreatedAtAsc(@Param("userId") Long userId, Pageable pageable);
 
     // 내 쇼로그 조회 (인기순 - 조회수 + 좋아요 * 2 종합 점수)
-    @Query("SELECT s FROM Shorlog s " +
+    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
            "LEFT JOIN ShorlogLike sl ON sl.shorlog.id = s.id " +
            "WHERE s.user.id = :userId " +
            "GROUP BY s.id " +
-           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
+           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC",
+           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s WHERE s.user.id = :userId")
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
 
     int countAllByUserId(Long userId);

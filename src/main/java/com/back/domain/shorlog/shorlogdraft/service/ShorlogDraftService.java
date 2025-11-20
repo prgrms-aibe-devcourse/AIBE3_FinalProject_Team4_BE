@@ -1,5 +1,7 @@
 package com.back.domain.shorlog.shorlogdraft.service;
 
+import com.back.domain.shared.image.entity.Image;
+import com.back.domain.shared.image.repository.ImageRepository;
 import com.back.domain.shorlog.shorlogdraft.dto.CreateDraftRequest;
 import com.back.domain.shorlog.shorlogdraft.dto.DraftResponse;
 import com.back.domain.shorlog.shorlogdraft.entity.ShorlogDraft;
@@ -26,6 +28,7 @@ public class ShorlogDraftService {
 
     private final ShorlogDraftRepository draftRepository;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
     private final ObjectMapper objectMapper;
 
     private static final int MAX_DRAFTS = 5;
@@ -41,15 +44,11 @@ public class ShorlogDraftService {
             throw new IllegalStateException("임시저장은 최대 5개까지 가능합니다.");
         }
 
+        List<String> thumbnailUrls = convertImageIdsToUrls(request.getImageIds());
+
         String hashtagsJson = convertHashtagsToJson(request.getHashtags());
 
-        ShorlogDraft draft = ShorlogDraft.builder()
-                .user(user)
-                .content(request.getContent())
-                .hashtags(hashtagsJson)
-                .build();
-
-        draft.setThumbnailUrlList(request.getThumbnailUrls());
+        ShorlogDraft draft = ShorlogDraft.create(user, request.getContent(), thumbnailUrls, request.getHashtags());
 
         ShorlogDraft savedDraft = draftRepository.save(draft);
         return DraftResponse.of(savedDraft, request.getHashtags());
@@ -82,8 +81,10 @@ public class ShorlogDraftService {
             throw new IllegalArgumentException("본인의 임시저장만 수정할 수 있습니다.");
         }
 
+        List<String> thumbnailUrls = convertImageIdsToUrls(request.getImageIds());
+
         String hashtagsJson = convertHashtagsToJson(request.getHashtags());
-        draft.update(request.getContent(), request.getThumbnailUrls(), hashtagsJson);
+        draft.update(request.getContent(), thumbnailUrls, hashtagsJson);
 
         return DraftResponse.of(draft, request.getHashtags());
     }
@@ -129,5 +130,20 @@ public class ShorlogDraftService {
         } catch (JsonProcessingException e) {
             return new ArrayList<>();
         }
+    }
+
+    // imageIds → thumbnailUrls 변환
+    private List<String> convertImageIdsToUrls(List<Long> imageIds) {
+        if (imageIds == null || imageIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<String> thumbnailUrls = new ArrayList<>();
+        for (Long imageId : imageIds) {
+            Image image = imageRepository.findById(imageId)
+                    .orElseThrow(() -> new NoSuchElementException("이미지를 찾을 수 없습니다: " + imageId));
+            thumbnailUrls.add(image.getS3Url());
+        }
+        return thumbnailUrls;
     }
 }

@@ -2,7 +2,6 @@ package com.back.domain.shorlog.shorlog.dto;
 
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -10,7 +9,6 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-@Builder
 public class CreateShorlogResponse {
 
     private Long id;
@@ -22,16 +20,16 @@ public class CreateShorlogResponse {
     private List<String> hashtags;
     private LocalDateTime createdAt;
 
-    public static CreateShorlogResponse from(Shorlog shorlog, List<String> hashtags) {
-        return CreateShorlogResponse.builder()
-                .id(shorlog.getId())
-                .userId(shorlog.getUser().getId())
-                .username(shorlog.getUser().getUsername())
-                .profileImgUrl(shorlog.getUser().getProfileImgUrl())
-                .content(shorlog.getContent())
-                .thumbnailUrls(shorlog.getThumbnailUrlList())
-                .hashtags(hashtags)
-                .createdAt(shorlog.getCreatedAt())
-                .build();
+    public static CreateShorlogResponse of(Shorlog shorlog, List<String> hashtags, List<String> thumbnailUrls) {
+        return new CreateShorlogResponse(
+                shorlog.getId(),
+                shorlog.getUser().getId(),
+                shorlog.getUser().getUsername(),
+                shorlog.getUser().getProfileImgUrl(),
+                shorlog.getContent(),
+                thumbnailUrls != null ? List.copyOf(thumbnailUrls) : List.of(),
+                hashtags != null ? List.copyOf(hashtags) : List.of(),
+                shorlog.getCreatedAt()
+        );
     }
 }
