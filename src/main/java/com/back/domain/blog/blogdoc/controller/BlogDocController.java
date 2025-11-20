@@ -11,6 +11,7 @@ import com.back.domain.user.follow.service.FollowService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.exception.ServiceException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RequestMapping("/api/v1/blogs")
+@Tag(name = "Blog ES API", description = "블로그 검색/필터링 API")
 @RestController
 @RequiredArgsConstructor
 @Validated

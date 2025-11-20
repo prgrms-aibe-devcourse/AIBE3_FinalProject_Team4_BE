@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Blog", description = "블로그 reaction API")
+@Tag(name = "Blog Reaction API", description = "블로그 리액션 관련 API")
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogReactionController {

@@ -18,7 +18,6 @@ import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +46,10 @@ public class BlogService {
     public BlogDetailDto findById(Long userId, Long id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+        if (blog.getStatus() == BlogStatus.DRAFT &&
+                !blog.getUser().getId().equals(userId)) {
+            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
+        }
         boolean liked = blogLikeService.isLiked(id, userId);
         boolean bookmarked = blogBookmarkService.isBookmarked(id, userId);
         List<CommentResponseDto> comments = commentsService.getCommentsByType(id, CommentsTargetType.BLOG);
@@ -106,19 +109,15 @@ public class BlogService {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
         imageLifecycleService.decrementReference(blog.getThumbnailUrl());
+
+        if (blog.getStatus() == BlogStatus.PUBLISHED) {
+            blogDocIndexer.delete(id);
+        }
         blogRepository.delete(blog);
-        blogDocIndexer.delete(id);
     }
 
     @Transactional
-    public BlogWriteDto saveDraft(Long userId, @Valid BlogWriteReqDto reqbody) {
-        Blog blog = createDraft(userId, reqbody);     // 존재하지 않으면 새로 생성
-        updateDraft(blog, reqbody);
-
-        return new BlogWriteDto(blog);
-    }
-
-    private Blog createDraft(Long userId, BlogWriteReqDto reqBody) {
+    public BlogWriteDto createDraft(Long userId, BlogWriteReqDto reqBody) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
 
@@ -127,12 +126,25 @@ public class BlogService {
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         newBlog.updateHashtags(hashtags);
         newBlog.unpublish();
-        return blogRepository.save(newBlog);
+        blogRepository.save(newBlog);
+        return new BlogWriteDto(newBlog);
     }
 
-    private void updateDraft(Blog blog, BlogWriteReqDto req) {
-        blog.modify(req);
+    @Transactional
+    public BlogWriteDto updateDraft(Long userId, Long blogId, BlogWriteReqDto reqBody) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+
+        if (!blog.getUser().getId().equals(userId)) {
+            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
+        }
+        blog.modify(reqBody);
+        List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
+        blog.updateHashtags(hashtags);
         blog.unpublish();
+
+        blogRepository.save(blog);
+        return new BlogWriteDto(blog);
     }
 
     public List<BlogDraftDto> findDraftsByUserId(Long userId) {

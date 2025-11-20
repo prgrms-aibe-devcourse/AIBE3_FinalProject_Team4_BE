@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@Tag(name = "Blog", description = "블로그 API")
+@Tag(name = "Blog API", description = "블로그 기본 API")
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogController {
@@ -41,14 +41,14 @@ public class ApiV1BlogController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "블로그 글 단건 조회")
+    @Operation(summary = "블로그 기본 글, 임시저장 글 단건 조회")
     public RsData<BlogDetailDto> getItem(@AuthenticationPrincipal SecurityUser userDetails, @PathVariable Long id) {
         BlogDetailDto blogdto = blogService.findById(userDetails.getId(), id);
         return RsData.of("200-2", "블로그 글 조회가 완료되었습니다.", blogdto);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "블로그 글 수정")
+    @Operation(summary = "블로그 글 수정, 임시저장 발행")
     public RsData<BlogModifyDto> modify(
             @PathVariable Long id,
             @Valid @RequestBody BlogWriteReqDto reqbody,
@@ -59,20 +59,31 @@ public class ApiV1BlogController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "블로그 글 삭제")
+    @Operation(summary = "블로그 기본 글, 임시저장 삭제")
     public RsData<Void> delete(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
         blogService.delete(id, userDetails.getId());
         return new RsData<>("200-4", "블로그 글 삭제가 완료되었습니다.");
     }
 
     @PostMapping("/drafts")
-    @Operation(summary = "블로그 임시저장")
+    @Operation(summary = "블로그 임시저장 생성")
     public RsData<BlogWriteDto> saveDraft(
             @Valid @RequestBody BlogWriteReqDto reqbody,
             @AuthenticationPrincipal SecurityUser userDetails
     ) {
-        BlogWriteDto blogDto = blogService.saveDraft(userDetails.getId(), reqbody);
+        BlogWriteDto blogDto = blogService.createDraft(userDetails.getId(), reqbody);
         return RsData.of("201-1", "블로그 임시저장이 완료되었습니다.", blogDto);
+    }
+
+    @PutMapping("/drafts/{blogId}")
+    @Operation(summary = "블로그 임시저장 자동저장")
+    public RsData<BlogWriteDto> updateDraft(
+            @PathVariable Long blogId,
+            @Valid @RequestBody BlogWriteReqDto reqbody,
+            @AuthenticationPrincipal SecurityUser userDetails
+    ) {
+        BlogWriteDto blogDto = blogService.updateDraft(userDetails.getId(), blogId, reqbody);
+        return RsData.of("200-3", "블로그 임시저장 글 업데이트가 완료되었습니다.", blogDto);
     }
 
     @GetMapping("/drafts")
@@ -80,15 +91,5 @@ public class ApiV1BlogController {
     public RsData<List<BlogDraftDto>> getDrafts(@AuthenticationPrincipal SecurityUser userDetails) {
         List<BlogDraftDto> draftDtos = blogService.findDraftsByUserId(userDetails.getId());
         return RsData.of("200-2", "블로그 임시저장 글 조회가 완료되었습니다.", draftDtos);
-    }
-
-    @DeleteMapping("/drafts/{blogId}")
-    @Operation(summary = "블로그 임시저장 글 삭제")
-    public RsData<Void> deleteDrafts(
-            @PathVariable Long blogId,
-            @AuthenticationPrincipal SecurityUser userDetails
-    ) {
-        blogService.deleteDraft(userDetails.getId(), blogId);
-        return new RsData<>("200-3", "블로그 임시저장 글 삭제가 완료되었습니다.");
     }
 }

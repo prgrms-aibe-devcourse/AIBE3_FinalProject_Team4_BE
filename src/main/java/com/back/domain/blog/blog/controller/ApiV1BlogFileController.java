@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@Tag(name = "Blog", description = "블로그 Media API")
+@Tag(name = "Blog Media API", description = "블로그 Media API")
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogFileController {
