@@ -18,6 +18,7 @@ import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import com.back.domain.user.follow.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +44,7 @@ public class ShorlogService {
     private final ImageRepository imageRepository;
     private final ShorlogImagesRepository shorlogImagesRepository;
     private final ShorlogDocService shorlogDocService;
+    private final FollowRepository followRepository;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -128,9 +130,7 @@ public class ShorlogService {
     }
 
     public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {
-        // TODO: 실제 팔로잉 목록 조회 (1번 주권영 API 연동)
-        // 현재는 임시로 빈 리스트 반환
-        List<Long> followingUserIds = List.of(); // 임시
+        List<Long> followingUserIds = followRepository.findFollowingIdsByUserId(userId);
 
         if (followingUserIds.isEmpty()) {
             return Page.empty();
