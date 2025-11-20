@@ -6,6 +6,7 @@ import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
+import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
@@ -19,14 +20,11 @@ import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -39,27 +37,10 @@ public class BlogService {
     private final CommentsService commentsService;
     private final HashtagService hashtagService;
     private final ImageLifecycleService imageLifecycleService;
+    private final BlogDocIndexer blogDocIndexer;
 
     public void truncate() {
         blogRepository.deleteAll();
-    }
-
-    public Page<BlogDto> findAll(Long userId, Pageable pageable) {
-        Page<Blog> blogs = blogRepository.findAll(pageable);
-        List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
-
-        // 좋아요/북마크 여부를 한 번에 조회 (N+1 해결)
-        Set<Long> likedIds = blogLikeService.findLikedBlogIds(userId, blogIds);
-        Set<Long> bookmarkedIds = blogBookmarkService.findBookmarkedBlogIds(userId, blogIds);
-        // 댓글 수 batch 조회 (N+1 해결)
-        Map<Long, Long> commentCounts = commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
-
-        return blogs.map(blog -> new BlogDto(
-                blog,
-                likedIds.contains(blog.getId()),
-                bookmarkedIds.contains(blog.getId()),
-                commentCounts.getOrDefault(blog.getId(), 0L)
-        ));
     }
 
     @Transactional
@@ -85,6 +66,7 @@ public class BlogService {
 
         blog.publish();
         blog = blogRepository.save(blog);
+        blogDocIndexer.index(blog);
         return new BlogWriteDto(blog);
     }
 
@@ -103,6 +85,7 @@ public class BlogService {
         blog.updateHashtags(hashtags);
 
         blog.publish();
+        blogDocIndexer.index(blog);
         return new BlogModifyDto(blog);
     }
 
@@ -124,6 +107,7 @@ public class BlogService {
         }
         imageLifecycleService.decrementReference(blog.getThumbnailUrl());
         blogRepository.delete(blog);
+        blogDocIndexer.delete(id);
     }
 
     @Transactional
@@ -152,6 +136,8 @@ public class BlogService {
     }
 
     public List<BlogDraftDto> findDraftsByUserId(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
         List<Blog> drafts = blogRepository.findByStatusAndUserId(BlogStatus.DRAFT, userId);
         return drafts.stream()
                 .map(b -> new BlogDraftDto(b))
@@ -159,6 +145,8 @@ public class BlogService {
     }
 
     public List<BlogDto> findAllByMy(Long userId, BlogMySortType sortType) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
         List<Blog> blogs = blogRepository
                 .findAllByUserIdAndStatusWithSort(userId, BlogStatus.PUBLISHED, sortType);
 
@@ -173,5 +161,6 @@ public class BlogService {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
         blogRepository.delete(blog);
+        blogDocIndexer.delete(id);
     }
 }

@@ -1,41 +1,53 @@
 package com.back.domain.blog.blogdoc.dto;
 
 import com.back.domain.blog.blogdoc.document.BlogDoc;
+import com.back.domain.blog.blogdoc.util.EsDateTimeConverter;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public record BlogSummaryResponse(
         Long id,
         Long userId,
         String userNickname,
         String title,
+        String contentPre,
         String thumbnailUrl,
+        List<String> hashtagNames,
         long viewCount,
         long likeCount,
         long bookmarkCount,
-        LocalDateTime createdAt
+        long commentCount,
+        boolean likedByMe,
+        boolean bookmarkedByMe,
+        LocalDateTime createdAt,
+        LocalDateTime modifiedAt
 ) {
-    public BlogSummaryResponse(BlogDoc doc) {
+    public BlogSummaryResponse(BlogDoc doc, Set<Long> likedIds, Set<Long> bookmarkedIds, Map<Long, Long> commentCounts) {
         this(
                 doc.getId(),
                 doc.getUserId(),
                 doc.getUserName(),
                 doc.getTitle(),
+                generateContentPreview(doc.getContent()),
                 doc.getThumbnailUrl(),
+                doc.getHashtagName() != null ? doc.getHashtagName() : List.of(),
                 doc.getViewCount(),
                 doc.getLikeCount(),
                 doc.getBookmarkCount(),
-                parseCreatedAt(doc.getCreatedAt())
+                commentCounts.getOrDefault(doc.getId(), 0L),
+                likedIds.contains(doc.getId()),
+                bookmarkedIds.contains(doc.getId()),
+                EsDateTimeConverter.parseToKst(doc.getCreatedAt()),
+                EsDateTimeConverter.parseToKst(doc.getModifiedAt())
         );
     }
 
-    // ES에서 내려오는 "2025-11-18T16:34:15.449385Z" 파싱 함수
-    public static LocalDateTime parseCreatedAt(String createdAt) {
-        if (createdAt == null) return null;
-        return OffsetDateTime.parse(createdAt)
-                .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
-                .toLocalDateTime();
+    public static String generateContentPreview(String content) {
+        if (content == null) return "";
+        int previewLength = 70;
+        return content.length() <= previewLength ? content : content.substring(0, previewLength) + "...";
     }
 }
