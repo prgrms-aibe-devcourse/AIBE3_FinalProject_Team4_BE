@@ -2,7 +2,7 @@ package com.back.domain.shorlog.shorlogdraft.entity;
 
 import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
-import com.back.global.util.JsonUtil;
+import com.back.global.ut.JsonUtil;
 import jakarta.persistence.*;
 import lombok.*;
 
