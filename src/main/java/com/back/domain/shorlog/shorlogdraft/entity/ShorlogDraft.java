@@ -2,9 +2,11 @@ package com.back.domain.shorlog.shorlogdraft.entity;
 
 import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
-import com.back.global.ut.TimeUtil;
+import com.back.global.ut.JsonUtil;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -43,16 +45,16 @@ public class ShorlogDraft extends BaseEntity {
 
     // Helper 메서드: JSON → List<String>
     public List<String> getThumbnailUrlList() {
-        return TimeUtil.JsonUtil.toStringList(thumbnailUrls);
+        return JsonUtil.toStringList(thumbnailUrls);
     }
 
     // Helper 메서드: List<String> → JSON
     public void setThumbnailUrlList(List<String> urls) {
-        this.thumbnailUrls = TimeUtil.JsonUtil.toJson(urls);
+        this.thumbnailUrls = JsonUtil.toJson(urls);
     }
 
     // Helper 메서드: List<String> → JSON (해시태그)
     public void setHashtagList(List<String> hashtagList) {
-        this.hashtags = TimeUtil.JsonUtil.toJson(hashtagList);
+        this.hashtags = JsonUtil.toJson(hashtagList);
     }
 }
