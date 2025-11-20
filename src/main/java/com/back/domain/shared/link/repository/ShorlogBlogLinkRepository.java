@@ -18,9 +18,9 @@ public interface ShorlogBlogLinkRepository extends JpaRepository<ShorlogBlogLink
     @Query("SELECT sbl.shorlog.id FROM ShorlogBlogLink sbl WHERE sbl.blog.id = :blogId")
     List<Long> findShorlogIdsByBlogId(@Param("blogId") Long blogId);
 
-    boolean existsByShorlogIdAndBlogId(Long shorlogId, Long blogId);
-
     Optional<ShorlogBlogLink> findByShorlogIdAndBlogId(Long shorlogId, Long blogId);
+
+    Optional<ShorlogBlogLink> findByBlogIdAndShorlogId(Long blogId, Long shorlogId);
 
     void deleteByShorlogId(Long shorlogId);
 
