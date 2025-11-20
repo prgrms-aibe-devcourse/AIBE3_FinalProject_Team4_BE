@@ -47,7 +47,7 @@ public class AuthService {
     }
 
     @Transactional
-    public User joinOrLoginOAuth2User(String username, String profileImgUrl) {
+    public User findOrCreateOAuth2User(String username, String profileImgUrl) {
         User user = userRepository.findByUsername(username).orElse(null);
         if(user == null) {
             user = new User(username, profileImgUrl);
@@ -63,6 +63,11 @@ public class AuthService {
         if(!jwtTokenProvider.validateToken(token)) {
             throw new AuthException("400-1", "임시토큰이 만료되었습니다. 처음부터 다시 시도해주세요.");
         }
+
+        userRepository.findByNickname(dto.nickname()).ifPresent(_user -> {
+            throw new AuthException("400-3", "이미 가입된 닉네임입니다.");
+        });
+
         Long userId = jwtTokenProvider.getUserId(token);
         User user = getUserById(userId);
         user.completeOAuth2Join(dto.nickname(), dto.dateOfBirth(), dto.gender());

@@ -82,7 +82,7 @@ public class BlogMediaService {
                     : "동영상 용량은 100MB를 초과할 수 없습니다.");
         }
 
-        // ===== 리사이징 처리 =====
+        // 리사이징 처리
         byte[] uploadBytes;
         try {
             if (mediaKind == MediaKind.IMAGE) {

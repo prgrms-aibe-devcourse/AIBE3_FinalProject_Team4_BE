@@ -15,7 +15,6 @@ public record BlogWriteReqDto(
         String content,
         @NotNull
         BlogStatus status,
-        String thumbnailUrl,
         List<String> hashtagNames
 ) {
 }

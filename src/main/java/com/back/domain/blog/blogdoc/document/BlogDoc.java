@@ -1,57 +1,48 @@
 package com.back.domain.blog.blogdoc.document;
 
-
+import com.back.domain.blog.blog.entity.BlogStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.elasticsearch.annotations.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Document(indexName = "app1_blogs", createIndex = true)
 @Setting(settingPath = "/elasticsearch/settings.json")
-@Mapping(mappingPath = "/elasticsearch/mappings.json")
+@Mapping(mappingPath = "/elasticsearch/blog-mappings.json")
 @Getter
-@Setter
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class BlogDoc {
     @Id
-    private String id;
+    private Long id;
     private Long userId;
+    @Field(type = FieldType.Keyword)
+    private String userName;
 
     private String title;
     private String content;
 
     @Field(type = FieldType.Keyword)
-    private String userName;
-
-
-    @Field(type = FieldType.Keyword)
-    private String thumbnailImage;
-
-    private Long categoryId;
+    private String thumbnailUrl;
 
     @Field(type = FieldType.Keyword)
-    private String categoryName;
-
-//    @Field(type = FieldType.Keyword)
-//    private List<BlogHashtag> hashtagName;
+    private List<String> hashtagName;
 
     @Field(type = FieldType.Keyword)
-    private String status;
+    private BlogStatus status;
 
-    private Integer viewCount;
-    private Integer likeCount;
-    private Integer bookmarkCount;
-    private Integer commentCount;
-
-    @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private LocalDateTime createdAt;
-    @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private LocalDateTime updatedAt;
+    private long viewCount;
+    private long likeCount;
+    private long bookmarkCount;
+    
+    private String createdAt;
+    private String modifiedAt;
 
     @Field(type = FieldType.Text)
     private String searchText;

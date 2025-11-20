@@ -101,8 +101,8 @@ public class AuthController {
 
     @GetMapping("/me")
     @Operation(summary = "프로필 조회")
-    public RsData<UserDto> me(@AuthenticationPrincipal SecurityUser securityUser) {
-        User user = userService.getUserById(securityUser.getId());
+    public RsData<UserDto> me(@AuthenticationPrincipal SecurityUser user1) {
+        User user = userService.getUserById(user1.getId());
         return new RsData<>(
                 "200-1",
                 "사용자 정보입니다.",
