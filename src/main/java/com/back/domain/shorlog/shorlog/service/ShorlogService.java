@@ -7,6 +7,7 @@ import com.back.domain.shared.image.repository.ImageRepository;
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
@@ -35,6 +36,7 @@ public class ShorlogService {
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
     private final ShorlogBookmarkRepository shorlogBookmarkRepository;
+    private final ShorlogBlogLinkRepository shorlogBlogLinkRepository;
     private final HashtagService hashtagService;
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
@@ -104,9 +106,10 @@ public class ShorlogService {
         // 좋아요/북마크 개수 조회
         long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
+        Long linkedBlogId = shorlogBlogLinkRepository.findBlogIdByShorlogId(id).orElse(null);
 
         return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1,
-                (int) likeCount, (int) bookmarkCount);
+                (int) likeCount, (int) bookmarkCount, linkedBlogId);
     }
 
     public Page<ShorlogFeedResponse> getFeed(int page) {
@@ -234,6 +237,8 @@ public class ShorlogService {
         if (!shorlog.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("작성자만 삭제할 수 있습니다.");
         }
+
+        shorlogBlogLinkRepository.deleteByShorlogId(shorlogId);
 
         List<Image> images = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
         for (Image image : images) {

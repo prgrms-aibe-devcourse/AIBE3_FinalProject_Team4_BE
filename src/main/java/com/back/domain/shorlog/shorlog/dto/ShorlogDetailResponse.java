@@ -2,7 +2,7 @@ package com.back.domain.shorlog.shorlog.dto;
 
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+ import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,10 +25,10 @@ public class ShorlogDetailResponse {
     private List<String> hashtags;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
-    private Long connectedBlogId;
+    private Long linkedBlogId;
 
     public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount,
-                                             Integer likeCount, Integer bookmarkCount) {
+                                             Integer likeCount, Integer bookmarkCount, Long linkedBlogId) {
         return new ShorlogDetailResponse(
                 shorlog.getId(),
                 shorlog.getUser().getId(),
@@ -44,7 +44,7 @@ public class ShorlogDetailResponse {
                 hashtags != null ? List.copyOf(hashtags) : List.of(),
                 shorlog.getCreatedAt(),
                 shorlog.getModifiedAt(),
-                null // TODO: 블로그 연결 기능 구현 후
+                linkedBlogId  // null 또는 blogId
         );
     }
 }
