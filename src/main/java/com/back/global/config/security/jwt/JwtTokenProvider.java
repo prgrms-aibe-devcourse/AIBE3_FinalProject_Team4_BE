@@ -63,7 +63,7 @@ public class JwtTokenProvider {
         return Long.parseLong(subject);
     }
 
-    public SecurityUser parseUserFromToken(String token) {
+    public SecurityUser parseUserFromAccessToken(String token) {
         Claims claims  = Jwts.parser()
                 .verifyWith((SecretKey) signingKey)
                 .build()
@@ -71,13 +71,10 @@ public class JwtTokenProvider {
                 .getPayload();
 
         Long userId = Long.parseLong(claims.getSubject());
-        String email = claims.get("email", String.class);
-        String username = claims.get("username", String.class);
-        String nickname = claims.get("nickname", String.class);
         String roleStr = claims.get("role", String.class);
         UserRole role = UserRole.valueOf(roleStr.replace("ROLE_", ""));
 
-        return new SecurityUser(userId, email, username, nickname, role);
+        return new SecurityUser(userId, role);
     }
 
     // 임시 토큰 생성 (소셜 로그인 후 추가 정보 입력용)

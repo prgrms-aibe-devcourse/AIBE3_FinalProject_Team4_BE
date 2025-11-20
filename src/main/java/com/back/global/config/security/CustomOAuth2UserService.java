@@ -47,13 +47,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         String username = providerType + "__%s".formatted(oauthUserId);
 
-        User user = userService.joinOrLoginOAuth2User(username, profileImgUrl);
+        User user = userService.findOrCreateOAuth2User(username, profileImgUrl);
 
         return new SecurityUser(
                 user.getId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getNickname(),
                 user.getRole()
         );
     }

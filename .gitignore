@@ -51,3 +51,8 @@ application-secrets.yml
 logstash/.DS_Store
 logstash/lib/
 /logs
+
+# QueryDSL generated
+src/main/generated/
+/build/generated/
+/**/generated/
