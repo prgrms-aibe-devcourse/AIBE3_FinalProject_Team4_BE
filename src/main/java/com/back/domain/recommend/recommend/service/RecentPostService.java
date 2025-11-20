@@ -2,9 +2,7 @@ package com.back.domain.recommend.recommend.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.GetResponse;
-import com.back.domain.blog.blogdoc.document.BlogDoc;
 import com.back.domain.recommend.recommend.type.PostType;
-import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -13,8 +11,11 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+
+import static com.back.domain.recommend.recommend.constants.PostConstants.BLOG_INDEX_NAME;
+import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +33,7 @@ public class RecentPostService {
 
         final int maxRecent = (type == PostType.SHORLOG) ? MAX_SHORLOGS : MAX_BLOGS;
 
-        stringRedisTemplate.opsForList().remove(key, 1, postId);
+        stringRedisTemplate.opsForList().remove(key, 1, postId.toString());
         stringRedisTemplate.opsForList().leftPush(key, postId.toString());
 
         stringRedisTemplate.opsForList().trim(key, 0, maxRecent - 1);
@@ -44,28 +45,31 @@ public class RecentPostService {
 
         final int limit = (type == PostType.SHORLOG) ? MAX_SHORLOGS : MAX_BLOGS;
 
-        return stringRedisTemplate.opsForList().range(key, 0, limit - 1)
+        return Objects.requireNonNull(stringRedisTemplate.opsForList().range(key, 0, limit - 1))
                 .stream()
                 .map(Long::parseLong)
                 .toList();
     }
 
     public List<String> getRecentContents(List<Long> postIds, PostType type) {
+        int limit = (type == PostType.SHORLOG) ? MAX_SHORLOGS : MAX_BLOGS;
+
+        return getRecentContents(postIds, type, limit);
+    }
+
+    public List<String> getRecentContents(List<Long> postIds, PostType type, int limit) {
         if (postIds == null || postIds.isEmpty()) return List.of();
 
-        final int limit = (type == PostType.SHORLOG) ? MAX_SHORLOGS : MAX_BLOGS;
+        if (limit < 1 || limit > MAX_SHORLOGS) {
+            limit = (type == PostType.SHORLOG) ? MAX_SHORLOGS : MAX_BLOGS;
+        }
 
         List<Long> limited = postIds.stream()
                 .limit(limit)
                 .toList();
 
-        Function<Long, String> contentLoader = switch (type) {
-            case SHORLOG -> this::loadShorlogContent;
-            case BLOG -> this::loadBlogContent;
-        };
-
         return limited.stream()
-                .map(contentLoader)
+                .map(postId -> loadContent(postId, type))
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -79,38 +83,21 @@ public class RecentPostService {
         return "user:" + userId + ":recent_" + typeSuffix;
     }
 
-    private String loadShorlogContent(Long shorlogId) {
+    private String loadContent(Long postId, PostType type) {
+        final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
         try {
-            GetResponse<ShorlogDoc> response = esClient.get(
-                    g -> g.index("app1_shorlogs").id(shorlogId.toString()),
-                    ShorlogDoc.class
+            GetResponse<Map> response = esClient.get(
+                    g -> g.index(indexName).id(postId.toString()),
+                    Map.class
             );
 
             if (response.found() && response.source() != null) {
-                return response.source().getContent();
+                return (String) response.source().get("content");
             }
             return null;
 
         } catch (IOException e) {
-            log.error("ES 조회 실패: shorlogId={}", shorlogId, e);
-            return null;
-        }
-    }
-
-    private String loadBlogContent(Long blogId) {
-        try {
-            GetResponse<BlogDoc> response = esClient.get(
-                    g -> g.index("app1_blogs").id(blogId.toString()),
-                    BlogDoc.class
-            );
-
-            if (response.found() && response.source() != null) {
-                return response.source().getContent();
-            }
-            return null;
-
-        } catch (IOException e) {
-            log.error("ES 조회 실패: blogId={}", blogId, e);
+            log.error("ES 조회 실패: id({})={}", type, postId, e);
             return null;
         }
     }

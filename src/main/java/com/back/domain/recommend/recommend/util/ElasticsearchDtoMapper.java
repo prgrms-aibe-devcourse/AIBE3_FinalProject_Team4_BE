@@ -19,4 +19,11 @@ public class ElasticsearchDtoMapper {
         }
         return converter.convert(source, targetClass);
     }
+
+    public <T> T fromSource(Map<String, Object> source, Class<T> targetClass) {
+        if (source == null) {
+            return null;
+        }
+        return converter.convert(source, targetClass);
+    }
 }
