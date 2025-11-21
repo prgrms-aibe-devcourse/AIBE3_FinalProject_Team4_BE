@@ -38,7 +38,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
 
     @Modifying(clearAutomatically = true)
     @Query("""
-            update Blog b set b.bookmarkCount = 
+            update Blog b set b.bookmarkCount =
               case when b.bookmarkCount > 0 then b.bookmarkCount - 1 else 0 end
             where b.id = :blogId
             """)
@@ -54,7 +54,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-            update Blog b set b.likeCount = 
+            update Blog b set b.likeCount =
               case when b.likeCount > 0 then b.likeCount - 1 else 0 end
             where b.id = :blogId
             """)
@@ -69,4 +69,6 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     int countAllByUserId(Long userId);
 
     List<Blog> findByStatusAndModifiedAtBefore(BlogStatus status, LocalDateTime cutoff);
+
+    List<Blog> findRecentBlogsByUserId(Long userId);
 }

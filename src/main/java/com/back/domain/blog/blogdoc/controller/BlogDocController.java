@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RequestMapping("/api/v1/blogs")
-@Tag(name = "Blog ES API", description = "블로그 검색/필터링 API")
+@Tag(name = "Blog ES API", description = "블로그 검색/팔로우/정렬 필터링 API")
 @RestController
 @RequiredArgsConstructor
 @Validated
@@ -32,7 +32,7 @@ public class BlogDocController {
     private final FollowService followService;
 
     @GetMapping
-    @Operation(summary = "블로그 검색", description = "블로그 다건조회/검색/팔로우/정렬 필터링 API")
+    @Operation(summary = "블로그 다건조회/검색", description = "블로그 다건조회/검색/팔로우/정렬 필터링 API")
     public BlogSliceResponse<BlogSummaryResponse> searchBlogs(
             @AuthenticationPrincipal SecurityUser user,
             @RequestParam(required = false) String keyword,
@@ -42,17 +42,17 @@ public class BlogDocController {
             @RequestParam(required = false) String cursor
     ) {
         Long userId = (user != null) ? user.getId() : null;
-        List<Long> authorIds = null;
+        List<Long> followingIds = null;
         if (scope == BlogScope.FOLLOWING) {
             if (userId == null) {
                 throw new ServiceException(BlogErrorCase.LOGIN_REQUIRED);
             }
-            authorIds = followService.findFollowingUserIds(userId);
-            if (authorIds.isEmpty()) {
+            followingIds = followService.findFollowingUserIds(userId);
+            if (followingIds.isEmpty()) {
                 return new BlogSliceResponse<>(List.of(), false, null);
             }
         }
         BlogSearchCondition condition = new BlogSearchCondition(keyword, sort, size, cursor);
-        return blogDocService.searchBlogs(user.getId(), condition, authorIds);
+        return blogDocService.searchBlogs(user.getId(), condition, followingIds);
     }
 }

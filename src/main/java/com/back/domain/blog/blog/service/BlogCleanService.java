@@ -16,7 +16,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class BlogCleanService {
-
     private final BlogRepository blogRepository;
     private final ImageLifecycleService imageLifecycleService;
     private final BlogDocIndexer blogDocIndexer;

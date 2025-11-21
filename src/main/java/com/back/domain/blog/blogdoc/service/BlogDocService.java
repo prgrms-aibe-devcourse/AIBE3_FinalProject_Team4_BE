@@ -26,8 +26,8 @@ public class BlogDocService {
     private final BlogBookmarkService blogBookmarkService;
     private final CommentsService commentsService;
 
-    public BlogSliceResponse<BlogSummaryResponse> searchBlogs(Long userId, BlogSearchCondition condition, @Nullable List<Long> authorIds) {
-        BlogSearchResult result = blogDocQueryRepository.searchBlogs(condition, authorIds);
+    public BlogSliceResponse<BlogSummaryResponse> searchBlogs(Long userId, BlogSearchCondition condition, @Nullable List<Long> followingIds) {
+        BlogSearchResult result = blogDocQueryRepository.searchBlogs(condition, followingIds);
         List<BlogDoc> docs = result.docs();
         if (docs.isEmpty()) {
             return new BlogSliceResponse<>(List.of(), false, null);
