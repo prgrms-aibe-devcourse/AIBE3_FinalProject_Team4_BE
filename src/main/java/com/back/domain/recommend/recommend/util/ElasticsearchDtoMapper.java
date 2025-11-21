@@ -9,7 +9,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class ElasticsearchDtoMapper {
-    private final MapConverter converter;
+    private final MapConverter mapConverter;
 
     public <T> T fromHit(Hit<Map> hit, Class<T> targetClass) {
         Map<String, Object> source = hit.source();
@@ -17,13 +17,14 @@ public class ElasticsearchDtoMapper {
         if (source == null) {
             return null;
         }
-        return converter.convert(source, targetClass);
+        return mapConverter.convert(source, targetClass);
     }
 
     public <T> T fromSource(Map<String, Object> source, Class<T> targetClass) {
         if (source == null) {
             return null;
         }
-        return converter.convert(source, targetClass);
+
+        return mapConverter.convert(source, targetClass);
     }
 }

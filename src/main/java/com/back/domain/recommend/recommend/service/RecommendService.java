@@ -8,18 +8,11 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.get.GetResult;
 import co.elastic.clients.elasticsearch.core.mget.MultiGetResponseItem;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.back.domain.recommend.recommend.constants.EmbeddingConstants;
-import com.back.domain.recommend.recommend.type.PostType;
 import com.back.domain.recommend.recommend.util.ElasticsearchDtoMapper;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static com.back.domain.recommend.recommend.constants.PostConstants.BLOG_INDEX_NAME;
 import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
@@ -44,12 +36,11 @@ import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLO
 @RequiredArgsConstructor
 @Slf4j
 public class RecommendService {
-
     private final ElasticsearchOperations elasticsearchOperations;
     private final ElasticsearchClient esClient;
     private final ElasticsearchDtoMapper esDtoMapper;
 
-    private final RecentPostService recentPostService;
+    private final RecentViewService recentViewService;
 
     public List<ShorlogDoc> getFeedWithNativeQuery(int page, int size) {
 
@@ -87,51 +78,13 @@ public class RecommendService {
         return result.get().map(SearchHit::getContent).toList();
     }
 
-    public void searchKnn(Long userId, int pageNumber, int pageSize, PostType type) {
-        List<Long> recentPostIds = recentPostService.getRecentPosts(userId, PostType.SHORLOG);
-        List<String> recentContents = recentPostService.getRecentContents(recentPostIds, PostType.SHORLOG);
-        float[] userVector = computeUserVector(recentPostIds);
+    public <T> Page<T> getPostsOrderByRecommend(String guestId, Long userId, int pageNumber, int pageSize, boolean isShorlog, Class<T> targetClazz) {
 
-        final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
-
-        String vectorContent = IntStream.range(0, userVector.length)
-                .mapToObj(i -> String.valueOf(userVector[i]))
-                .collect(Collectors.joining(", "));
-        log.info("vectorContent: {}, ...", String.valueOf(userVector[0]));
-
-        String jsonQuery = """
-                {
-                  "knn": {
-                    "field": "content_embedding",
-                    "query_vector": [%s],
-                    "k": 10,
-                    "num_candidates": 100
-                  }
-                }
-                """.formatted(vectorContent);
-
-        RestClientTransport transport = (RestClientTransport) esClient._transport();
-        RestClient restClient = transport.restClient();
-
-        Request request = new Request("POST", "/" + indexName + "/_knn_search");
-        request.setJsonEntity(jsonQuery);
-
-        try {
-            Response response = restClient.performRequest(request);
-            String responseBody = EntityUtils.toString(response.getEntity());
-            log.info("Elasticsearch Raw Response:\n" + responseBody);
-            log.info("userVector magnitude: {}", isVectorValid(userVector) ? "Valid" : "Invalid");
-        } catch (IOException e) {
-            throw new RuntimeException("Low-Level ES Search Error", e);
-        }
-    }
-
-    public Page<ShorlogDoc> getPostsOrderByRecommendation(Long userId, int pageNumber, int pageSize, PostType type) {
-        List<Long> recentPostIds = recentPostService.getRecentPosts(userId, PostType.SHORLOG);
-        List<String> recentContents = recentPostService.getRecentContents(recentPostIds, PostType.SHORLOG, 3);
+        List<Long> recentPostIds = recentViewService.getRecentPosts(guestId, userId, isShorlog);
+        List<String> recentContents = recentViewService.getRecentContents(isShorlog, recentPostIds, 3);
 //        float[] userVector = computeUserVector(recentPostIds);
 
-        final String indexName = (type == PostType.SHORLOG) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
+        final String indexName = (isShorlog) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
 
 ////        List<Float> userVectorList = ArrayConverter.toFloatList(userVector);
 //        List<Float> userVectorList = IntStream.range(0, userVector.length)
@@ -139,7 +92,7 @@ public class RecommendService {
 //                .toList();
 
 
-        // 매핑 이슈 해결 위해 우선 Map으로 받기
+        // ElasticsearchClient의 DTO 매핑 이슈 해결 위해 우선 Map으로 받기
         SearchResponse<Map> response;
 
         try {
@@ -200,7 +153,7 @@ public class RecommendService {
             throw new RuntimeException(e);
         }
 
-        return convertToPage(response, ShorlogDoc.class, pageNumber, pageSize);
+        return convertToPage(response, targetClazz, pageNumber, pageSize);
     }
 
     private List<Query> buildRecentMLTQueries(List<String> recentContents, List<Long> recentPostIds) {
@@ -241,7 +194,6 @@ public class RecommendService {
     }
 
     private <T> Page<T> convertToPage(SearchResponse<Map> response, Class<T> targetClass, int pageNumber, int pageSize) {
-
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
         List<T> content = response.hits().hits().stream()
@@ -256,36 +208,18 @@ public class RecommendService {
         return new PageImpl<>(content, pageable, totalHits);
     }
 
-    private <T> Page<T> convertToPage(SearchResponse<T> response, int pageNumber, int pageSize) {
-
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-
-        List<T> content = response.hits().hits().stream()
-                .map(Hit::source)
-                .filter(Objects::nonNull)
-                .toList();
-
-        long totalHits = response.hits().total() != null
-                ? response.hits().total().value()
-                : content.size();
-
-        return new PageImpl<>(content, pageable, totalHits);
-    }
-
-    public float[] computeUserVector(List<Long> recentIds) {
-
+    public float[] computeUserVector(List<Long> recentPostIds) {
         int defaultDim = EmbeddingConstants.EMBEDDING_DIM;
 
-        if (recentIds == null || recentIds.isEmpty()) {
+        if (recentPostIds == null || recentPostIds.isEmpty()) {
             return new float[defaultDim];
         }
 
         List<ShorlogDoc> docs;
-
         try {
             var response = esClient.mget(m -> m
                             .index(SHORLOG_INDEX_NAME)
-                            .ids(recentIds.stream().map(String::valueOf).toList()),
+                            .ids(recentPostIds.stream().map(String::valueOf).toList()),
                     Map.class
             );
 
@@ -307,7 +241,7 @@ public class RecommendService {
             return new float[defaultDim];
         }
 
-        int dim = docs.get(0).getContentEmbedding().length;
+        int dim = docs.getFirst().getContentEmbedding().length;
         float[] avg = new float[dim];
 
         for (ShorlogDoc doc : docs) {
@@ -324,7 +258,7 @@ public class RecommendService {
         return avg;
     }
 
-    private boolean isVectorValid(float[] vector) {
+    private boolean isValidVector(float[] vector) {
         if (vector == null || vector.length == 0) {
             return false;
         }

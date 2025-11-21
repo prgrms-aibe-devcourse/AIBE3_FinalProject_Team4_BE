@@ -11,6 +11,10 @@ public class Rq {
     private final HttpServletResponse httpServletResponse;
 
     public void setCookie(String name, String value) {
+        setCookie(name, value, -1); // session cookie
+    }
+
+    public void setCookie(String name, String value, int maxAge) {
         if (value == null) value = "";
 
         Cookie cookie = new Cookie(name, value);
@@ -18,14 +22,12 @@ public class Rq {
         cookie.setSecure(true);
         cookie.setPath("/");
 
-        if (value.isBlank()) {
-            cookie.setMaxAge(0);
-        }
+        cookie.setMaxAge(maxAge);
 
         httpServletResponse.addCookie(cookie);
     }
 
     public void deleteCookie(String name) {
-        setCookie(name, null);
+        setCookie(name, null, 0);
     }
 }
