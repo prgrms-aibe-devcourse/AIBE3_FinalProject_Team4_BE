@@ -1,4 +1,4 @@
-package com.back.global.util;
+package com.back.global.ut;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -36,4 +36,3 @@ public class JsonUtil {
         }
     }
 }
-
