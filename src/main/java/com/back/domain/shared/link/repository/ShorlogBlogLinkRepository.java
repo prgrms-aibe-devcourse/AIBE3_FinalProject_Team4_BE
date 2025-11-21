@@ -20,10 +20,12 @@ public interface ShorlogBlogLinkRepository extends JpaRepository<ShorlogBlogLink
 
     Optional<ShorlogBlogLink> findByShorlogIdAndBlogId(Long shorlogId, Long blogId);
 
-    Optional<ShorlogBlogLink> findByBlogIdAndShorlogId(Long blogId, Long shorlogId);
-
     void deleteByShorlogId(Long shorlogId);
 
     void deleteByBlogId(Long blogId);
+
+    int countByBlogId(Long blogId);
+
+    boolean findByBlogId(Long blogId);
 }
 

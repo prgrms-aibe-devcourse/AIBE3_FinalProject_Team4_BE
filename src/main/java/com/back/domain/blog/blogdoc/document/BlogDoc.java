@@ -1,12 +1,12 @@
 package com.back.domain.blog.blogdoc.document;
 
+import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.elasticsearch.annotations.*;
 
 import java.util.List;
@@ -40,16 +40,30 @@ public class BlogDoc {
     private long viewCount;
     private long likeCount;
     private long bookmarkCount;
-    
+
     private String createdAt;
     private String modifiedAt;
 
-    @Field(type = FieldType.Text)
-    private String searchText;
-    @Field(type = FieldType.Keyword)
-    private List<Long> followerIds;
-
-    @Transient
-    private Object[] sortValues;
-
+    public static BlogDoc from(Blog blog) {
+        List<String> hashtagNames = blog.getBlogHashtags().stream()
+                .map(bh -> bh.getHashtag().getName())
+                .toList();
+        String createdAt = blog.getCreatedAt() != null ? blog.getCreatedAt().toString() : null;
+        String modifiedAt = blog.getModifiedAt() != null ? blog.getModifiedAt().toString() : null;
+        return new BlogDoc(
+                blog.getId(),
+                blog.getUser().getId(),
+                blog.getUser().getNickname(),
+                blog.getTitle(),
+                blog.getContent(),
+                blog.getThumbnailUrl(),
+                hashtagNames,
+                blog.getStatus(),
+                blog.getViewCount(),
+                blog.getLikeCount(),
+                blog.getBookmarkCount(),
+                createdAt,
+                modifiedAt
+        );
+    }
 }

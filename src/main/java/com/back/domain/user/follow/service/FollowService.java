@@ -30,7 +30,6 @@ public class FollowService {
 
     @Transactional
     public Follow follow(Long followerId, Long followingId) {
-
         if (followerId.equals(followingId)) {
             throw new ServiceException(FollowErrorCase.CANNOT_FOLLOW_YOURSELF);
         }
@@ -64,7 +63,6 @@ public class FollowService {
     public void unfollow(Long followerId, Long followingId) {
         Follow follow = followRepository.findByFromUserIdAndToUserId(followerId, followingId)
                 .orElseThrow(() -> new ServiceException(FollowErrorCase.NOT_EXISTING_FOLLOW));
-
         followRepository.delete(follow);
     }
 
@@ -114,5 +112,9 @@ public class FollowService {
         long followersCount = followRepository.countByToUserId(userId);
         long followingsCount = followRepository.countByFromUserId(userId);
         return new FollowCountResponseDto(followersCount, followingsCount);
+    }
+
+    public List<Long> findFollowingUserIds(Long id) {
+        return followRepository.findFollowingIdsByUserId(id);
     }
 }
