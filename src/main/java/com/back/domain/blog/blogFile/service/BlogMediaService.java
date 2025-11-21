@@ -15,7 +15,6 @@ import com.back.domain.blog.blogFile.util.VideoResizeUtil;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
-import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +46,6 @@ public class BlogMediaService {
     private final BlogFileRepository blogFileRepository;
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
-    private final ImageLifecycleService imageLifecycleService;
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
     private final VideoResizeUtil videoResizeUtil;
@@ -55,14 +53,8 @@ public class BlogMediaService {
     private String bucket;
 
     @Transactional
-    public BlogMediaUploadResponse uploadBlogMedia(
-            Long userId,
-            Long blogId,
-            MultipartFile file,
-            ImageType type, // THUMBNAIL, CONTENT
-            String aspectRatios) {
+    public BlogMediaUploadResponse uploadBlogMedia(Long userId, Long blogId, MultipartFile file, ImageType type, String aspectRatios) {
         validateFile(file);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 

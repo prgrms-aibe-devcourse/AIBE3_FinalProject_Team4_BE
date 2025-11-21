@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +38,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
 
     @Modifying(clearAutomatically = true)
     @Query("""
-            update Blog b set b.bookmarkCount = 
+            update Blog b set b.bookmarkCount =
               case when b.bookmarkCount > 0 then b.bookmarkCount - 1 else 0 end
             where b.id = :blogId
             """)
@@ -53,7 +54,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-            update Blog b set b.likeCount = 
+            update Blog b set b.likeCount =
               case when b.likeCount > 0 then b.likeCount - 1 else 0 end
             where b.id = :blogId
             """)
@@ -66,4 +67,8 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     Optional<Long> getBookmarkCountById(Long blogId);
 
     int countAllByUserId(Long userId);
+
+    List<Blog> findByStatusAndModifiedAtBefore(BlogStatus status, LocalDateTime cutoff);
+
+    List<Blog> findRecentBlogsByUserId(Long userId);
 }

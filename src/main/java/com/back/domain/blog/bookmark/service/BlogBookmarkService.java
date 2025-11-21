@@ -33,11 +33,9 @@ public class BlogBookmarkService {
         if (bookmarkRepository.existsByBlog_IdAndUser_Id(blogId, userId)) {
             return true;
         }
-        // blog 조회 (receiver 확인 필요)
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new IllegalArgumentException("블로그 게시글을 찾을 수 없습니다."));
 
-        // 자기 글 북마크 금지
         if (blog.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("본인의 글은 북마크할 수 없습니다.");
         }
@@ -54,10 +52,10 @@ public class BlogBookmarkService {
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
             notificationService.send(
-                    blog.getUser().getId(),          // receiver
-                    userId,                          // sender
-                    NotificationType.BLOG_BOOKMARK,  // type
-                    blogId,                          // targetId
+                    blog.getUser().getId(),
+                    userId,
+                    NotificationType.BLOG_BOOKMARK,
+                    blogId,
                     sender.getNickname()
             );
         } catch (

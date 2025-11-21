@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public enum BlogLinkErrorCase implements ErrorCase {
+public enum LinkErrorCase implements ErrorCase {
 
     SHORLOG_NOT_FOUND(HttpStatus.NOT_FOUND, 1, "숏로그를 찾을 수 없습니다."),
     BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, 2, "블로그를 찾을 수 없습니다."),
