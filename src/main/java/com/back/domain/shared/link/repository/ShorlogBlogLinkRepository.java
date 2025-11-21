@@ -25,5 +25,7 @@ public interface ShorlogBlogLinkRepository extends JpaRepository<ShorlogBlogLink
     void deleteByBlogId(Long blogId);
 
     int countByBlogId(Long blogId);
+
+    boolean findByBlogId(Long blogId);
 }
 

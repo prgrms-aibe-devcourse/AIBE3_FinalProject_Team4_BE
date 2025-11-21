@@ -89,7 +89,6 @@ public class ShorlogBlogLinkService {
         if (!shorlog.getUser().getId().equals(userId)) {
             throw new ServiceException(LinkErrorCase.FORBIDDEN);
         }
-        // 숏로그가 이미 다른 블로그와 연결되어 있는지 확인
         shorlogBlogLinkRepository.findByShorlogIdAndBlogId(shorlogId, blogId)
                 .ifPresent(existingLink -> {
                     throw new ServiceException(LinkErrorCase.ALREADY_LINKED);
@@ -101,6 +100,7 @@ public class ShorlogBlogLinkService {
         return new BlogShorlogLinkResponse(blogId, shorlogId, true, count);
     }
 
+    @Transactional
     public BlogShorlogLinkResponse unlinkShorlog(Long blogId, Long shorlogId, Long userId) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(LinkErrorCase.BLOG_NOT_FOUND));
@@ -111,9 +111,11 @@ public class ShorlogBlogLinkService {
                 .orElseThrow(() -> new ServiceException(LinkErrorCase.LINK_NOT_FOUND));
         shorlogBlogLinkRepository.delete(link);
         int count = shorlogBlogLinkRepository.countByBlogId(blogId);
-        return new BlogShorlogLinkResponse(blogId, shorlogId, false, count);
+        boolean linked = count > 0;
+        return new BlogShorlogLinkResponse(blogId, shorlogId, linked, count);
     }
 
+    // TODO: size 적용 혹은 페이지네이션
     public List<MyBlogSummaryResponse> getRecentBlogByAuthor(Long userId, int size) {
         List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId);
         return blogs.stream()
