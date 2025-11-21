@@ -24,4 +24,7 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
             group by c.targetId
             """)
     List<Object[]> countByTargetIdsAndType(@Param("targetIds") List<Long> targetIds, CommentsTargetType targetType);
+
+    // 단일 댓글 수 조회
+    Long countByTargetTypeAndTargetId(CommentsTargetType targetType, Long targetId);
 }

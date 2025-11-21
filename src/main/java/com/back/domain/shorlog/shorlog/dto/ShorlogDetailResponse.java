@@ -28,7 +28,7 @@ public class ShorlogDetailResponse {
     private Long linkedBlogId;
 
     public static ShorlogDetailResponse from(Shorlog shorlog, List<String> hashtags, Integer viewCount,
-                                             Integer likeCount, Integer bookmarkCount, Long linkedBlogId) {
+                                             Integer likeCount, Integer bookmarkCount, Integer commentCount, Long linkedBlogId) {
         return new ShorlogDetailResponse(
                 shorlog.getId(),
                 shorlog.getUser().getId(),
@@ -40,7 +40,7 @@ public class ShorlogDetailResponse {
                 viewCount,
                 likeCount,
                 bookmarkCount,
-                0, // TODO: 댓글 기능 구현 후 (4번 이해민)
+                commentCount,
                 hashtags != null ? List.copyOf(hashtags) : List.of(),
                 shorlog.getCreatedAt(),
                 shorlog.getModifiedAt(),

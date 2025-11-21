@@ -1,5 +1,7 @@
 package com.back.domain.shorlog.shorlog.service;
 
+import com.back.domain.comments.comments.entity.CommentsTargetType;
+import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.entity.Image;
@@ -7,6 +9,9 @@ import com.back.domain.shared.image.repository.ImageRepository;
 import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
+import com.back.domain.shorlog.shorlog.event.ShorlogCreatedEvent;
+import com.back.domain.shorlog.shorlog.event.ShorlogDeletedEvent;
+import com.back.domain.shorlog.shorlog.event.ShorlogUpdatedEvent;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
@@ -16,10 +21,11 @@ import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepositor
 import com.back.domain.shorlog.shorlogimage.entity.ShorlogImages;
 import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
+import com.back.domain.user.follow.repository.FollowRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
-import com.back.domain.user.follow.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +51,8 @@ public class ShorlogService {
     private final ShorlogImagesRepository shorlogImagesRepository;
     private final ShorlogDocService shorlogDocService;
     private final FollowRepository followRepository;
+    private final CommentsService commentsService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -86,12 +94,7 @@ public class ShorlogService {
                 .map(Image::getS3Url)
                 .toList();
 
-        // 대표 썸네일 (첫 번째 이미지)
-        String thumbnailUrl = !thumbnailUrls.isEmpty() ? thumbnailUrls.get(0) : null;
-
-        // User 정보 직접 전달 (Lazy Loading 회피)
-        shorlogDocService.indexShorlog(savedShorlog, thumbnailUrl,
-                user.getId(), user.getNickname(), user.getProfileImgUrl());
+        eventPublisher.publishEvent(new ShorlogCreatedEvent(savedShorlog.getId()));
 
         return CreateShorlogResponse.of(savedShorlog, hashtagNames, thumbnailUrls);
     }
@@ -104,6 +107,9 @@ public class ShorlogService {
         // 조회수 증가 (Bulk Update - 영속성 컨텍스트를 거치지 않는 방식)
         shorlogRepository.incrementViewCount(id);
 
+        // Elasticsearch 동기화 (조회수)
+        shorlogDocService.updateElasticsearchCounts(id);
+
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
 
         // 좋아요/북마크 개수 조회
@@ -111,8 +117,15 @@ public class ShorlogService {
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
         Long linkedBlogId = shorlogBlogLinkRepository.findBlogIdByShorlogId(id).orElse(null);
 
+        // 댓글 수 조회
+        Long commentCountLong = commentsService.getCommentCounts(
+                List.of(id),
+                CommentsTargetType.SHORLOG
+        ).getOrDefault(id, 0L);
+        int commentCount = commentCountLong.intValue();
+
         return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1,
-                (int) likeCount, (int) bookmarkCount, linkedBlogId);
+                (int) likeCount, (int) bookmarkCount, commentCount, linkedBlogId);
     }
 
     public Page<ShorlogFeedResponse> getFeed(int page) {
@@ -122,10 +135,17 @@ public class ShorlogService {
         // 현재: 최신순 정렬
         Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
+        // 댓글 수 대량 조회
+        List<Long> shorlogIds = shorlogs.stream()
+                .map(Shorlog::getId)
+                .toList();
+        var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
+
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
+            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
     }
 
@@ -139,10 +159,16 @@ public class ShorlogService {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
         Page<Shorlog> shorlogs = shorlogRepository.findByFollowingUsers(followingUserIds, pageable);
 
+        List<Long> shorlogIds = shorlogs.stream()
+                .map(Shorlog::getId)
+                .toList();
+        var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
+
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
+            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
     }
 
@@ -157,10 +183,16 @@ public class ShorlogService {
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
+        List<Long> shorlogIds = shorlogs.stream()
+                .map(Shorlog::getId)
+                .toList();
+        var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
+
         return shorlogs.map(shorlog -> {
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
+            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
     }
 
@@ -216,16 +248,7 @@ public class ShorlogService {
                 .map(Image::getS3Url)
                 .toList();
 
-        // 대표 썸네일 (첫 번째 이미지)
-        String thumbnailUrl = !thumbnailUrls.isEmpty() ? thumbnailUrls.get(0) : null;
-
-        // User 정보 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
-
-        // User 정보 직접 전달 (Lazy Loading 회피)
-        shorlogDocService.indexShorlog(shorlog, thumbnailUrl,
-                user.getId(), user.getNickname(), user.getProfileImgUrl());
+        eventPublisher.publishEvent(new ShorlogUpdatedEvent(shorlogId));
 
         return UpdateShorlogResponse.of(shorlog, hashtagNames, thumbnailUrls);
     }
@@ -246,7 +269,7 @@ public class ShorlogService {
             imageRepository.decrementReferenceCount(image.getId());
         }
 
-        shorlogDocService.deleteShorlog(shorlogId);
+        eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
 
         shorlogRepository.delete(shorlog);
     }
@@ -293,7 +316,7 @@ public class ShorlogService {
                     Long shorlogId = Long.parseLong(doc.getId());
 
                     if (!shorlogRepository.existsById(shorlogId)) {
-                        shorlogDocService.deleteShorlog(shorlogId);
+                        eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
                         return null;
                     }
 

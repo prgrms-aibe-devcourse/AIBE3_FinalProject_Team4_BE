@@ -1,5 +1,7 @@
 package com.back.domain.shorlog.shorlogbookmark.service;
 
+import com.back.domain.comments.comments.entity.CommentsTargetType;
+import com.back.domain.comments.comments.service.CommentsService;
 import com.back.domain.notification.entity.NotificationType;
 import com.back.domain.notification.service.NotificationService;
 import com.back.domain.shorlog.shorlog.dto.ShorlogFeedResponse;
@@ -35,6 +37,7 @@ public class ShorlogBookmarkService {
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
     private final NotificationService notificationService;
+    private final CommentsService commentsService;
 
     private static final int BOOKMARK_PAGE_SIZE = 30; // 6열 격자형 피드 (30개씩)
 
@@ -99,12 +102,18 @@ public class ShorlogBookmarkService {
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
+        List<Long> shorlogIds = bookmarkPage.stream()
+                .map(bookmark -> bookmark.getShorlog().getId())
+                .toList();
+        var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
+
         // ShorlogBookmark -> ShorlogFeedResponse 변환
         Page<ShorlogFeedResponse> responsePage = bookmarkPage.map(bookmark -> {
             Shorlog shorlog = bookmark.getShorlog();
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount);
+            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();  // ⭐ 댓글 수
+            return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
 
         return BookmarkListResponse.from(responsePage);
