@@ -59,7 +59,6 @@ public class ApiV1ShorlogController {
             @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
-        // TODO: 팔로우 API 연동 (Issue #12 - 1번 주권영)
         return RsData.successOf(shorlogService.getFollowingFeed(securityUser.getId(), page));
     }
 
