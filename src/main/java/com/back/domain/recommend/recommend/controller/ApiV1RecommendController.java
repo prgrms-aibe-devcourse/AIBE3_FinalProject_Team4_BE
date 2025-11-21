@@ -2,23 +2,30 @@ package com.back.domain.recommend.recommend.controller;
 
 import com.back.domain.recommend.recommend.PageResponse;
 import com.back.domain.recommend.recommend.PostService;
-import com.back.domain.recommend.recommend.service.RecentPostService;
+import com.back.domain.recommend.recommend.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
-import com.back.domain.recommend.recommend.type.PostType;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
+import com.back.global.config.security.SecurityUser;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ApiV1RecommendController {
+    public static final String GUEST_COOKIE_NAME = "guestId";
+    public static final int GUEST_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일
+
+    private final Rq rq;
     private final PostService postService;
     private final RecommendService recommendService;
-    private final RecentPostService recentPostService;
+    private final RecentViewService recentViewService;
 
     @GetMapping("/test/es-save")
     public void save() {
@@ -36,21 +43,42 @@ public class ApiV1RecommendController {
         return recommendService.getFeedWithNativeQuery(page, size);
     }
 
-    @GetMapping("/test/feed-json-knn")
-    public void searchKnn3(@RequestParam(defaultValue = "0") int page,
-                           @RequestParam(defaultValue = "10") int size) {
-        recommendService.searchKnn(1L, page, size, PostType.SHORLOG);
-    }
-
     @GetMapping("/posts/feed")
-    public PageResponse<ShorlogDoc> mainFeed(@RequestParam(defaultValue = "0") int page,
+    public PageResponse<ShorlogDoc> mainFeed(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+                                             @AuthenticationPrincipal SecurityUser securityUser,
+                                             @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "10") int size) {
-        return PageResponse.from(recommendService.getPostsOrderByRecommendation(1L, page, size, PostType.SHORLOG));
+        Long userId = (securityUser == null) ? 0 : securityUser.getId();
+        return PageResponse.from(recommendService.getPostsOrderByRecommend(guestId, userId, page, size, true, ShorlogDoc.class));
     }
 
-    @GetMapping("/posts/{postId}/view")
-    public RsData<Void> viewPost(@PathVariable long postId, @RequestParam PostType type) {
-        recentPostService.addRecentPost(1L, postId, type);
+    @GetMapping("/shorlog/{postId}/view")
+    public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+                                    @AuthenticationPrincipal SecurityUser securityUser,
+                                    @PathVariable Long postId) {
+        boolean isVisited = (guestId != null);
+        if (!isVisited) {
+            guestId = UUID.randomUUID().toString();
+            rq.setCookie(GUEST_COOKIE_NAME, guestId, GUEST_COOKIE_MAX_AGE);
+        }
+
+        boolean isGuest = (securityUser == null);
+        Long userId = (isGuest) ? 0 : securityUser.getId();
+        if (isGuest) {
+            System.out.println("🧑 비로그인 사용자"); ////////////////
+        }
+        recentViewService.addRecentPost(isGuest, userId, guestId, true, postId);
+
+        if (isVisited && !isGuest) {
+            recentViewService.mergeRecentPosts(guestId, userId, true);
+            rq.deleteCookie(GUEST_COOKIE_NAME);
+        }
+
+        return RsData.successOf(null);
+    }
+
+    @GetMapping("/blogs/{postId}/view")
+    public RsData<Void> viewBlog() {
         return RsData.successOf(null);
     }
 }
