@@ -3,7 +3,6 @@ package com.back.domain.recommend.recommend.service;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.get.GetResult;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.back.domain.recommend.recommend.constants.PostConstants.BLOG_INDEX_NAME;
 import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
@@ -157,27 +157,34 @@ public class RecommendService {
     }
 
     private List<Query> buildRecentMLTQueries(List<String> recentContents, List<Long> recentPostIds) {
-        return recentContents.stream()
-                .map(recentContent -> {
+        return IntStream.range(0, recentContents.size())
+                .mapToObj(i -> {
+                    String recentContent = recentContents.get(i);
+
+                    // 순서에 따른 weight 적용
+                    float weight = switch (i) {
+                        case 0 -> 1.0f;
+                        case 1 -> 0.7f;
+                        case 2 -> 0.5f;
+                        default -> 0.1f;
+                    };
+
                     // 최근 본 게시물과 유사한 게시물
                     Query mltQuery = buildMLTQuery(recentContent);
 
                     // 최근 본 게시물은 패널티
                     return Query.of(q -> q.functionScore(fs -> fs
                             .query(mltQuery)
+                            .boost(weight)
                             .functions(f -> f
                                     .filter(fq -> fq.terms(t -> t
                                                     .field("id")
-                                                    .terms(tf -> tf.value(
-                                                            recentPostIds.stream()
-                                                                    .map(FieldValue::of)
-                                                                    .toList()
-                                                    ))
+                                                    .terms(tf -> tf.value(recentPostIds.stream()
+                                                            .map(FieldValue::of).toList()))
                                             )
                                     )
-                                    .weight(0.0)
+                                    .weight(0.5)
                             )
-                            .scoreMode(FunctionScoreMode.Multiply)
                     ));
                 })
                 .collect(Collectors.toList());
@@ -185,11 +192,10 @@ public class RecommendService {
 
     private Query buildMLTQuery(String content) {
         return Query.of(q -> q.moreLikeThis(mlt -> mlt
-                .fields("content", "hashtags")
-                .like(l -> l.text(content))
-                .minTermFreq(1)
-                .minDocFreq(1)
-                .boost(3.0f)
+                        .fields("content", "hashtags")
+                        .like(l -> l.text(content))
+                        .minTermFreq(1)
+                        .minDocFreq(1)
         ));
     }
 

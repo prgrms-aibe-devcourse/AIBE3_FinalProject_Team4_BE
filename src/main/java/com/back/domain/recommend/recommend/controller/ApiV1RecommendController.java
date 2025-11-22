@@ -58,6 +58,7 @@ public class ApiV1RecommendController {
                                     @PathVariable Long postId) {
         boolean isVisited = (guestId != null);
         if (!isVisited) {
+            System.out.println("🧑 첫 방문"); ////////////////
             guestId = UUID.randomUUID().toString();
             rq.setCookie(GUEST_COOKIE_NAME, guestId, GUEST_COOKIE_MAX_AGE);
         }
