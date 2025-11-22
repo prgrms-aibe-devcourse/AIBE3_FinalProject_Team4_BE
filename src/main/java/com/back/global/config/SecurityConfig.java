@@ -36,7 +36,8 @@ public class SecurityConfig {
             "/",
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/api/v1/blogs/**"          // TODO: 추후 인증 필요
+            "/api/v1/blogs/**",         // TODO: 추후 인증 필요
+            "/share/**"                 // Open Graph 공유 미리보기
     };
 
     // 공개된 API URL 패턴 [GET 요청에 한함]
