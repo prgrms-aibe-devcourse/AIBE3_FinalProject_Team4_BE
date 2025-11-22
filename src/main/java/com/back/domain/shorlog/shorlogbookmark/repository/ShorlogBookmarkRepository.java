@@ -5,6 +5,7 @@ import com.back.domain.shorlog.shorlogbookmark.entity.ShorlogBookmark;
 import com.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,6 +28,9 @@ public interface ShorlogBookmarkRepository extends JpaRepository<ShorlogBookmark
            "WHERE sb.user = :user " +
            "ORDER BY sb.createdAt DESC")
     Page<ShorlogBookmark> findByUserOrderByCreatedAtDesc(@Param("user") User user, Pageable pageable);
+
+    @EntityGraph(attributePaths = "shorlog")
+    Page<ShorlogBookmark> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     @Query("SELECT sb FROM ShorlogBookmark sb " +
            "JOIN FETCH sb.shorlog s " +

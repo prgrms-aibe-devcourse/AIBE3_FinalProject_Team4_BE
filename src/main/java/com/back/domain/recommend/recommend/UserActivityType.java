@@ -8,11 +8,11 @@ import java.time.temporal.ChronoUnit;
 @Getter
 public enum UserActivityType {
 
-    LIKE(          // 좋아요, 북마크
-            20,    // limit
-            3.0f,  // weight
-            1.0f,  // penaltyWeight
-            30     // max days
+    LIKE(
+            20,
+            3.0f,
+            1.0f,
+            30
     ),
 
     COMMENT(
