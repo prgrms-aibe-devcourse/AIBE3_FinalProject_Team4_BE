@@ -2,6 +2,7 @@ package com.back.domain.recommend.recommend.controller;
 
 import com.back.domain.recommend.recommend.PageResponse;
 import com.back.domain.recommend.recommend.PostService;
+import com.back.domain.recommend.recommend.PostType;
 import com.back.domain.recommend.recommend.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
@@ -12,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -37,19 +37,13 @@ public class ApiV1RecommendController {
         postService.deleteAll();
     }
 
-    @GetMapping("/test/feed-native")
-    public List<ShorlogDoc> mainFeedWithNativeQuery(@RequestParam(defaultValue = "0") int page,
-                                                    @RequestParam(defaultValue = "10") int size) {
-        return recommendService.getFeedWithNativeQuery(page, size);
-    }
-
     @GetMapping("/posts/feed")
     public PageResponse<ShorlogDoc> mainFeed(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                              @AuthenticationPrincipal SecurityUser securityUser,
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "10") int size) {
         Long userId = (securityUser == null) ? 0 : securityUser.getId();
-        return PageResponse.from(recommendService.getPostsOrderByRecommend(guestId, userId, page, size, true, ShorlogDoc.class));
+        return PageResponse.from(recommendService.getPostsOrderByRecommend(guestId, userId, page, size, PostType.SHORLOG, ShorlogDoc.class));
     }
 
     @GetMapping("/shorlog/{postId}/view")
@@ -68,10 +62,10 @@ public class ApiV1RecommendController {
         if (isGuest) {
             System.out.println("🧑 비로그인 사용자"); ////////////////
         }
-        recentViewService.addRecentPost(isGuest, userId, guestId, true, postId);
+        recentViewService.addRecentPost(isGuest, userId, guestId, PostType.SHORLOG, postId);
 
         if (isVisited && !isGuest) {
-            recentViewService.mergeRecentPosts(guestId, userId, true);
+            recentViewService.mergeRecentPosts(guestId, userId, PostType.SHORLOG);
             rq.deleteCookie(GUEST_COOKIE_NAME);
         }
 
