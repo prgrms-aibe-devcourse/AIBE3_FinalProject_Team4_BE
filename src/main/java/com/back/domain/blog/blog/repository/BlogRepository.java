@@ -2,6 +2,8 @@ package com.back.domain.blog.blog.repository;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -71,4 +73,12 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     List<Blog> findByStatusAndModifiedAtBefore(BlogStatus status, LocalDateTime cutoff);
 
     List<Blog> findRecentBlogsByUserId(Long userId);
+
+    @Query("""
+            SELECT b.id, b.createdAt
+            FROM Blog b
+            WHERE b.user.id = :userId
+            ORDER BY b.id DESC
+            """)
+    Page<Object[]> findUserBlogActivities(@Param("userId") Long userId, Pageable pageable);
 }

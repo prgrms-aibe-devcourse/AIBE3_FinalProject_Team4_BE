@@ -7,29 +7,19 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.back.domain.recommend.recommend.constants.PostConstants.BLOG_INDEX_NAME;
-import static com.back.domain.recommend.recommend.constants.PostConstants.SHORLOG_INDEX_NAME;
-
 @Component
 @RequiredArgsConstructor
 public class RecommendQueryBuilder {
-    public Query buildMLTQuery(
-            boolean isShorlog,
+    public Query buildPersonalizedMLTQuery(
+            PostType postType,
             List<UserActivityDto> liked,
             List<UserActivityDto> bookmarked,
-            List<UserActivityDto> commented,
+            List<UserCommentActivityDto> commented,
             List<UserActivityDto> written
     ) {
 
-        List<String> fields = new ArrayList<>();
-        fields.add("content");
-        if (isShorlog) {
-            fields.add("hashtags");
-        } else {
-            fields.addAll(List.of("title", "hashtagName"));
-        }
-
-        String indexName = (isShorlog) ? SHORLOG_INDEX_NAME : BLOG_INDEX_NAME;
+        List<String> fields = postType.getSearchFields();
+        String indexName = postType.getIndexName();
 
         List<Query> shouldQueries = new ArrayList<>();
 
@@ -68,8 +58,10 @@ public class RecommendQueryBuilder {
         }
 
         // 댓글 기반
-        for (UserActivityDto u : commented) {
+        for (UserCommentActivityDto u : commented) {
             float weight = UserActivityType.COMMENT.getEffectiveWeight(u.activityAt());
+            if (u.commentCount() >= 3) weight += 1.0f;
+            float finalWeight = weight;
             shouldQueries.add(
                     Query.of(q -> q.moreLikeThis(m -> m
                             .fields(fields)
@@ -79,7 +71,7 @@ public class RecommendQueryBuilder {
                             ))
                             .minTermFreq(1)
                             .minDocFreq(1)
-                            .boost(weight)
+                            .boost(finalWeight)
                     ))
             );
         }
