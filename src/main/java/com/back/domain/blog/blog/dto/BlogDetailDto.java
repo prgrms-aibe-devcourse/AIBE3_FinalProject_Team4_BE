@@ -12,6 +12,7 @@ public record BlogDetailDto(
         String content,
         String username,
         String nickname,
+        String profileImageUrl,
         String thumbnailUrl,
         List<String> hashtagNames,
         String status,
@@ -34,6 +35,7 @@ public record BlogDetailDto(
                 blog.getContent(),
                 blog.getUser().getUsername(),
                 blog.getUser().getNickname(),
+                blog.getUser().getProfileImgUrl(),
                 blog.getThumbnailUrl(),
                 blog.getBlogHashtags().stream()
                         .map(blogHashtag -> blogHashtag.getHashtag().getName())

@@ -23,7 +23,9 @@ public class BlogDoc {
     private Long id;
     private Long userId;
     @Field(type = FieldType.Keyword)
-    private String userName;
+    private String userNickname;
+    @Field(type = FieldType.Keyword)
+    private String profileImgUrl;
 
     private String title;
     private String content;
@@ -54,6 +56,7 @@ public class BlogDoc {
                 blog.getId(),
                 blog.getUser().getId(),
                 blog.getUser().getNickname(),
+                blog.getUser().getProfileImgUrl(),
                 blog.getTitle(),
                 blog.getContent(),
                 blog.getThumbnailUrl(),

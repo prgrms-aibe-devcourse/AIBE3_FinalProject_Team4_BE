@@ -12,6 +12,7 @@ import com.back.domain.blog.blogFile.repository.BlogFileRepository;
 import com.back.domain.blog.blogFile.util.ImageResizeUtil;
 import com.back.domain.blog.blogFile.util.MediaTypeDetector;
 import com.back.domain.blog.blogFile.util.VideoResizeUtil;
+import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
@@ -35,17 +36,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BlogMediaService {
-
+    // Constants
     private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;       // 5MB
     private static final long MAX_VIDEO_SIZE = 100L * 1024 * 1024;     // 100MB
     private static final String BLOG_FOLDER = "blogs/";
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
     private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "mp4", "mov", "avi"};
     private final AmazonS3 amazonS3;
+
     private final ImageRepository imageRepository;
     private final BlogFileRepository blogFileRepository;
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
+    private final BlogDocIndexer blogDocIndexer;
+    // Utils
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
     private final VideoResizeUtil videoResizeUtil;
@@ -129,6 +133,7 @@ public class BlogMediaService {
 
         if (type == ImageType.THUMBNAIL) {
             blog.changeThumbnailUrl(s3Url);
+            blogDocIndexer.index(blogId);
         }
 
         return new BlogMediaUploadResponse(savedImage, mediaKind);

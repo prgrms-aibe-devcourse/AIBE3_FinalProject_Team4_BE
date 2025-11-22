@@ -57,13 +57,6 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
             """)
     List<Object[]> countByBlogIds(@Param("blogIds") List<Long> blogIds);
 
-    // 사용자의 북마크 수
-    long countByUserId(Long userId);
-
-    // 블로그 삭제 시 북마크도 삭제 (cascade 대신 명시적 삭제)
-    void deleteByBlogId(Long blogId);
-
-
     boolean existsByBlog_IdAndUser_Id(Long blogId, Long userId);
 
     @Modifying(clearAutomatically = true)

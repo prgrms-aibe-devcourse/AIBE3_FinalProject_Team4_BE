@@ -71,7 +71,7 @@ public class BlogService {
 
         blog.publish();
         blog = blogRepository.save(blog);
-        blogDocIndexer.index(blog);
+        blogDocIndexer.index(blog.getId());
         return new BlogWriteDto(blog);
     }
 
@@ -90,16 +90,17 @@ public class BlogService {
         blog.updateHashtags(hashtags);
 
         blog.publish();
-        blogDocIndexer.index(blog);
+        blogDocIndexer.index(blogId);
         return new BlogModifyDto(blog);
     }
 
     @Transactional
-    public long increaseView(Long id) {
-        Blog blog = blogRepository.findById(id)
+    public long increaseView(Long blogId) {
+        Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         blog.increaseViewCount();
+        blogDocIndexer.index(blogId);
         return blog.getViewCount();
     }
 
@@ -167,15 +168,5 @@ public class BlogService {
 
         return blogs.stream()
                 .map(b -> new BlogDto(b, false, false, 0)).toList();
-    }
-
-    public void deleteDraft(Long id, Long draftId) {
-        Blog blog = blogRepository.findById(draftId)
-                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
-        if (!blog.getUser().getId().equals(id)) {
-            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
-        }
-        blogRepository.delete(blog);
-        blogDocIndexer.delete(id);
     }
 }
