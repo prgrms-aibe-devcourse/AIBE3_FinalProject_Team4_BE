@@ -1,7 +1,8 @@
 package com.back.domain.shorlog.shorlogdoc.document;
 
-import com.back.domain.recommend.recommend.constants.EmbeddingConstants;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.*;
 
@@ -50,7 +51,4 @@ public class ShorlogDoc {
 
     @Field(type = FieldType.Date, format = DateFormat.date_time)
     private Instant createdAt;
-
-    @Field(type = FieldType.Dense_Vector, dims = EmbeddingConstants.EMBEDDING_DIM)
-    private float[] contentEmbedding;
 }
