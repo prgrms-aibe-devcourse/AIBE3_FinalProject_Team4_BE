@@ -7,6 +7,7 @@ import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
+import com.back.domain.blog.bookmark.repository.BlogBookmarkQueryRepository;
 import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
@@ -20,11 +21,16 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +40,7 @@ public class BlogService {
     private final UserRepository userRepository;
     private final BlogLikeService blogLikeService;
     private final BlogBookmarkService blogBookmarkService;
+    private final BlogBookmarkQueryRepository blogBookmarkQueryRepository;
     private final CommentsService commentsService;
     private final HashtagService hashtagService;
     private final ImageLifecycleService imageLifecycleService;
@@ -78,17 +85,14 @@ public class BlogService {
 
     @Transactional
     public BlogWriteDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody) {
-        if (userRepository.findById(userId).isEmpty()) {
-            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
-        }
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         if (!blog.getUser().getId().equals(userId)) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
-        blog.modify(reqBody);
         List<Hashtag> hashtags = hashtagService.findOrCreateAll(reqBody.hashtagNames());
         blog.updateHashtags(hashtags);
+        blog.modify(reqBody);
 
         blog.publish();
         blogDocIndexer.index(blogId);
@@ -161,13 +165,33 @@ public class BlogService {
                 .toList();
     }
 
-    public List<BlogDto> findAllByMy(Long userId, BlogMySortType sortType) {
+    public Page<BlogDto> findAllByMy(Long userId, BlogMySortType sortType, Pageable pageable) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
-        List<Blog> blogs = blogRepository
-                .findAllByUserIdAndStatusWithSort(userId, BlogStatus.PUBLISHED, sortType);
-
+        Page<Blog> blogs =
+                blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED, pageable);
+        List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
+        final Map<Long, Long> commentCounts =
+                commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
         return blogs.stream()
-                .map(b -> new BlogDto(b, false, false, 0)).toList();
+                .map(blog -> new BlogDto(blog, false, false, commentCounts.getOrDefault(blog.getId(), 0L)))
+                .collect(Collectors.collectingAndThen(Collectors.toList(),
+                        list -> PageableExecutionUtils.getPage(list, pageable, list::size)));
+    }
+
+    public Page<BlogDto> getMyBookmarkedBlogs(Long userId, BlogMySortType sortType, Pageable pageable) {
+        Page<Blog> blogs =
+                blogBookmarkQueryRepository.findBookmarkedBlogs(userId, sortType, pageable);
+        if (blogs.isEmpty()) {
+            return blogs.map(blog -> null);
+        }
+        List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
+        final Set<Long> likedIds = blogLikeService.findLikedBlogIds(userId, blogIds);
+        final Set<Long> bookmarkedIds = blogBookmarkService.findBookmarkedBlogIds(userId, blogIds);
+        final Map<Long, Long> commentCounts = commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
+
+        return blogs.map(blog ->
+                new BlogDto(blog, likedIds.contains(blog.getId()), bookmarkedIds.contains(blog.getId()), commentCounts.getOrDefault(blog.getId(), 0L))
+        );
     }
 }

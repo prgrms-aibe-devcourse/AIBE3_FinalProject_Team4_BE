@@ -2,7 +2,9 @@ package com.back.domain.blog.blog.repository;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -66,4 +68,6 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
                 where bh.blog.id = :blogId
             """)
     List<String> findHashtagNamesByBlogId(@Param("blogId") Long blogId);
+
+    Page<Blog> findAllByUserIdAndStatus(Long userId, BlogStatus blogStatus, Pageable pageable);
 }
