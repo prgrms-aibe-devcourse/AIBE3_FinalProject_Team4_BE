@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.user.activity.type;
 
 import lombok.Getter;
 

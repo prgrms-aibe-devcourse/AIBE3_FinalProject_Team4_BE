@@ -56,28 +56,24 @@ public class RecentViewService {
     }
 
     public List<Long> getRecentViewPosts(String guestId, Long userId, PostType postType) {
-        return getRecentViewPosts(guestId, userId, postType, postType.getSearchLimit());
+        return getRecentViewPosts(guestId, userId, postType, -1);
     }
 
     public List<Long> getRecentViewPosts(String guestId, Long userId, PostType postType, int limit) {
         String identifier = getIdentifier(guestId, userId);
         String key = buildKey(isGuest(userId), identifier, postType);
 
-        if ((limit < 1) || (limit > postType.getSearchLimit())) {
-            limit = postType.getSearchLimit();
-        }
+        int finalLimit = getValidLimit(limit, postType.getSearchLimit());
 
-        return Objects.requireNonNull(stringRedisTemplate.opsForList().range(key, 0, limit - 1))
+        return Objects.requireNonNull(stringRedisTemplate.opsForList().range(key, 0, finalLimit - 1))
                 .stream()
                 .map(Long::parseLong)
                 .toList();
     }
 
-    private String buildKey(boolean isGuest, String identifier, PostType postType) {
-        String userStatus = (isGuest) ? "guest" : "user";
-        String postTypeName = (postType == PostType.SHORLOG) ? "shorlogs" : "blogs";
 
-        return "recent_view_" + postTypeName + ":" + userStatus + ":" + identifier;
+    private boolean isGuest(Long userId) {
+        return userId == null || userId == 0;
     }
 
     private String getIdentifier(String guestId, Long userId) {
@@ -87,7 +83,17 @@ public class RecentViewService {
         return guestId;
     }
 
-    private boolean isGuest(Long userId) {
-        return userId == null || userId == 0;
+    private String buildKey(boolean isGuest, String identifier, PostType postType) {
+        String userStatus = (isGuest) ? "guest" : "user";
+        String postTypeName = (postType == PostType.SHORLOG) ? "shorlogs" : "blogs";
+
+        return "recent_view_" + postTypeName + ":" + userStatus + ":" + identifier;
+    }
+
+    private int getValidLimit(int limit, int defaultLimit) {
+        if (limit < 1 || limit > defaultLimit) {
+            return defaultLimit;
+        }
+        return limit;
     }
 }

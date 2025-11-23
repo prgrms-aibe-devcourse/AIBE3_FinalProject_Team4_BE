@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.user.activity.dto;
 
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.like.entity.BlogLike;
