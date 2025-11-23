@@ -34,19 +34,19 @@ public class RecommendService {
     private final RecentViewService recentViewService;
     private final UserActivityService userActivityService;
 
-    public Page<ShorlogFeedResponse> getPostsOrderByRecommend(String guestId, Long userId, int pageNumber, int pageSize, PostType postType) {
+    public List<Query> getRecommendQueries(String guestId, Long userId, PostType postType) {
 
-        List<Query> shouldQueries = new ArrayList<>();
+        List<Query> recommendQueries = new ArrayList<>();
 
         // 트렌딩
         Query trendingQuery = queryBuilder.buildTrendingMLTQuery(postType);
-        shouldQueries.add(trendingQuery);
+        recommendQueries.add(trendingQuery);
 
         // 최근 본 게시물 기반 유사도
         List<Long> recentViewPostIds = recentViewService.getRecentViewPosts(guestId, userId, postType, 3);
 
         List<Query> recentViewedQuery = queryBuilder.buildRecentViewMLTQueries(postType, recentViewPostIds);
-        shouldQueries.addAll(recentViewedQuery);
+        recommendQueries.addAll(recentViewedQuery);
 
         // 사용자 행동 기반 추천 (로그인일 때만)
         if (userId != null && userId != 0) {
@@ -57,8 +57,15 @@ public class RecommendService {
             List<UserActivityDto> writtenPosts = userActivityService.getUserWrittenPosts(userId, isShorlog);
 
             List<Query> userActivityQuery = queryBuilder.buildUserActivityMLTQuery(postType, likedPosts, bookmarkedPosts, commentedPosts, writtenPosts);
-            shouldQueries.addAll(userActivityQuery);
+            recommendQueries.addAll(userActivityQuery);
         }
+
+        return recommendQueries;
+    }
+
+    public Page<ShorlogFeedResponse> getPostsOrderByRecommend(String guestId, Long userId, int pageNumber, int pageSize, PostType postType) {
+
+        List<Query> shouldQueries = getRecommendQueries(guestId, userId, postType);
 
         // 최종 쿼리
         Query finalQuery = Query.of(q -> q.bool(b -> {
