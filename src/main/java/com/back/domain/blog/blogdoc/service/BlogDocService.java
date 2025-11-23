@@ -12,7 +12,7 @@ import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
-import com.back.domain.recommend.recommend.PostType;
+import com.back.domain.recommend.search.type.PostType;
 import com.back.domain.recommend.recommend.service.RecommendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;

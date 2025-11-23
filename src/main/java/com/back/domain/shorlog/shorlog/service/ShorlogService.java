@@ -1,8 +1,12 @@
 package com.back.domain.shorlog.shorlog.service;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
-import com.back.domain.recommend.recommend.PostType;
+import com.back.domain.recommend.search.type.PostType;
+import com.back.domain.shorlog.shorlogdoc.dto.SearchShorlogResponseDto;
 import com.back.domain.recommend.recommend.service.RecommendService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
@@ -17,6 +21,7 @@ import com.back.domain.shorlog.shorlog.event.ShorlogUpdatedEvent;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
+import com.back.domain.shorlog.shorlogdoc.repository.ShorlogDocQueryRepository;
 import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.repository.ShorlogHashtagRepository;
@@ -29,6 +34,7 @@ import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +63,7 @@ public class ShorlogService {
     private final CommentsService commentsService;
     private final ApplicationEventPublisher eventPublisher;
     private final RecommendService recommendService;
+    private final ShorlogDocQueryRepository shorlogDocQueryRepository;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -152,7 +160,19 @@ public class ShorlogService {
     }
 
     public Page<ShorlogFeedResponse> getFeed(String guestId, Long userId, int pageNumber) {
-        return recommendService.getPostsOrderByRecommend(guestId, userId, pageNumber, FEED_PAGE_SIZE, PostType.SHORLOG);
+        List<Query> shouldQueries = recommendService.getRecommendQueries(guestId, userId, PostType.SHORLOG);
+
+        Query finalQuery = Query.of(q -> q.bool(b -> {
+            b.must(m -> m.matchAll(ma -> ma));
+            b.should(shouldQueries);
+            b.minimumShouldMatch("0"); // should 안 걸려도 제외 X
+            return b;
+        }));
+
+        int pageSize = FEED_PAGE_SIZE;
+        SearchResponse<SearchShorlogResponseDto> response = shorlogDocQueryRepository.searchRecommendShorlogs(finalQuery, pageNumber, pageSize);
+
+        return convertToPage(response, pageNumber, pageSize);
     }
 
     public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {
@@ -346,5 +366,32 @@ public class ShorlogService {
                 searchResults.getPageable(),
                 searchResults.getTotalElements()
         );
+    }
+
+    private Page<ShorlogFeedResponse> convertToPage(SearchResponse<SearchShorlogResponseDto> response, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+
+        List<ShorlogFeedResponse> content = response.hits().hits().stream()
+                .map(Hit::source)
+                .filter(Objects::nonNull)
+                .map(dto -> {
+                    return new ShorlogFeedResponse(
+                            dto.getId(),
+                            dto.getThumbnailUrl(),
+                            dto.getProfileImgUrl(),
+                            dto.getNickname(),
+                            dto.getHashtags(),
+                            dto.getLikeCount(),
+                            dto.getCommentCount(),
+                            ShorlogFeedResponse.extractFirstLine(dto.getContent())
+                    );
+                })
+                .toList();
+
+        long totalHits = response.hits().total() != null
+                ? response.hits().total().value()
+                : content.size();
+
+        return new PageImpl<>(content, pageable, totalHits);
     }
 }

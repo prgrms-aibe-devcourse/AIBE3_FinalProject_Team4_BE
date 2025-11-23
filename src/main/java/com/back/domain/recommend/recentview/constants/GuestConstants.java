@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend.constants;
+package com.back.domain.recommend.recentview.constants;
 
 public final class GuestConstants {
     private GuestConstants() {

@@ -1,6 +1,5 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.recommend.search.type;
 
-import com.back.domain.recommend.recommend.dto.RecommendShorlogResultDto;
 import lombok.Getter;
 
 import java.util.List;
@@ -11,29 +10,25 @@ public enum PostType {
             "app1_shorlogs",
             List.of("content", "hashtags"),
             10,
-            List.of("id", "content", "thumbnailUrl", "profileImgUrl", "nickname", "hashtags", "likeCount", "commentCount"),
-            RecommendShorlogResultDto.class
+            List.of("id", "content", "thumbnailUrl", "profileImgUrl", "nickname", "hashtags", "likeCount", "commentCount")
     ),
 
     BLOG(
             "app1_blogs",
             List.of("content", "title", "hashtagName"),
             5,
-            List.of("id", "title"),
-            RecommendShorlogResultDto.class
+            List.of()
     );
 
     private final String indexName;
     private final List<String> searchFields;
     private final int searchLimit;
     private final List<String> resultFields;
-    private final Class<?> resultType;
 
-    PostType(String indexName, List<String> searchFields, int searchLimit, List<String> resultFields, Class<?> resultType) {
+    PostType(String indexName, List<String> searchFields, int searchLimit, List<String> resultFields) {
         this.indexName = indexName;
         this.searchFields = searchFields;
         this.searchLimit = searchLimit;
         this.resultFields = resultFields;
-        this.resultType = resultType;
     }
 }

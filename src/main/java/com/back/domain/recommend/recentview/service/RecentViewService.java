@@ -1,6 +1,6 @@
-package com.back.domain.recommend.recommend.service;
+package com.back.domain.recommend.recentview.service;
 
-import com.back.domain.recommend.recommend.PostType;
+import com.back.domain.recommend.search.type.PostType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;

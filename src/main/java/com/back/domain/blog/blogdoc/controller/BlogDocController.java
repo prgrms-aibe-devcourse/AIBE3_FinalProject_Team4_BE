@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.back.domain.recommend.recommend.constants.GuestConstants.GUEST_COOKIE_NAME;
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_NAME;
 
 @RequestMapping("/api/v1/blogs")
 @Tag(name = "Blog ES API", description = "블로그 검색/팔로우/정렬 필터링 API")
