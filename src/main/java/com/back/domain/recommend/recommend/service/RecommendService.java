@@ -37,7 +37,7 @@ public class RecommendService {
         recommendQueries.addAll(recentViewedQuery);
 
         // 사용자 행동 기반 추천 (로그인일 때만)
-        if (userId != null && userId != 0) {
+        if (userId != null && userId > 0) {
             boolean isShorlog = (postType == PostType.SHORLOG);
             List<UserActivityDto> likedPosts = userActivityService.getUserLikedPosts(userId, isShorlog);
             List<UserActivityDto> bookmarkedPosts = userActivityService.getUserBookmarkedPosts(userId, isShorlog);

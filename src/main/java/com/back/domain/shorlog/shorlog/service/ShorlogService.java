@@ -5,9 +5,9 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
-import com.back.domain.recommend.search.type.PostType;
-import com.back.domain.shorlog.shorlogdoc.dto.SearchShorlogResponseDto;
+import com.back.domain.recommend.recentview.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
+import com.back.domain.recommend.search.type.PostType;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.entity.Image;
@@ -21,6 +21,7 @@ import com.back.domain.shorlog.shorlog.event.ShorlogUpdatedEvent;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
+import com.back.domain.shorlog.shorlogdoc.dto.SearchShorlogResponseDto;
 import com.back.domain.shorlog.shorlogdoc.repository.ShorlogDocQueryRepository;
 import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
@@ -64,6 +65,7 @@ public class ShorlogService {
     private final ApplicationEventPublisher eventPublisher;
     private final RecommendService recommendService;
     private final ShorlogDocQueryRepository shorlogDocQueryRepository;
+    private final RecentViewService recentViewService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -366,6 +368,14 @@ public class ShorlogService {
                 searchResults.getPageable(),
                 searchResults.getTotalElements()
         );
+    }
+
+    public void viewShorlog(String guestId, Long userId, Long id) {
+        recentViewService.addRecentViewPost(guestId, PostType.SHORLOG, id);
+
+        if (userId != null && userId > 0) {
+            recentViewService.mergeGuestHistoryToUser(guestId, userId, PostType.SHORLOG);
+        }
     }
 
     private Page<ShorlogFeedResponse> convertToPage(SearchResponse<SearchShorlogResponseDto> response, int pageNumber, int pageSize) {
