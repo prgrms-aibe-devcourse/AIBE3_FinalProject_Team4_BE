@@ -371,6 +371,9 @@ public class ShorlogService {
     }
 
     public void viewShorlog(String guestId, Long userId, Long id) {
+        shorlogRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
+
         recentViewService.addRecentViewPost(guestId, PostType.SHORLOG, id);
 
         if (userId != null && userId > 0) {

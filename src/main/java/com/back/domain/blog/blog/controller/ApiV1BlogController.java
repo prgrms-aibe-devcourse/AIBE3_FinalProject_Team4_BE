@@ -100,7 +100,7 @@ public class ApiV1BlogController {
     }
 
     @GetMapping("/{id}/view")
-    @Operation(summary = "최근 본 블로그")
+    @Operation(summary = "최근 본 블로그 추가")
     public RsData<Void> view(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                     @AuthenticationPrincipal SecurityUser securityUser,
                                     @PathVariable Long id) {

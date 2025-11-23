@@ -26,7 +26,7 @@ public class RecommendService {
 
         List<Query> recommendQueries = new ArrayList<>();
 
-        // 트렌딩
+        // 트렌딩 (블로그는 인기)
         Query trendingQuery = queryBuilder.buildTrendingMLTQuery(postType);
         recommendQueries.add(trendingQuery);
 
@@ -39,10 +39,10 @@ public class RecommendService {
         // 사용자 행동 기반 추천 (로그인일 때만)
         if (userId != null && userId > 0) {
             boolean isShorlog = (postType == PostType.SHORLOG);
-            List<UserActivityDto> likedPosts = userActivityService.getUserLikedPosts(userId, isShorlog);
-            List<UserActivityDto> bookmarkedPosts = userActivityService.getUserBookmarkedPosts(userId, isShorlog);
-            List<UserCommentActivityDto> commentedPosts = userActivityService.getUserCommentedPosts(userId, isShorlog);
-            List<UserActivityDto> writtenPosts = userActivityService.getUserWrittenPosts(userId, isShorlog);
+            List<UserActivityDto> likedPosts = userActivityService.getUserLikedPosts(userId, isShorlog, 5);
+            List<UserActivityDto> bookmarkedPosts = userActivityService.getUserBookmarkedPosts(userId, isShorlog, 5);
+            List<UserCommentActivityDto> commentedPosts = userActivityService.getUserCommentedPosts(userId, isShorlog, 3);
+            List<UserActivityDto> writtenPosts = userActivityService.getUserWrittenPosts(userId, isShorlog, 3);
 
             List<Query> userActivityQuery = queryBuilder.buildUserActivityMLTQuery(postType, likedPosts, bookmarkedPosts, commentedPosts, writtenPosts);
             recommendQueries.addAll(userActivityQuery);
