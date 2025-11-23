@@ -1,11 +1,8 @@
 package com.back.domain.recommend.recommend;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import com.back.domain.shorlog.shorlogdoc.repository.ShorlogDocRepository;
-import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
-import com.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,12 +17,6 @@ import java.util.Random;
 public class PostService {
 
     private final ShorlogDocRepository shorlogDocRepository;
-    private final ShorlogDocService shorlogDocService;
-    private final UserRepository userRepository;
-
-    private final ElasticsearchClient esClient;
-    private final EmbeddingService embeddingService;
-
 
     public void deleteAll() {
         shorlogDocRepository.deleteAll();
@@ -63,9 +54,6 @@ public class PostService {
                         .build();
                 // Elasticsearch에서 DateFormat.date_time은 나노초 (9 자리)를 지원하지 않음
                 // 최대 millisecond (3 자리)까지만 가능
-
-                // 임베딩
-                doc.setContentEmbedding(embeddingService.embed(doc.getContent()));
 
                 docList.add(doc);
 
