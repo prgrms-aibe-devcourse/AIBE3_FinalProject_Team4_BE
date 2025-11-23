@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+import static com.back.domain.recommend.recommend.constants.GuestConstants.GUEST_COOKIE_NAME;
+
 @Tag(name = "Shorlog", description = "숏로그 API")
 @RestController
 @RequestMapping("/api/v1/shorlog")
@@ -47,10 +49,12 @@ public class ApiV1ShorlogController {
     @GetMapping("/feed")
     @Operation(summary = "숏로그 전체 피드 조회")
     public RsData<Page<ShorlogFeedResponse>> getFeed(
+            @CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
-        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
-        return RsData.successOf(shorlogService.getFeed(page));
+        Long userId = (securityUser == null) ? 0 : securityUser.getId();
+        return RsData.successOf(shorlogService.getFeed(guestId, userId, page));
     }
 
     @GetMapping("/following")

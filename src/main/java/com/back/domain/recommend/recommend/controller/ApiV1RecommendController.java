@@ -1,16 +1,15 @@
 package com.back.domain.recommend.recommend.controller;
 
-import com.back.domain.recommend.recommend.PageResponse;
 import com.back.domain.recommend.recommend.PostService;
 import com.back.domain.recommend.recommend.PostType;
 import com.back.domain.recommend.recommend.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
-import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
 import com.back.domain.user.activity.service.UserActivityService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,12 +66,12 @@ public class ApiV1RecommendController {
 //    }
 
     @GetMapping("/posts/feed")
-    public PageResponse<ShorlogDoc> mainFeed(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
-                                             @AuthenticationPrincipal SecurityUser securityUser,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "10") int size) {
+    public Page<?> mainFeed(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+                            @AuthenticationPrincipal SecurityUser securityUser,
+                            @RequestParam(defaultValue = "0") int page,
+                            @RequestParam(defaultValue = "30") int size) {
         Long userId = (securityUser == null) ? 0 : securityUser.getId();
-        return PageResponse.from(recommendService.getPostsOrderByRecommend(guestId, userId, page, size, PostType.SHORLOG, ShorlogDoc.class));
+        return recommendService.getPostsOrderByRecommend(guestId, userId, page, size, PostType.SHORLOG);
     }
 
     @GetMapping("/shorlog/{postId}/view")
