@@ -31,8 +31,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -182,5 +184,35 @@ public class BlogMediaService {
         }
         blogFileRepository.flush();
         imageLifecycleService.decrementReference(target.getImage().getS3Url());
+    }
+
+    @Transactional
+    public void reorderBlogFiles(Long userId, Long blogId, List<Long> imageIds) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+        if (!blog.getUser().getId().equals(userId)) {
+            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
+        }
+        List<BlogFile> files = blogFileRepository.findAllByBlog_IdOrderBySortOrderAsc(blogId);
+        if (files.size() != imageIds.size()) {
+            throw new ServiceException(BlogErrorCase.FILE_COUNT_MISMATCH);
+        }
+        Map<Long, BlogFile> fileMap = files.stream()
+                .collect(Collectors.toMap(
+                        bf -> bf.getImage().getId(),
+                        bf -> bf));
+
+        for (Long imageId : imageIds) {
+            if (!fileMap.containsKey(imageId)) {
+                throw new ServiceException(BlogErrorCase.FILE_NOT_FOUND);
+            }
+        }
+        int order = 0;
+        for (Long imageId : imageIds) {
+            BlogFile bf = fileMap.get(imageId);
+            bf.updateSortOrder(order++);
+        }
+        blogFileRepository.flush();
+        blogDocIndexer.index(blog.getId());
     }
 }

@@ -15,6 +15,7 @@ public enum BlogErrorCase implements ErrorCase {
     REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, 105, "반응을 찾을 수 없습니다."),
     LOGIN_REQUIRED(HttpStatus.UNAUTHORIZED, 106, "로그인이 필요합니다."),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, 107, "등록된 파일을 찾을 수 없습니다."),
+    FILE_COUNT_MISMATCH(HttpStatus.BAD_REQUEST, 108, "파일 개수가 일치하지 않습니다."),
 
     BLOG_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 199, "블로그 저장 중 오류 발생");
 

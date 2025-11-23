@@ -15,4 +15,6 @@ public interface BlogFileRepository extends JpaRepository<BlogFile, Long> {
     Optional<BlogFile> findByBlog_IdAndImage_Id(Long blogId, Long imageId);
 
     List<BlogFile> findAllByBlog_IdAndSortOrderGreaterThanOrderBySortOrderAsc(Long blogId, int deletedOrder);
+
+    List<BlogFile> findAllByBlog_IdOrderBySortOrderAsc(Long blogId);
 }
