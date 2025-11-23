@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend.dto;
+package com.back.domain.shorlog.shorlogdoc.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
-public class RecommendShorlogResultDto {
+public class SearchShorlogResponseDto {
     private Long id;
     private String content;
     private String thumbnailUrl;

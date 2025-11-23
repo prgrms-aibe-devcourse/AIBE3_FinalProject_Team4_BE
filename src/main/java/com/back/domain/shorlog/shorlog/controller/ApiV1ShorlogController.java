@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-import static com.back.domain.recommend.recommend.constants.GuestConstants.GUEST_COOKIE_NAME;
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_NAME;
 
 @Tag(name = "Shorlog", description = "숏로그 API")
 @RestController
