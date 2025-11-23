@@ -1,4 +1,4 @@
-package com.back.domain.recommend.recommend;
+package com.back.domain.user.activity.service;
 
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
@@ -8,6 +8,9 @@ import com.back.domain.comments.comments.repository.CommentsRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
+import com.back.domain.user.activity.type.UserActivityType;
+import com.back.domain.user.activity.dto.UserCommentActivityDto;
+import com.back.domain.user.activity.dto.UserActivityDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,9 +33,14 @@ public class UserActivityService {
     private final ShorlogRepository shorlogRepository;
     private final BlogRepository blogRepository;
 
+    // 좋아요한 포스터 가져오기
     public List<UserActivityDto> getUserLikedPosts(Long userId, boolean isShorlog) {
-        int limit = UserActivityType.LIKE.getLimit();
-        Pageable pageable = PageRequest.of(0, limit);
+        return getUserLikedPosts(userId, isShorlog, -1);
+    }
+
+    public List<UserActivityDto> getUserLikedPosts(Long userId, boolean isShorlog, int limit) {
+        int finalLimit = getValidLimit(limit, UserActivityType.LIKE.getLimit());
+        Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {
             return shorlogLikeRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable).stream()
@@ -44,9 +52,14 @@ public class UserActivityService {
                 .toList();
     }
 
+    // 북마크한 포스트 가져오기
     public List<UserActivityDto> getUserBookmarkedPosts(Long userId, boolean isShorlog) {
-        int limit = UserActivityType.LIKE.getLimit();
-        Pageable pageable = PageRequest.of(0, limit);
+        return getUserBookmarkedPosts(userId, isShorlog, -1);
+    }
+
+    public List<UserActivityDto> getUserBookmarkedPosts(Long userId, boolean isShorlog, int limit) {
+        int finalLimit = getValidLimit(limit, UserActivityType.LIKE.getLimit());
+        Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {
             return shorlogBookmarkRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable).stream()
@@ -58,9 +71,14 @@ public class UserActivityService {
                 .toList();
     }
 
+    // 댓글 단 포스트 가져오기
     public List<UserCommentActivityDto> getUserCommentedPosts(Long userId, boolean isShorlog) {
-        int limit = UserActivityType.COMMENT.getLimit();
-        Pageable pageable = PageRequest.of(0, limit);
+        return getUserCommentedPosts(userId, isShorlog, -1);
+    }
+
+    public List<UserCommentActivityDto> getUserCommentedPosts(Long userId, boolean isShorlog, int limit) {
+        int finalLimit = getValidLimit(limit, UserActivityType.COMMENT.getLimit());
+        Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {
             return commentsRepository.findUserCommentActivities(userId, CommentsTargetType.SHORLOG, pageable)
@@ -72,9 +90,14 @@ public class UserActivityService {
                 .toList();
     }
 
+    // 내가 작성한 포스트 가져오기
     public List<UserActivityDto> getUserWrittenPosts(Long userId, boolean isShorlog) {
-        int limit = UserActivityType.POST.getLimit();
-        Pageable pageable = PageRequest.of(0, limit);
+        return getUserWrittenPosts(userId, isShorlog, -1);
+    }
+
+    public List<UserActivityDto> getUserWrittenPosts(Long userId, boolean isShorlog, int limit) {
+        int finalLimit = getValidLimit(limit, UserActivityType.POST.getLimit());
+        Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {
             return shorlogRepository.findUserShorlogActivities(userId, pageable).stream()
@@ -84,5 +107,12 @@ public class UserActivityService {
         return blogRepository.findUserBlogActivities(userId, pageable).stream()
                 .map(o -> new UserActivityDto((Long) o[0], (LocalDateTime) o[1]))
                 .toList();
+    }
+
+    private int getValidLimit(int limit, int defaultLimit) {
+        if (limit < 1 || limit > defaultLimit) {
+            return defaultLimit;
+        }
+        return limit;
     }
 }

@@ -6,6 +6,7 @@ import com.back.domain.recommend.recommend.PostType;
 import com.back.domain.recommend.recommend.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
 import com.back.domain.shorlog.shorlogdoc.document.ShorlogDoc;
+import com.back.domain.user.activity.service.UserActivityService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
@@ -15,27 +16,55 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static com.back.domain.recommend.recommend.constants.GuestConstants.GUEST_COOKIE_MAX_AGE;
+import static com.back.domain.recommend.recommend.constants.GuestConstants.GUEST_COOKIE_NAME;
+
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ApiV1RecommendController {
-    public static final String GUEST_COOKIE_NAME = "guestId";
-    public static final int GUEST_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일
-
     private final Rq rq;
     private final PostService postService;
     private final RecommendService recommendService;
     private final RecentViewService recentViewService;
+    private final UserActivityService userActivityService;
 
-    @GetMapping("/test/es-save")
-    public void save() {
-        postService.createPost(null);
-    }
-
-    @GetMapping("/test/es-delete")
-    public void delete() {
-        postService.deleteAll();
-    }
+//    @GetMapping("/test/user-activity/{userId}")
+//    public Map<String, List<?>> getUserAllActivitiesRaw(
+//            @PathVariable Long userId,
+//            @RequestParam(defaultValue = "true") boolean isShorlog) {
+//
+//        // 1. 좋아요 기반
+//        List<?> likedPosts = userActivityService.getUserLikedPosts(userId, isShorlog);
+//
+//        // 2. 북마크 기반
+//        List<?> bookmarkedPosts = userActivityService.getUserBookmarkedPosts(userId, isShorlog);
+//
+//        // 3. 댓글 기반 (UserCommentActivityDto 반환)
+//        List<?> commentedPosts = userActivityService.getUserCommentedPosts(userId, isShorlog);
+//
+//        // 4. 작성글 기반
+//        List<?> writtenPosts = userActivityService.getUserWrittenPosts(userId, isShorlog);
+//
+//        // 모든 결과를 하나의 Map으로 묶어 반환합니다.
+//        Map<String, List<?>> response = new HashMap<>();
+//        response.put("likedPosts", likedPosts);
+//        response.put("bookmarkedPosts", bookmarkedPosts);
+//        response.put("commentedPosts", commentedPosts);
+//        response.put("writtenPosts", writtenPosts);
+//
+//        return response;
+//    }
+//
+//    @GetMapping("/test/es-save")
+//    public void save() {
+//        postService.createPost(null);
+//    }
+//
+//    @GetMapping("/test/es-delete")
+//    public void delete() {
+//        postService.deleteAll();
+//    }
 
     @GetMapping("/posts/feed")
     public PageResponse<ShorlogDoc> mainFeed(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
@@ -50,6 +79,10 @@ public class ApiV1RecommendController {
     public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                     @AuthenticationPrincipal SecurityUser securityUser,
                                     @PathVariable Long postId) {
+        if (postId < 1) {
+            throw new IllegalArgumentException("ID가 유효하지 않습니다.");
+        }
+
         boolean hasGuestId = (guestId != null);
 
         if (!hasGuestId) {

@@ -3,6 +3,9 @@ package com.back.domain.recommend.recommend;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.json.JsonData;
+import com.back.domain.user.activity.dto.UserActivityDto;
+import com.back.domain.user.activity.type.UserActivityType;
+import com.back.domain.user.activity.dto.UserCommentActivityDto;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
