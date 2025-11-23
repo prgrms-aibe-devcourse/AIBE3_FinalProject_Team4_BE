@@ -138,7 +138,7 @@ public class ApiV1ShorlogController {
     }
 
     @GetMapping("/{id}/view")
-    @Operation(summary = "최근 본 숏로그")
+    @Operation(summary = "최근 본 숏로그 추가")
     public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                     @AuthenticationPrincipal SecurityUser securityUser,
                                     @PathVariable Long id) {

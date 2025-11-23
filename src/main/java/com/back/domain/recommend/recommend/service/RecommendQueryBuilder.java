@@ -1,12 +1,13 @@
 package com.back.domain.recommend.recommend.service;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.json.JsonData;
 import com.back.domain.recommend.search.type.PostType;
 import com.back.domain.user.activity.dto.UserActivityDto;
-import com.back.domain.user.activity.type.UserActivityType;
 import com.back.domain.user.activity.dto.UserCommentActivityDto;
+import com.back.domain.user.activity.type.UserActivityType;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -25,25 +26,38 @@ public class RecommendQueryBuilder {
 
         return Query.of(q -> q.scriptScore(ss -> ss
                 .query(m -> m.matchAll(ma -> ma))
-                .script(sc -> sc
-                        .source("""
-                                double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
-                                double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
-                                double comments = doc['commentCount'].size()==0 ? 0 : doc['commentCount'].value;
-                                
-                                long created = doc['createdAt'].value.getMillis();
-                                double hours = (params.now - created) / 3600000.0;
-                                
-                                double engagement =
-                                    Math.log1p(views) * 0.30 +
-                                    Math.sqrt(likes) * 0.25 +
-                                    comments * 0.10;
-                                
-                                double trending = engagement / Math.pow(hours + 2, 1.5);
-                                
-                                return trending;
-                                """)
-                        .params(Map.of("now", JsonData.of(now)))
+                .script(sc -> {
+                            if (postType == PostType.SHORLOG) {
+                                return sc.source("""
+                                                double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
+                                                double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
+                                                double comments = doc['commentCount'].size()==0 ? 0 : doc['commentCount'].value;
+                                                
+                                                long created = doc['createdAt'].value.getMillis();
+                                                double hours = (params.now - created) / 3600000.0;
+                                                
+                                                double engagement =
+                                                    Math.log1p(views) * 0.30 +
+                                                    Math.sqrt(likes) * 0.25 +
+                                                    comments * 0.10;
+                                                
+                                                double trending = engagement / Math.pow(hours + 2, 1.5);
+                                                
+                                                return trending;
+                                                """)
+                                        .params(Map.of("now", JsonData.of(now)));
+                            }
+                            return sc.source("""
+                                            double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
+                                            double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
+                                            double bookmarks = doc['bookmarkCount'].size()==0 ? 0 : doc['bookmarkCount'].value;
+                                            
+                                            return
+                                                Math.log1p(views) * 0.30 +
+                                                Math.sqrt(likes) * 0.25 +
+                                                Math.sqrt(bookmarks) * 0.28;
+                                            """);
+                        }
                 )
         ));
     }
@@ -64,19 +78,7 @@ public class RecommendQueryBuilder {
                     // 최근 본 게시물 유사도
                     Query mltQuery = buildMLTQuery(postType, recentViewPostIds.get(i), weight);
 
-                    return Query.of(q -> q.functionScore(fs -> fs
-                            .query(mltQuery)
-                            // 최근 본 게시물은 패널티
-                            .functions(f -> f
-                                    .filter(fq -> fq.terms(t -> t
-                                                    .field("id")
-                                                    .terms(tf -> tf.value(recentViewPostIds.stream()
-                                                            .map(FieldValue::of).toList()))
-                                            )
-                                    )
-                                    .weight(0.5)
-                            )
-                    ));
+                    return buildFunctionScoreQuery(mltQuery, recentViewPostIds, 0.0); // 최근 본 게시물은 패널티
                 })
                 .collect(Collectors.toList());
     }
@@ -96,7 +98,11 @@ public class RecommendQueryBuilder {
         for (UserActivityDto u : likedPosts) {
             float weight = UserActivityType.LIKE.getEffectiveWeight(u.activityAt());
             queries.add(
-                    buildMLTQuery(postType, u.postId(), weight)
+                    buildFunctionScoreQuery(
+                            buildMLTQuery(postType, u.postId(), weight),
+                            likedPosts.stream().map(UserActivityDto::postId).toList(),
+                            0.0
+                    )
             );
         }
 
@@ -104,7 +110,11 @@ public class RecommendQueryBuilder {
         for (UserActivityDto u : bookmarkedPosts) {
             float weight = UserActivityType.LIKE.getEffectiveWeight(u.activityAt());
             queries.add(
-                    buildMLTQuery(postType, u.postId(), weight)
+                    buildFunctionScoreQuery(
+                            buildMLTQuery(postType, u.postId(), weight),
+                            bookmarkedPosts.stream().map(UserActivityDto::postId).toList(),
+                            0.0
+                    )
             );
         }
 
@@ -113,7 +123,11 @@ public class RecommendQueryBuilder {
             float weight = UserActivityType.COMMENT.getEffectiveWeight(u.activityAt());
             if (u.commentCount() >= 3) weight += 1.0f;
             queries.add(
-                    buildMLTQuery(postType, u.postId(), weight)
+                    buildFunctionScoreQuery(
+                            buildMLTQuery(postType, u.postId(), weight),
+                            commentedPosts.stream().map(UserCommentActivityDto::postId).toList(),
+                            0.0
+                    )
             );
         }
 
@@ -121,7 +135,11 @@ public class RecommendQueryBuilder {
         for (UserActivityDto u : writtenPosts) {
             float weight = UserActivityType.POST.getEffectiveWeight(u.activityAt());
             queries.add(
-                    buildMLTQuery(postType, u.postId(), weight)
+                    buildFunctionScoreQuery(
+                            buildMLTQuery(postType, u.postId(), weight),
+                            writtenPosts.stream().map(UserActivityDto::postId).toList(),
+                            0.0
+                    )
             );
         }
 
@@ -129,15 +147,34 @@ public class RecommendQueryBuilder {
     }
 
     private Query buildMLTQuery(PostType postType, Long postId, float weight) {
+        int maxTerms = (postType == PostType.SHORLOG) ? 40 : 25; // 최대 용어 수를 제한
+
         return Query.of(q -> q.moreLikeThis(m -> m
                 .fields(postType.getSearchFields())
                 .like(l -> l.document(d -> d
                         .index(postType.getIndexName())
                         .id(postId.toString())
                 ))
-                .minTermFreq(1)
-                .minDocFreq(1)
+                .minTermFreq(2)
+                .minDocFreq(2)
+                .maxQueryTerms(maxTerms)
                 .boost(weight)
+        ));
+    }
+
+    private Query buildFunctionScoreQuery(Query query, List<Long> penaltyIds, double weight) {
+        return Query.of(q -> q.functionScore(fs -> fs
+                .query(query)
+                .functions(f -> f
+                        .filter(fq -> fq.terms(t -> t
+                                        .field("id")
+                                        .terms(tf -> tf.value(penaltyIds.stream()
+                                                .map(FieldValue::of).toList()))
+                                )
+                        )
+                        .weight(weight)
+                )
+                .scoreMode(FunctionScoreMode.Multiply)
         ));
     }
 }

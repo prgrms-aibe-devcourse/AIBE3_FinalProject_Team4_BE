@@ -183,6 +183,9 @@ public class BlogService {
     }
 
     public void view(String guestId, Long userId, Long id) {
+        blogRepository.findById(id)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+
         recentViewService.addRecentViewPost(guestId, PostType.BLOG, id);
 
         if (userId != null && userId > 0) {
