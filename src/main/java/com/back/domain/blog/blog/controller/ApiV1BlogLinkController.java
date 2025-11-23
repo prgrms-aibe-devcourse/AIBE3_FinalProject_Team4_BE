@@ -2,6 +2,7 @@ package com.back.domain.blog.blog.controller;
 
 import com.back.domain.blog.blog.dto.LinkShorlogReqDto;
 import com.back.domain.blog.link.dto.BlogShorlogLinkResponse;
+import com.back.domain.blog.link.dto.LinkedShorlogSummaryResponse;
 import com.back.domain.blog.link.dto.MyBlogSummaryResponse;
 import com.back.domain.shared.link.service.ShorlogBlogLinkService;
 import com.back.global.config.security.SecurityUser;
@@ -44,7 +45,7 @@ public class ApiV1BlogLinkController {
     }
 
     @GetMapping("/my/recent")
-    @Operation(summary = "내 최근 블로그 목록 조회")
+    @Operation(summary = "연결할 내 최근 블로그 목록 조회")
     public RsData<List<MyBlogSummaryResponse>> getMyRecentBlogs(
             @AuthenticationPrincipal SecurityUser user,
             @RequestParam(defaultValue = "7") int size
@@ -52,5 +53,17 @@ public class ApiV1BlogLinkController {
         List<MyBlogSummaryResponse> list =
                 shorlogBlogLinkService.getRecentBlogByAuthor(user.getId(), size);
         return RsData.successOf(list);
+    }
+
+    @GetMapping("/{blogId}/linked-shorlogs")
+    @Operation(summary = "블로그에 연결된 숏로그 목록 조회")
+    public RsData<List<LinkedShorlogSummaryResponse>> getLinkedShorlogs(
+            @PathVariable Long blogId,
+            @AuthenticationPrincipal SecurityUser securityUser
+    ) {
+        List<LinkedShorlogSummaryResponse> list =
+                shorlogBlogLinkService.getLinkedShorlogs(blogId, securityUser.getId());
+
+        return RsData.of("200-1", "연결된 숏로그 목록입니다.", list);
     }
 }

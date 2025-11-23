@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.blog.blog.entity.Blog;
+import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.blogFile.dto.BlogMediaUploadResponse;
 import com.back.domain.blog.blogFile.entity.BlogFile;
@@ -16,8 +17,10 @@ import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
+import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +52,7 @@ public class BlogMediaService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
     private final BlogDocIndexer blogDocIndexer;
+    private final ImageLifecycleService imageLifecycleService;
     // Utils
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
@@ -114,8 +118,6 @@ public class BlogMediaService {
 
         String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-        int sortOrder = blogFileRepository.findByBlog(blog).size();
-
         Image image = Image.create(
                 user,
                 type,
@@ -128,13 +130,14 @@ public class BlogMediaService {
 
         Image savedImage = imageRepository.save(image);
 
-        BlogFile blogFile = BlogFile.create(blog, savedImage, sortOrder);
-        blogFileRepository.save(blogFile);
-
         if (type == ImageType.THUMBNAIL) {
             blog.changeThumbnailUrl(s3Url);
             blogDocIndexer.index(blogId);
+            return new BlogMediaUploadResponse(savedImage, mediaKind);
         }
+        int sortOrder = blogFileRepository.findByBlog(blog).size();
+        BlogFile blogFile = BlogFile.create(blog, savedImage, sortOrder);
+        blogFileRepository.save(blogFile);
 
         return new BlogMediaUploadResponse(savedImage, mediaKind);
     }
@@ -160,4 +163,24 @@ public class BlogMediaService {
         }
     }
 
+    @Transactional
+    public void deleteBlogMedia(Long userId, Long blogId, Long imageId) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+        if (!blog.getUser().getId().equals(userId)) {
+            throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
+        }
+        BlogFile target = blogFileRepository.findByBlog_IdAndImage_Id(blogId, imageId)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.FILE_NOT_FOUND));
+
+        int deletedOrder = target.getSortOrder();
+        blogFileRepository.delete(target);
+        List<BlogFile> afterFiles =
+                blogFileRepository.findAllByBlog_IdAndSortOrderGreaterThanOrderBySortOrderAsc(blogId, deletedOrder);
+        for (BlogFile bf : afterFiles) {
+            bf.updateSortOrder(bf.getSortOrder() - 1);
+        }
+        blogFileRepository.flush();
+        imageLifecycleService.decrementReference(target.getImage().getS3Url());
+    }
 }

@@ -46,18 +46,19 @@ public class BlogService {
 
     @Transactional
     public BlogDetailDto findById(Long userId, Long id) {
-        Blog blog = blogRepository.findById(id)
+        Blog blog = blogRepository.findDetailWithFiles(id)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         if (blog.getStatus() == BlogStatus.DRAFT &&
-                !blog.getUser().getId().equals(userId)) {
+                (userId == null || !blog.getUser().getId().equals(userId))) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
         boolean liked = blogLikeService.isLiked(id, userId);
         boolean bookmarked = blogBookmarkService.isBookmarked(id, userId);
         List<CommentResponseDto> comments = commentsService.getCommentsByType(id, CommentsTargetType.BLOG);
         Map<Long, Long> commentCount = commentsService.getCommentCounts(List.of(id), CommentsTargetType.BLOG);
-
-        return new BlogDetailDto(blog, liked, bookmarked, comments, commentCount.getOrDefault(id, 0L));
+        long linkedShorlogCount = shorlogBlogLinkRepository.countByBlogId(id);
+        List<String> hashtagNames = blogRepository.findHashtagNamesByBlogId(id);
+        return new BlogDetailDto(blog, hashtagNames, liked, bookmarked, comments, commentCount.getOrDefault(id, 0L), linkedShorlogCount);
     }
 
     @Transactional
@@ -76,7 +77,7 @@ public class BlogService {
     }
 
     @Transactional
-    public BlogModifyDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody) {
+    public BlogWriteDto modify(Long userId, Long blogId, BlogWriteReqDto reqBody) {
         if (userRepository.findById(userId).isEmpty()) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
@@ -91,7 +92,7 @@ public class BlogService {
 
         blog.publish();
         blogDocIndexer.index(blogId);
-        return new BlogModifyDto(blog);
+        return new BlogWriteDto(blog);
     }
 
     @Transactional

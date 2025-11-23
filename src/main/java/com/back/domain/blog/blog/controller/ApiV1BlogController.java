@@ -43,18 +43,19 @@ public class ApiV1BlogController {
     @GetMapping("/{id}")
     @Operation(summary = "블로그 기본 글, 임시저장 글 단건 조회")
     public RsData<BlogDetailDto> getItem(@AuthenticationPrincipal SecurityUser userDetails, @PathVariable Long id) {
-        BlogDetailDto blogdto = blogService.findById(userDetails.getId(), id);
+        Long userId = (userDetails != null) ? userDetails.getId() : null;
+        BlogDetailDto blogdto = blogService.findById(userId, id);
         return RsData.of("200-2", "블로그 글 조회가 완료되었습니다.", blogdto);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "블로그 글 수정, 임시저장 발행")
-    public RsData<BlogModifyDto> modify(
+    public RsData<BlogWriteDto> modify(
             @PathVariable Long id,
             @Valid @RequestBody BlogWriteReqDto reqbody,
             @AuthenticationPrincipal SecurityUser userDetails
     ) {
-        BlogModifyDto blogdto = blogService.modify(userDetails.getId(), id, reqbody);
+        BlogWriteDto blogdto = blogService.modify(userDetails.getId(), id, reqbody);
         return RsData.of("200-3", "블로그 글 수정이 완료되었습니다.", blogdto);
     }
 

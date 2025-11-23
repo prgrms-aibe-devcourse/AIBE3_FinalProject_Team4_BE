@@ -5,6 +5,7 @@ import com.back.domain.blog.blogFile.service.BlogMediaService;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ public class ApiV1BlogFileController {
     private final BlogMediaService blogMediaService;
 
     @PostMapping("/{blogId}/media")
+    @Operation(summary = "블로그 파일 업로드")
     public RsData<BlogMediaUploadResponse> uploadBlogImage(
             @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long blogId,
@@ -28,5 +30,16 @@ public class ApiV1BlogFileController {
     ) {
         BlogMediaUploadResponse dto = blogMediaService.uploadBlogMedia(user.getId(), blogId, image, type, aspectRatios);
         return RsData.of("201-1", "블로그 파일 업로드가 완료되었습니다.", dto);
+    }
+
+    @DeleteMapping("/{blogId}/media/{imageId}")
+    @Operation(summary = "블로그 파일 삭제")
+    public RsData<Void> deleteBlogImage(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable Long blogId,
+            @PathVariable Long imageId
+    ) {
+        blogMediaService.deleteBlogMedia(user.getId(), blogId, imageId);
+        return RsData.of("200-1", "블로그 파일 삭제가 완료되었습니다.", null);
     }
 }

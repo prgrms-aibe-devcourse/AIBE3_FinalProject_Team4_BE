@@ -6,7 +6,6 @@ import com.back.domain.blog.blogdoc.dto.BlogSearchResult;
 import com.back.domain.blog.blogdoc.dto.BlogSliceResponse;
 import com.back.domain.blog.blogdoc.dto.BlogSummaryResponse;
 import com.back.domain.blog.blogdoc.repository.BlogDocQueryRepository;
-import com.back.domain.blog.blogdoc.repository.BlogDocRepository;
 import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
@@ -23,7 +22,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class BlogDocService {
     private final BlogDocQueryRepository blogDocQueryRepository;
-    private final BlogDocRepository blogDocRepository;
     private final BlogLikeService blogLikeService;
     private final BlogBookmarkService blogBookmarkService;
     private final CommentsService commentsService;

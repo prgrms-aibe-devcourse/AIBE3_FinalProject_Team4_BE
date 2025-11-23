@@ -3,6 +3,7 @@ package com.back.domain.shared.link.service;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.blog.link.dto.BlogShorlogLinkResponse;
+import com.back.domain.blog.link.dto.LinkedShorlogSummaryResponse;
 import com.back.domain.blog.link.dto.MyBlogSummaryResponse;
 import com.back.domain.shared.link.entity.ShorlogBlogLink;
 import com.back.domain.shared.link.exception.LinkErrorCase;
@@ -11,6 +12,7 @@ import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,12 +116,31 @@ public class ShorlogBlogLinkService {
         boolean linked = count > 0;
         return new BlogShorlogLinkResponse(blogId, shorlogId, linked, count);
     }
-
-    // TODO: size 적용 혹은 페이지네이션
+    
     public List<MyBlogSummaryResponse> getRecentBlogByAuthor(Long userId, int size) {
-        List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId);
+        List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId, PageRequest.of(0, size));
         return blogs.stream()
                 .map(MyBlogSummaryResponse::new)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LinkedShorlogSummaryResponse> getLinkedShorlogs(Long blogId, Long userId) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new ServiceException(LinkErrorCase.BLOG_NOT_FOUND));
+        if (!blog.getUser().getId().equals(userId)) {
+            throw new ServiceException(LinkErrorCase.FORBIDDEN);
+        }
+        List<ShorlogBlogLink> links = shorlogBlogLinkRepository.findByBlogId(blogId);
+        List<Long> shorlogIds = links.stream()
+                .map(ShorlogBlogLink::getShorlog)
+                .map(Shorlog::getId)
+                .toList();
+
+        List<Shorlog> shorlogs = shorlogRepository.findAllById(shorlogIds);
+
+        return shorlogs.stream()
+                .map(LinkedShorlogSummaryResponse::new)
                 .toList();
     }
 }

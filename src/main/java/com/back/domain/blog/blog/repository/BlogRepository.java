@@ -2,6 +2,7 @@ package com.back.domain.blog.blog.repository;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,7 +29,24 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
 
     List<Blog> findByStatusAndModifiedAtBefore(BlogStatus status, LocalDateTime cutoff);
 
-    List<Blog> findRecentBlogsByUserId(Long userId);
+    @Query("""
+            select b from Blog b
+            where b.user.id = :userId
+            and b.status = 'PUBLISHED'
+            order by b.modifiedAt desc
+            """)
+    List<Blog> findRecentBlogsByUserId(Long userId, PageRequest pageRequest);
+
+    //  LAZY 방지용 fetch join
+    @Query("""
+                select b
+                from Blog b
+                left join fetch b.user
+                left join fetch b.blogFiles bf
+                left join fetch bf.image
+                where b.id = :id
+            """)
+    Optional<Blog> findDetailWithFiles(@Param("id") Long id);
 
     //  인덱서용 fetch join 메서드
     @Query("""
@@ -40,4 +58,12 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
             where b.id = :id
             """)
     Optional<Blog> findForIndexingById(@Param("id") Long id);
+
+    @Query("""
+                select h.name
+                from BlogHashtag bh
+                join bh.hashtag h
+                where bh.blog.id = :blogId
+            """)
+    List<String> findHashtagNamesByBlogId(@Param("blogId") Long blogId);
 }

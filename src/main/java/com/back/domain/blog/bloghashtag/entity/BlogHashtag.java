@@ -13,12 +13,18 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 @Getter
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "blog_hashtags")
+@Table(name = "blog_hashtags",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_blog_hashtag",
+                        columnNames = {"blog_id", "hashtag_id"}
+                )
+        })
 public class BlogHashtag {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blog_id", nullable = false)
     private Blog blog;
