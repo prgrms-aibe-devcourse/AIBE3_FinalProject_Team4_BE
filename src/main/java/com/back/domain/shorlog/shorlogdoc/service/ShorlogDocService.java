@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -61,7 +60,7 @@ public class ShorlogDocService {
                 .likeCount(likeCount)
                 .commentCount(commentCount)
                 .popularityScore(popularityScore)
-                .createdAt(shorlog.getCreatedAt().atZone(ZoneId.of("Asia/Seoul")).toInstant()) // 개발/배포 환경마다 다른 시간 저장될 수 있으므로 명시적으로 Asia/Seoul 지정
+                .createdAt(shorlog.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant())
                 .build();
 
         shorlogDocRepository.save(doc);

@@ -19,16 +19,15 @@ public class RecentViewService {
 
     private final StringRedisTemplate stringRedisTemplate;
 
-    public void addRecentViewPost(boolean isGuest, Long userId, String guestId, PostType postType, Long postId) {
-        String identifier = (isGuest) ? guestId : userId.toString();
-        String key = buildKey(isGuest, identifier, postType);
+    public void addRecentViewPost(String guestId, PostType postType, Long postId) {
+        String key = buildKey(true, guestId, postType);
 
         stringRedisTemplate.opsForList().remove(key, 0, postId.toString());
         stringRedisTemplate.opsForList().leftPush(key, postId.toString());
 
         int limit = postType.getSearchLimit();
         stringRedisTemplate.opsForList().trim(key, 0, limit - 1);
-        stringRedisTemplate.expire(key, Duration.ofDays(7));
+        stringRedisTemplate.expire(key, Duration.ofDays(14));
     }
 
     public void mergeGuestHistoryToUser(String guestId, Long userId, PostType postType) {
@@ -42,18 +41,16 @@ public class RecentViewService {
         if (userHistory == null) userHistory = List.of();
 
         Set<String> mergedSet = new LinkedHashSet<>();
-        mergedSet.addAll(userHistory);
         mergedSet.addAll(guestHistory);
+        mergedSet.addAll(userHistory);
 
         int limit = postType.getSearchLimit();
         List<String> finalHistory = mergedSet.stream()
                 .limit(limit)
                 .toList();
 
-        if (!finalHistory.isEmpty()) {
-            stringRedisTemplate.delete(USER_KEY);
-            stringRedisTemplate.opsForList().leftPushAll(USER_KEY, finalHistory);
-        }
+        stringRedisTemplate.delete(USER_KEY);
+        stringRedisTemplate.opsForList().rightPushAll(USER_KEY, finalHistory);
 
         stringRedisTemplate.delete(GUEST_KEY);
     }
@@ -80,7 +77,7 @@ public class RecentViewService {
         String userStatus = (isGuest) ? "guest" : "user";
         String postTypeName = (postType == PostType.SHORLOG) ? "shorlogs" : "blogs";
 
-        return userStatus + ":" + identifier + ":recent_view_" + postTypeName;
+        return "recent_view_" + postTypeName + ":" + userStatus + ":" + identifier;
     }
 
     private String getIdentifier(String guestId, Long userId) {

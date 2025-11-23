@@ -41,7 +41,7 @@ public class RecommendService {
         shouldQueries.add(trendingQuery);
 
         // 최근 본 게시물 기반 유사도
-        List<Long> recentViewPostIds = recentViewService.getRecentViewPosts(guestId, userId, postType);
+        List<Long> recentViewPostIds = recentViewService.getRecentViewPosts(guestId, userId, postType, 3);
 
         List<Query> recentViewedQuery = queryBuilder.buildRecentViewMLTQueries(postType, recentViewPostIds);
         shouldQueries.addAll(recentViewedQuery);
