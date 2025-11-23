@@ -2,6 +2,8 @@ package com.back.domain.shorlog.shorlog.service;
 
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.recommend.recommend.PostType;
+import com.back.domain.recommend.recommend.service.RecommendService;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.entity.Image;
@@ -53,6 +55,7 @@ public class ShorlogService {
     private final FollowRepository followRepository;
     private final CommentsService commentsService;
     private final ApplicationEventPublisher eventPublisher;
+    private final RecommendService recommendService;
 
     private static final int MAX_HASHTAGS = 10;
     private static final int FEED_PAGE_SIZE = 30;
@@ -128,11 +131,10 @@ public class ShorlogService {
                 (int) likeCount, (int) bookmarkCount, commentCount, linkedBlogId);
     }
 
-    public Page<ShorlogFeedResponse> getFeed(int page) {
+    public Page<ShorlogFeedResponse> getShorlogs(int page) {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
 
-        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
-        // 현재: 최신순 정렬
+        // 최신순 정렬
         Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
         // 댓글 수 대량 조회
@@ -147,6 +149,10 @@ public class ShorlogService {
             int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
             return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
+    }
+
+    public Page<ShorlogFeedResponse> getFeed(String guestId, Long userId, int pageNumber) {
+        return recommendService.getPostsOrderByRecommend(guestId, userId, pageNumber, FEED_PAGE_SIZE, PostType.SHORLOG);
     }
 
     public Page<ShorlogFeedResponse> getFollowingFeed(Long userId, int page) {

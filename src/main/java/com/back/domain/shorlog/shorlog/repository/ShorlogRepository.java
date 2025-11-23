@@ -27,8 +27,7 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "WHERE s.id = :id")
     Optional<Shorlog> findByIdWithUser(@Param("id") Long id);
 
-     // 전체 피드 조회 (최신순 - AI 추천은 나중에)
-     // TODO: AI 추천 알고리즘 연동 (5번 이지연)
+     // 전체 피드 조회 (최신순)
     @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
            "JOIN FETCH s.user " +
            "LEFT JOIN FETCH s.images si " +
