@@ -62,10 +62,10 @@ public class ApiV1RecommendController {
         if (isGuest) {
             System.out.println("🧑 비로그인 사용자"); ////////////////
         }
-        recentViewService.addRecentPost(isGuest, userId, guestId, PostType.SHORLOG, postId);
+        recentViewService.addRecentViewPost(isGuest, userId, guestId, PostType.SHORLOG, postId);
 
         if (isVisited && !isGuest) {
-            recentViewService.mergeRecentPosts(guestId, userId, PostType.SHORLOG);
+            recentViewService.mergeGuestHistoryToUser(guestId, userId, PostType.SHORLOG);
             rq.deleteCookie(GUEST_COOKIE_NAME);
         }
 
