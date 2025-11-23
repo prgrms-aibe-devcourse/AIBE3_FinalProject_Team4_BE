@@ -18,12 +18,10 @@ import java.util.Set;
 public class RecentViewService {
 
     private final StringRedisTemplate stringRedisTemplate;
-    private final PostDocService postDocService;
 
-
-    public void addRecentPost(boolean isGuest, Long userId, String guestId, PostType postType, Long postId) {
+    public void addRecentViewPost(boolean isGuest, Long userId, String guestId, PostType postType, Long postId) {
         String identifier = (isGuest) ? guestId : userId.toString();
-        String key = buildRecentPostKey(isGuest, identifier, postType);
+        String key = buildKey(isGuest, identifier, postType);
 
         stringRedisTemplate.opsForList().remove(key, 0, postId.toString());
         stringRedisTemplate.opsForList().leftPush(key, postId.toString());
@@ -33,9 +31,9 @@ public class RecentViewService {
         stringRedisTemplate.expire(key, Duration.ofDays(7));
     }
 
-    public void mergeRecentPosts(String guestId, Long userId, PostType postType) {
-        String GUEST_KEY = buildRecentPostKey(true, guestId, postType);
-        String USER_KEY = buildRecentPostKey(false, userId.toString(), postType);
+    public void mergeGuestHistoryToUser(String guestId, Long userId, PostType postType) {
+        String GUEST_KEY = buildKey(true, guestId, postType);
+        String USER_KEY = buildKey(false, userId.toString(), postType);
 
         List<String> guestHistory = stringRedisTemplate.opsForList().range(GUEST_KEY, 0, -1);
         if (guestHistory == null) guestHistory = List.of();
@@ -60,39 +58,25 @@ public class RecentViewService {
         stringRedisTemplate.delete(GUEST_KEY);
     }
 
-    public List<Long> getRecentPosts(String guestId, Long userId, PostType postType) {
-        String identifier = getIdentifier(guestId, userId);
-        String key = buildRecentPostKey(isGuest(userId), identifier, postType);
+    public List<Long> getRecentViewPosts(String guestId, Long userId, PostType postType) {
+        return getRecentViewPosts(guestId, userId, postType, postType.getSearchLimit());
+    }
 
-        int limit = postType.getSearchLimit();
+    public List<Long> getRecentViewPosts(String guestId, Long userId, PostType postType, int limit) {
+        String identifier = getIdentifier(guestId, userId);
+        String key = buildKey(isGuest(userId), identifier, postType);
+
+        if ((limit < 1) || (limit > postType.getSearchLimit())) {
+            limit = postType.getSearchLimit();
+        }
+
         return Objects.requireNonNull(stringRedisTemplate.opsForList().range(key, 0, limit - 1))
                 .stream()
                 .map(Long::parseLong)
                 .toList();
     }
 
-    public List<String> getRecentContents(PostType postType, List<Long> postIds) {
-        return getRecentContents(postType, postIds, 0);
-    }
-
-    public List<String> getRecentContents(PostType postType, List<Long> postIds, int limit) {
-        if (postIds == null || postIds.isEmpty()) return List.of();
-
-        if ((limit < 1) || (limit > postType.getSearchLimit())) {
-            limit = postType.getSearchLimit();
-        }
-
-        List<Long> limited = postIds.stream()
-                .limit(limit)
-                .toList();
-
-        return limited.stream()
-                .map(postId -> postDocService.getContent(postType, postId))
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private String buildRecentPostKey(boolean isGuest, String identifier, PostType postType) {
+    private String buildKey(boolean isGuest, String identifier, PostType postType) {
         String userStatus = (isGuest) ? "guest" : "user";
         String postTypeName = (postType == PostType.SHORLOG) ? "shorlogs" : "blogs";
 
