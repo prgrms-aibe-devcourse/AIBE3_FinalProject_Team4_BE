@@ -50,23 +50,18 @@ public class ApiV1RecommendController {
     public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                     @AuthenticationPrincipal SecurityUser securityUser,
                                     @PathVariable Long postId) {
-        boolean isVisited = (guestId != null);
-        if (!isVisited) {
-            System.out.println("🧑 첫 방문"); ////////////////
+        boolean hasGuestId = (guestId != null);
+
+        if (!hasGuestId) {
             guestId = UUID.randomUUID().toString();
             rq.setCookie(GUEST_COOKIE_NAME, guestId, GUEST_COOKIE_MAX_AGE);
         }
 
-        boolean isGuest = (securityUser == null);
-        Long userId = (isGuest) ? 0 : securityUser.getId();
-        if (isGuest) {
-            System.out.println("🧑 비로그인 사용자"); ////////////////
-        }
-        recentViewService.addRecentViewPost(isGuest, userId, guestId, PostType.SHORLOG, postId);
+        recentViewService.addRecentViewPost(guestId, PostType.SHORLOG, postId);
 
-        if (isVisited && !isGuest) {
+        if (securityUser != null) {
+            Long userId = securityUser.getId();
             recentViewService.mergeGuestHistoryToUser(guestId, userId, PostType.SHORLOG);
-            rq.deleteCookie(GUEST_COOKIE_NAME);
         }
 
         return RsData.successOf(null);
