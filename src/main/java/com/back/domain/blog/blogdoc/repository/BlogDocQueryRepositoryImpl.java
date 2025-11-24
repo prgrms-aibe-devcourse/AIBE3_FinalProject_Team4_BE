@@ -26,15 +26,18 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
     private final ElasticsearchOperations operations;
 
     @Override
-    public BlogSearchResult searchBlogs(BlogSearchCondition condition, @Nullable List<Long> authorIds) {
+    public BlogSearchResult searchBlogs(BlogSearchCondition condition, @Nullable List<Long> authorIds, @Nullable List<Query> recommendQueries) {
         List<SortOptions> sorts = buildSorts(condition.sortType());
         List<Object> searchAfter = parseCursor(condition.cursor());
 
-        Query esQuery = buildQuery(condition, authorIds);
+        Query esQuery = buildQuery(condition, authorIds, recommendQueries);
         var builder = NativeQuery.builder()
                 .withQuery(esQuery)
-                .withPageable(PageRequest.of(0, condition.size()))
-                .withSort(sorts);
+                .withPageable(PageRequest.of(0, condition.size()));
+
+        if (sorts != null && !sorts.isEmpty()) {
+            builder.withSort(sorts);
+        }
 
         if (searchAfter != null && !searchAfter.isEmpty()) {
             builder.withSearchAfter(searchAfter);
@@ -57,10 +60,15 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
         return new BlogSearchResult(docs, hasNext, nextCursor);
     }
 
-    private Query buildQuery(BlogSearchCondition condition, @Nullable List<Long> authorIds) {
+    private Query buildQuery(BlogSearchCondition condition, @Nullable List<Long> authorIds, @Nullable List<Query> recommendQueries) {
         String keyword = condition.keyword();
         return Query.of(q -> q
                 .bool(b -> {
+                    // 추천순 쿼리
+                    if (recommendQueries != null && !recommendQueries.isEmpty()) {
+                        b.should(recommendQueries);
+                        b.minimumShouldMatch("0");
+                    }
                     //키워드 검색
                     if (keyword != null && !keyword.isBlank()) {
                         b.must(m -> m.multiMatch(mm -> mm
@@ -109,6 +117,7 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
                     SortOptions.of(s -> s.field(f -> f.field("createdAt").order(SortOrder.Desc))),
                     SortOptions.of(s -> s.field(f -> f.field("id").order(SortOrder.Desc)))
             );
+            case RECOMMEND -> List.of();
         };
     }
 

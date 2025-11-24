@@ -92,7 +92,7 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-model-huggingface")
     // Vector DB
     implementation("org.springframework.ai:spring-ai-starter-vector-store-pinecone")
-    // 스트리밍 및 비동기 처리
+    // Spring WebFlux: 비동기, 논블로킹
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     // QueryDSL
     implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")

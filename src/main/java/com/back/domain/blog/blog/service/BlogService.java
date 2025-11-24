@@ -12,6 +12,8 @@ import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.recommend.recentview.service.RecentViewService;
+import com.back.domain.recommend.search.type.PostType;
 import com.back.domain.shared.hashtag.entity.Hashtag;
 import com.back.domain.shared.hashtag.service.HashtagService;
 import com.back.domain.shared.image.service.ImageLifecycleService;
@@ -39,6 +41,7 @@ public class BlogService {
     private final ImageLifecycleService imageLifecycleService;
     private final BlogDocIndexer blogDocIndexer;
     private final ShorlogBlogLinkRepository shorlogBlogLinkRepository;
+    private final RecentViewService recentViewService;
 
     public void truncate() {
         blogRepository.deleteAll();
@@ -177,5 +180,16 @@ public class BlogService {
         }
         blogRepository.delete(blog);
         blogDocIndexer.delete(id);
+    }
+
+    public void view(String guestId, Long userId, Long id) {
+        blogRepository.findById(id)
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+
+        recentViewService.addRecentViewPost(guestId, PostType.BLOG, id);
+
+        if (userId != null && userId > 0) {
+            recentViewService.mergeGuestHistoryToUser(guestId, userId, PostType.BLOG);
+        }
     }
 }

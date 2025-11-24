@@ -2,11 +2,12 @@ package com.back.domain.shorlog.shorlog.controller;
 
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
-import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
-import com.back.domain.shorlog.shorlogtts.service.ShorlogTtsService;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
+import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
+import com.back.domain.shorlog.shorlogtts.service.ShorlogTtsService;
 import com.back.global.config.security.SecurityUser;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
+
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_MAX_AGE;
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_NAME;
 
 @Tag(name = "Shorlog", description = "숏로그 API")
 @RestController
@@ -25,6 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ApiV1ShorlogController {
 
+    private final Rq rq;
     private final ShorlogService shorlogService;
     private final ImageUploadService imageUploadService;
     private final ShorlogTtsService shorlogTtsService;
@@ -47,10 +53,12 @@ public class ApiV1ShorlogController {
     @GetMapping("/feed")
     @Operation(summary = "숏로그 전체 피드 조회")
     public RsData<Page<ShorlogFeedResponse>> getFeed(
+            @CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+            @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
-        // TODO: AI 추천 알고리즘 연동 (Issue #15 - 5번 이지연)
-        return RsData.successOf(shorlogService.getFeed(page));
+        Long userId = (securityUser == null) ? null : securityUser.getId();
+        return RsData.successOf(shorlogService.getFeed(guestId, userId, page));
     }
 
     @GetMapping("/following")
@@ -127,5 +135,25 @@ public class ApiV1ShorlogController {
     public RsData<TtsResponse> getTts(@PathVariable Long id) {
         String ttsUrl = shorlogTtsService.getTtsUrl(id);
         return RsData.successOf(TtsResponse.of(ttsUrl));
+    }
+
+    @GetMapping("/{id}/view")
+    @Operation(summary = "최근 본 숏로그 추가")
+    public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+                                    @AuthenticationPrincipal SecurityUser securityUser,
+                                    @PathVariable Long id) {
+        if (id < 1) {
+            throw new IllegalArgumentException("ID가 유효하지 않습니다.");
+        }
+
+        if (guestId == null) {
+            guestId = UUID.randomUUID().toString();
+            rq.setCookie(GUEST_COOKIE_NAME, guestId, GUEST_COOKIE_MAX_AGE);
+        }
+
+        Long userId = (securityUser == null) ? null : securityUser.getId();
+        shorlogService.viewShorlog(guestId, userId, id);
+
+        return RsData.successOf(null);
     }
 }

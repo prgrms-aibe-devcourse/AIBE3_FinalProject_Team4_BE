@@ -15,12 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_NAME;
 
 @RequestMapping("/api/v1/blogs")
 @Tag(name = "Blog ES API", description = "블로그 검색/팔로우/정렬 필터링 API")
@@ -34,6 +33,7 @@ public class BlogDocController {
     @GetMapping
     @Operation(summary = "블로그 다건조회/검색", description = "블로그 다건조회/검색/팔로우/정렬 필터링 API")
     public BlogSliceResponse<BlogSummaryResponse> searchBlogs(
+            @CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId, // 비로그인 개인화 추천용
             @AuthenticationPrincipal SecurityUser user,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "LATEST") BlogSortType sort,
@@ -53,6 +53,6 @@ public class BlogDocController {
             }
         }
         BlogSearchCondition condition = new BlogSearchCondition(keyword, sort, size, cursor);
-        return blogDocService.searchBlogs(user.getId(), condition, followingIds);
+        return blogDocService.searchBlogs(guestId, user.getId(), condition, followingIds);
     }
 }

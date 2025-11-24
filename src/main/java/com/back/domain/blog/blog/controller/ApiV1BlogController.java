@@ -4,6 +4,7 @@ import com.back.domain.blog.blog.dto.*;
 import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.service.BlogService;
 import com.back.global.config.security.SecurityUser;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,12 +14,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
+
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_MAX_AGE;
+import static com.back.domain.recommend.recentview.constants.GuestConstants.GUEST_COOKIE_NAME;
 
 @RestController
 @Tag(name = "Blog API", description = "블로그 기본 API")
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogController {
+    private final Rq rq;
     private final BlogService blogService;
 
     @PostMapping("")
@@ -91,5 +97,25 @@ public class ApiV1BlogController {
     public RsData<List<BlogDraftDto>> getDrafts(@AuthenticationPrincipal SecurityUser userDetails) {
         List<BlogDraftDto> draftDtos = blogService.findDraftsByUserId(userDetails.getId());
         return RsData.of("200-2", "블로그 임시저장 글 조회가 완료되었습니다.", draftDtos);
+    }
+
+    @GetMapping("/{id}/view")
+    @Operation(summary = "최근 본 블로그 추가")
+    public RsData<Void> view(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
+                                    @AuthenticationPrincipal SecurityUser securityUser,
+                                    @PathVariable Long id) {
+        if (id < 1) {
+            throw new IllegalArgumentException("ID가 유효하지 않습니다.");
+        }
+
+        if (guestId == null) {
+            guestId = UUID.randomUUID().toString();
+            rq.setCookie(GUEST_COOKIE_NAME, guestId, GUEST_COOKIE_MAX_AGE);
+        }
+
+        Long userId = (securityUser == null) ? null : securityUser.getId();
+        blogService.view(guestId, userId, id);
+
+        return RsData.successOf(null);
     }
 }
