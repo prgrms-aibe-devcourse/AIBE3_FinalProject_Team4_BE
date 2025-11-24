@@ -69,5 +69,16 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
             """)
     List<String> findHashtagNamesByBlogId(@Param("blogId") Long blogId);
 
+
     Page<Blog> findAllByUserIdAndStatus(Long userId, BlogStatus blogStatus, Pageable pageable);
+
+    List<Blog> findRecentBlogsByUserId(Long userId);
+
+    @Query("""
+            SELECT b.id, b.createdAt
+            FROM Blog b
+            WHERE b.user.id = :userId
+            ORDER BY b.id DESC
+            """)
+    Page<Object[]> findUserBlogActivities(@Param("userId") Long userId, Pageable pageable);
 }

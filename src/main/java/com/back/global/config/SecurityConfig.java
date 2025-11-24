@@ -52,9 +52,11 @@ public class SecurityConfig {
             "/api/v1/shorlog/{id}",
             "/api/v1/shorlog/feed",
             "/api/v1/shorlog/search",
+            "/api/v1/shorlog/{id:\\d+}/view",
 
             "/api/v1/blogs",
             "/api/v1/blogs/{id}",
+
     };
 
     // 공개된 인증 API URL 패턴 [메서드 무관]

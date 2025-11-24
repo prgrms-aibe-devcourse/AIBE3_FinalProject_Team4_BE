@@ -3,10 +3,12 @@ package com.back.domain.shorlog.shorlog.dto;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class ShorlogFeedResponse {
 
