@@ -35,4 +35,13 @@ public class SearchKeywordService {
                 .toList();
     }
 
+    @Transactional
+    public void incrementSearchCount(String keyword) {
+        SearchKeyword searchKeyword = searchKeywordRepository.findByKeyword(keyword)
+                .orElseGet(() -> new SearchKeyword(keyword, 1L));
+
+        searchKeyword.incrementSearchCount();
+        searchKeywordRepository.save(searchKeyword);
+    }
+
 }

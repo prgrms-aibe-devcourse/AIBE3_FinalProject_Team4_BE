@@ -18,4 +18,8 @@ public class SearchKeyword extends BaseEntity {
 
     @Column(nullable = false)
     private Long searchCount = 0L;
+
+    public void incrementSearchCount() {
+        this.searchCount++;
+    }
 }

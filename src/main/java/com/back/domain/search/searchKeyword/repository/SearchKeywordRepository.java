@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SearchKeywordRepository extends JpaRepository<SearchKeyword, Long> {
@@ -14,4 +15,5 @@ public interface SearchKeywordRepository extends JpaRepository<SearchKeyword, Lo
 
     List<SearchKeyword> findTop10ByKeywordContainingIgnoreCaseOrderBySearchCountDesc(String part);
 
+    Optional<SearchKeyword> findByKeyword(String keyword);
 }
