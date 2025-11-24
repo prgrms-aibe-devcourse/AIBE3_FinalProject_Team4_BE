@@ -36,8 +36,8 @@ public class ImageUploadService {
 
     private final ImageRepository imageRepository;
     private final UserRepository userRepository;
-    private final AmazonS3 amazonS3;
     private final ImageUrlToMultipartFile imageUrlToMultipartFile;
+    private final AmazonS3 amazonS3;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -69,7 +69,11 @@ public class ImageUploadService {
                 .sorted(Comparator.comparingInt(ImageOrderItem::order))
                 .toList();
 
-        for (ImageOrderItem item : sortedItems) {
+        for (int i = 0; i < sortedItems.size(); i++) {
+            log.info("{}번 이미지 업로드 작업 시작", i);
+
+            ImageOrderItem item = sortedItems.get(i);
+
             MultipartFile file;
             if (item.type() == ImageOrderItemType.URL) {
                 file = imageUrlToMultipartFile.convert(item.url(), "files");
