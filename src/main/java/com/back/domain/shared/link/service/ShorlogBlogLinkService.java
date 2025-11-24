@@ -8,6 +8,7 @@ import com.back.domain.blog.link.dto.MyBlogSummaryResponse;
 import com.back.domain.shared.link.entity.ShorlogBlogLink;
 import com.back.domain.shared.link.exception.LinkErrorCase;
 import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
+import com.back.domain.shorlog.shorlogbloglink.dto.MyShorlogSummaryResponse;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.global.exception.ServiceException;
@@ -121,6 +122,14 @@ public class ShorlogBlogLinkService {
         List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId, PageRequest.of(0, size));
         return blogs.stream()
                 .map(MyBlogSummaryResponse::new)
+                .toList();
+    }
+
+    public List<MyShorlogSummaryResponse> getRecentShorlogByAuthor(Long userId, int size) {
+        List<Shorlog> shorlogs = shorlogRepository.findRecentShorlogsByUserId(userId);
+        return shorlogs.stream()
+                .limit(size)
+                .map(MyShorlogSummaryResponse::new)
                 .toList();
     }
 

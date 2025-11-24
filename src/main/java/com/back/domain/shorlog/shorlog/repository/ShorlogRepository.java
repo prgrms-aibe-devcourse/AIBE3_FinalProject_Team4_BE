@@ -86,4 +86,12 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
             ORDER BY s.id DESC
             """)
     Page<Object[]> findUserShorlogActivities(@Param("userId") Long userId, Pageable pageable);
+
+    // 블로그 연결 모달용
+    @Query("SELECT DISTINCT s FROM Shorlog s " +
+           "LEFT JOIN FETCH s.hashtags sh " +
+           "LEFT JOIN FETCH sh.hashtag " +
+           "WHERE s.user.id = :userId " +
+           "ORDER BY s.modifiedAt DESC")
+    List<Shorlog> findRecentShorlogsByUserId(@Param("userId") Long userId);
 }
