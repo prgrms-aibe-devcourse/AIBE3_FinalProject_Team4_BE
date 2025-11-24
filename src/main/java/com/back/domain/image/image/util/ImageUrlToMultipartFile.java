@@ -1,4 +1,4 @@
-package com.back.global.ut;
+package com.back.domain.image.image.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,34 +26,30 @@ public class ImageUrlToMultipartFile {
         this.webClientBuilder = webClientBuilder;
     }
 
-    public MultipartFile convert(String imageUrl) {
+    public MultipartFile convert(String imageUrl, String partName) {
 
         WebClient webClient = webClientBuilder.build();
 
         final AtomicReference<String> contentTypeRef = new AtomicReference<>(); // 외부에 ContentType을 담을 변수를 선언 (동기 처리 중이므로 가능)
 
-        byte[] imageBytes = webClient.get()
-                .uri(imageUrl)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                        response -> Mono.error(
-                                new RuntimeException("이미지 URL로부터 다운로드 실패 (HTTP Status: %s)".formatted(response.statusCode().value()))
-                        ))
-                .toEntity(byte[].class)
-                .map(response -> {
-                    contentTypeRef.set(Objects.requireNonNull(response.getHeaders().getContentType()).toString());
-                    return response.getBody();
-                })
-                .onErrorMap(throwable -> {
-                    String errorMessage = "이미지 다운로드 중 오류 발생";
-                    if (throwable instanceof WebClientResponseException) {
-                        errorMessage = String.format("WebClient 오류 발생: %s", throwable.getMessage());
-                    } else if (throwable instanceof IllegalStateException && throwable.getMessage().contains("Timeout")) {
-                        errorMessage = "이미지 다운로드 중 타임아웃 발생";
-                    }
-                    return new RuntimeException(errorMessage, throwable);
-                })
-                .block();
+        byte[] imageBytes;
+        try {
+            imageBytes = webClient.get()
+                    .uri(imageUrl)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            response -> Mono.error(
+                                    new RuntimeException("이미지 URL로부터 다운로드 실패 (HTTP Status: %s)".formatted(response.statusCode().value()))
+                            ))
+                    .toEntity(byte[].class)
+                    .map(response -> {
+                        contentTypeRef.set(Objects.requireNonNull(response.getHeaders().getContentType()).toString());
+                        return response.getBody();
+                    })
+                    .block();
+        } catch (WebClientResponseException e) {
+            throw new RuntimeException("이미지 다운로드 중 오류 발생: %s".formatted(e.getMessage()), e);
+        }
 
         if (imageBytes == null) {
             throw new RuntimeException("다운로드된 이미지 데이터가 비어있습니다.");
@@ -73,7 +69,7 @@ public class ImageUrlToMultipartFile {
         String fileName = "api-image-" + UUID.randomUUID() + "." + ext;
 
         return new MockMultipartFile(
-                "image",
+                partName,
                 fileName,
                 contentType,
                 imageBytes

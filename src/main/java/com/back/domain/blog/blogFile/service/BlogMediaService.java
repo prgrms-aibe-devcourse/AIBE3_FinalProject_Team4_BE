@@ -14,7 +14,7 @@ import com.back.domain.blog.blogFile.util.ImageResizeUtil;
 import com.back.domain.blog.blogFile.util.MediaTypeDetector;
 import com.back.domain.blog.blogFile.util.VideoResizeUtil;
 import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
-import com.back.domain.image.test.ImageUrlToMultipartFile;
+import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
@@ -66,8 +66,9 @@ public class BlogMediaService {
 
     @Transactional
     public BlogMediaUploadResponse uploadBlogMedia(Long userId, Long blogId, MultipartFile file, String apiImageUrl, ImageType type, String aspectRatios) {
+        // 무료 이미지 API에서 가져온 경우 URL을 파일로 변환하기
         if (apiImageUrl != null && !apiImageUrl.isBlank() && (file == null || file.isEmpty())) {
-            file = imageUrlToMultipartFile.convert(apiImageUrl);
+            file = imageUrlToMultipartFile.convert(apiImageUrl, "files");
         }
 
         validateFile(file);
