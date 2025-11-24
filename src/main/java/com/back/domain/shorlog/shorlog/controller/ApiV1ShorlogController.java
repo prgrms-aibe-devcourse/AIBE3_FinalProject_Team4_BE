@@ -110,7 +110,7 @@ public class ApiV1ShorlogController {
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("orders") String imageOrderItemsJson
     ) throws JsonProcessingException {
-        List<ImageOrderItem> imageOrderItems =
+        List<UploadImageOrderItem> imageOrderItems =
                 new ObjectMapper().readValue(imageOrderItemsJson,
                         new TypeReference<>() {
                         });

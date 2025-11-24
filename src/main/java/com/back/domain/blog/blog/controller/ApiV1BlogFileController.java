@@ -27,7 +27,7 @@ public class ApiV1BlogFileController {
             @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long blogId,
             @RequestParam(value = "files", required = false) MultipartFile image,
-            @RequestParam(value = "apiImageUrl", required = false) String apiImageUrl,
+            @RequestParam(value = "url", required = false) String apiImageUrl,
             @RequestParam("type") ImageType type,
             @RequestParam(value = "aspectRatios", required = false) String aspectRatios
     ) {

@@ -7,7 +7,7 @@ import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
-import com.back.domain.shorlog.shorlog.dto.ImageOrderItem;
+import com.back.domain.shorlog.shorlog.dto.UploadImageOrderItem;
 import com.back.domain.shorlog.shorlog.dto.ImageOrderItemType;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.user.user.entity.User;
@@ -49,7 +49,7 @@ public class ImageUploadService {
     private static final String S3_FOLDER = "shorlog/images/";
 
     @Transactional
-    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<ImageOrderItem> orderItems) {
+    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<UploadImageOrderItem> orderItems) {
         if (orderItems == null || orderItems.isEmpty()) {
             throw new IllegalArgumentException("파일은 최소 1개 이상 필요합니다.");
         }
@@ -65,14 +65,14 @@ public class ImageUploadService {
 
         List<UploadImageResponse> responses = new ArrayList<>();
 
-        List<ImageOrderItem> sortedItems = orderItems.stream()
-                .sorted(Comparator.comparingInt(ImageOrderItem::order))
+        List<UploadImageOrderItem> sortedItems = orderItems.stream()
+                .sorted(Comparator.comparingInt(UploadImageOrderItem::order))
                 .toList();
 
         for (int i = 0; i < sortedItems.size(); i++) {
             log.info("{}번 이미지 업로드 작업 시작", i);
 
-            ImageOrderItem item = sortedItems.get(i);
+            UploadImageOrderItem item = sortedItems.get(i);
 
             MultipartFile file;
             if (item.type() == ImageOrderItemType.URL) {

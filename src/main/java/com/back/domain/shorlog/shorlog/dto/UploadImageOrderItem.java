@@ -1,6 +1,6 @@
 package com.back.domain.shorlog.shorlog.dto;
 
-public record ImageOrderItem(
+public record UploadImageOrderItem(
         int order,
         ImageOrderItemType type, // "FILE" or "URL"
         Integer fileIndex,       // "FILE"일 때만
