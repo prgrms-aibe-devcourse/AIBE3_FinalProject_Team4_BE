@@ -2,7 +2,6 @@ package com.back.domain.image.image.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -73,7 +72,9 @@ public class ImageUrlToMultipartFile {
         String ext = contentType.split("/")[1];
         String fileName = "api-image-" + UUID.randomUUID() + "." + ext;
 
-        return new MockMultipartFile(
+        log.info("파일 변환 성공: {}", fileName);
+
+        return new SimpleMultipartFile(
                 partName,
                 fileName,
                 contentType,
