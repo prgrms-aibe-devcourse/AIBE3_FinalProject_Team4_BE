@@ -14,6 +14,7 @@ import com.back.domain.blog.blogFile.util.ImageResizeUtil;
 import com.back.domain.blog.blogFile.util.MediaTypeDetector;
 import com.back.domain.blog.blogFile.util.VideoResizeUtil;
 import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
+import com.back.domain.image.test.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
@@ -59,11 +60,16 @@ public class BlogMediaService {
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
     private final VideoResizeUtil videoResizeUtil;
+    private final ImageUrlToMultipartFile imageUrlToMultipartFile;
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
     @Transactional
-    public BlogMediaUploadResponse uploadBlogMedia(Long userId, Long blogId, MultipartFile file, ImageType type, String aspectRatios) {
+    public BlogMediaUploadResponse uploadBlogMedia(Long userId, Long blogId, MultipartFile file, String apiImageUrl, ImageType type, String aspectRatios) {
+        if (apiImageUrl != null && !apiImageUrl.isBlank() && (file == null || file.isEmpty())) {
+            file = imageUrlToMultipartFile.convert(apiImageUrl);
+        }
+
         validateFile(file);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));

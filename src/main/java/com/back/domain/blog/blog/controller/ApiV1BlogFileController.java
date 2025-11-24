@@ -26,11 +26,12 @@ public class ApiV1BlogFileController {
     public RsData<BlogMediaUploadResponse> uploadBlogImage(
             @AuthenticationPrincipal SecurityUser user,
             @PathVariable Long blogId,
-            @RequestParam("files") MultipartFile image,
+            @RequestParam(value = "files", required = false) MultipartFile image,
+            @RequestParam(value = "apiImageUrl", required = false) String apiImageUrl,
             @RequestParam("type") ImageType type,
             @RequestParam(value = "aspectRatios", required = false) String aspectRatios
     ) {
-        BlogMediaUploadResponse dto = blogMediaService.uploadBlogMedia(user.getId(), blogId, image, type, aspectRatios);
+        BlogMediaUploadResponse dto = blogMediaService.uploadBlogMedia(user.getId(), blogId, image, apiImageUrl, type, aspectRatios);
         return RsData.of("201-1", "블로그 파일 업로드가 완료되었습니다.", dto);
     }
 
