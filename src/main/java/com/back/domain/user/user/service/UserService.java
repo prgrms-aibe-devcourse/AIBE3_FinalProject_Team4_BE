@@ -12,6 +12,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.exception.UserErrorCase;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,5 +93,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean isAvailableNickname(String nickname) {
         return userRepository.findByNickname(nickname).isEmpty();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserListResponseDto> searchUserByKeyword(String keyword) {
+        List<User> users = userRepository.findByNicknameContainingIgnoreCaseOrBioContainingIgnoreCaseOrderByFollowersCountDesc(keyword, keyword);
+
+        return users.stream()
+                .map(UserListResponseDto::new)
+                .toList();
     }
 }

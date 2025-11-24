@@ -44,6 +44,9 @@ public class FollowService {
             throw new ServiceException(FollowErrorCase.ALREADY_FOLLOWING);
         }
 
+        follower.increaseFollowingCount();
+        following.increaseFollowerCount();
+
         Follow follow = Follow.create(follower, following);
         followRepository.save(follow);
 
@@ -70,6 +73,15 @@ public class FollowService {
         userRepository.findById(followingId).orElseThrow(
                 () -> new ServiceException(UserErrorCase.USER_NOT_FOUND)
         );
+
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+        User following = userRepository.findById(followingId)
+                .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        follower.decreaseFollowingCount();
+        following.decreaseFollowerCount();
+
         return followRepository.existsByFromUserIdAndToUserId(followerId, followingId);
     }
 
