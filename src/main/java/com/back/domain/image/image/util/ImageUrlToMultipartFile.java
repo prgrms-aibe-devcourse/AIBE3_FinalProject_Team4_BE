@@ -48,11 +48,16 @@ public class ImageUrlToMultipartFile {
                     })
                     .block();
         } catch (WebClientResponseException e) {
-            throw new RuntimeException("이미지 다운로드 중 오류 발생: %s".formatted(e.getMessage()), e);
+            log.error("이미지 다운로드 중 WebClient 오류 발생", e);
+            return null;
+        } catch (Exception e) {
+            log.error("이미지 다운로드 중 예상치 못한 오류 발생", e);
+            return null;
         }
 
-        if (imageBytes == null) {
-            throw new RuntimeException("다운로드된 이미지 데이터가 비어있습니다.");
+        if (imageBytes == null || imageBytes.length == 0) {
+            log.warn("다운로드된 이미지 데이터가 비어있습니다.");
+            return null;
         }
 
         String contentType = contentTypeRef.get();
@@ -62,8 +67,8 @@ public class ImageUrlToMultipartFile {
             } catch (IOException e) {
                 log.error("이미지 content type 스트림 분석 실패", e);
             }
-            if (contentType == null) contentType = "image/jpeg";
         }
+        if (contentType == null) contentType = "image/jpeg";
 
         String ext = contentType.split("/")[1];
         String fileName = "api-image-" + UUID.randomUUID() + "." + ext;

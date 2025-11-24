@@ -9,6 +9,9 @@ import com.back.domain.shorlog.shorlogtts.service.ShorlogTtsService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -104,10 +107,15 @@ public class ApiV1ShorlogController {
     @Operation(summary = "이미지 일괄 업로드")
     public RsData<List<UploadImageResponse>> uploadImages(
             @AuthenticationPrincipal SecurityUser securityUser,
-            @RequestParam("files") List<MultipartFile> files,
-            @RequestParam(value = "aspectRatios", required = false) List<String> aspectRatios
-    ) {
-        return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, aspectRatios));
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @RequestParam("imageOrders") String imageOrdersJson
+    ) throws JsonProcessingException {
+        List<ImageOrderItem> imageOrders =
+                new ObjectMapper().readValue(imageOrdersJson,
+                        new TypeReference<>() {
+                        });
+
+        return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, imageOrders));
     }
 
     @GetMapping("/search")

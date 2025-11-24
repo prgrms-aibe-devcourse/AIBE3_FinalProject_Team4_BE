@@ -3,9 +3,12 @@ package com.back.domain.shorlog.shorlogimage.service;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
+import com.back.domain.shorlog.shorlog.dto.ImageOrderItem;
+import com.back.domain.shorlog.shorlog.dto.ImageOrderItemType;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -22,10 +25,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -36,6 +37,7 @@ public class ImageUploadService {
     private final ImageRepository imageRepository;
     private final UserRepository userRepository;
     private final AmazonS3 amazonS3;
+    private final ImageUrlToMultipartFile imageUrlToMultipartFile;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -47,24 +49,36 @@ public class ImageUploadService {
     private static final String S3_FOLDER = "shorlog/images/";
 
     @Transactional
-    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<String> aspectRatios) {
-        if (files == null || files.isEmpty()) {
+    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<ImageOrderItem> orderItems) {
+        if (orderItems == null || orderItems.isEmpty()) {
             throw new IllegalArgumentException("파일은 최소 1개 이상 필요합니다.");
         }
 
-        if (files.size() > 10) {
+        if (orderItems.size() > 10) {
             throw new IllegalArgumentException("파일은 최대 10개까지 업로드 가능합니다.");
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
+        files = (files == null) ? List.of() : files;
+
         List<UploadImageResponse> responses = new ArrayList<>();
 
-        for (int i = 0; i < files.size(); i++) {
-            MultipartFile file = files.get(i);
-            String aspectRatio = (aspectRatios != null && i < aspectRatios.size())
-                    ? aspectRatios.get(i)
+        List<ImageOrderItem> sortedItems = orderItems.stream()
+                .sorted(Comparator.comparingInt(ImageOrderItem::order))
+                .toList();
+
+        for (ImageOrderItem item : sortedItems) {
+            MultipartFile file;
+            if (item.type() == ImageOrderItemType.URL) {
+                file = imageUrlToMultipartFile.convert(item.url(), "files");
+            } else {
+                file = files.get(item.fileIndex());
+            }
+
+            String aspectRatio = (item.aspectRatio() != null && !item.aspectRatio().isBlank())
+                    ? item.aspectRatio()
                     : "original";
 
             validateFile(file);
@@ -147,7 +161,7 @@ public class ImageUploadService {
         return UUID.randomUUID() + "." + extension;
     }
 
-     // 비율에 따라 이미지 리사이징
+    // 비율에 따라 이미지 리사이징
     private BufferedImage resizeImageByAspectRatio(BufferedImage originalImage, String aspectRatio) {
         if (aspectRatio == null || aspectRatio.equalsIgnoreCase("original")) {
             return resizeKeepingRatio(originalImage);
@@ -161,7 +175,7 @@ public class ImageUploadService {
         };
     }
 
-     // 비율 유지하며 리사이징 (original)
+    // 비율 유지하며 리사이징 (original)
     private BufferedImage resizeKeepingRatio(BufferedImage originalImage) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -180,13 +194,13 @@ public class ImageUploadService {
         return createResizedImage(originalImage, newWidth, newHeight);
     }
 
-     // 정사각형으로 크롭 후 리사이징 (1:1)
+    // 정사각형으로 크롭 후 리사이징 (1:1)
     private BufferedImage resizeToSquare(BufferedImage originalImage) {
         return resizeToCrop(originalImage, MAX_WIDTH, MAX_WIDTH);
     }
 
 
-     // 특정 비율로 크롭 후 리사이징
+    // 특정 비율로 크롭 후 리사이징
     private BufferedImage resizeToCrop(BufferedImage originalImage, int targetWidth, int targetHeight) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -209,7 +223,7 @@ public class ImageUploadService {
         return createResizedImage(croppedImage, targetWidth, targetHeight);
     }
 
-     // 고품질 리사이징 수행
+    // 고품질 리사이징 수행
     private BufferedImage createResizedImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = resizedImage.createGraphics();
