@@ -53,6 +53,7 @@ public class BlogDocController {
             }
         }
         BlogSearchCondition condition = new BlogSearchCondition(keyword, sort, size, cursor);
-        return blogDocService.searchBlogs(guestId, user.getId(), condition, followingIds);
+
+        return blogDocService.searchBlogs(guestId, userId, condition, followingIds);
     }
 }

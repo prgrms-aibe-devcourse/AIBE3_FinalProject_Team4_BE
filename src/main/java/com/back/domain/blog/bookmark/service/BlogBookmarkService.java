@@ -3,6 +3,7 @@ package com.back.domain.blog.bookmark.service;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
+import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
 import com.back.domain.notification.entity.NotificationType;
@@ -27,6 +28,7 @@ public class BlogBookmarkService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final BlogDocIndexer blogDocIndexer;
 
     @Transactional
     public boolean bookmarkOn(Long userId, Long blogId) {
@@ -46,7 +48,8 @@ public class BlogBookmarkService {
         BlogBookmark bookmark = new BlogBookmark(blog, user);
         try {
             bookmarkRepository.save(bookmark);
-            blogRepository.increaseBookmark(blogId);
+            blog.increaseBookmark();
+            blogDocIndexer.index(blogId);
             // 🔔 북마크 알림
             User sender = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -66,20 +69,19 @@ public class BlogBookmarkService {
     }
 
     @Transactional
-    public boolean bookmarkOff(Long userId, Long blogId) {
+    public long bookmarkOff(Long userId, Long blogId) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
-        if (bookmarkRepository.findByBlogIdAndUserId(blog.getId(), user.getId()).isEmpty())
-            throw new ServiceException(BlogErrorCase.REACTION_NOT_FOUND);
+        BlogBookmark bookmark = bookmarkRepository.findByBlogIdAndUserId(blogId, user.getId())
+                .orElseThrow(() -> new ServiceException(BlogErrorCase.REACTION_NOT_FOUND));
 
-        long deleted = bookmarkRepository.deleteByBlog_IdAndUser_Id(blogId, userId);
-        if (deleted > 0) {
-            blogRepository.decreaseBookmark(blogId);
-            return true;
-        }
-        return false;
+        blog.decreaseBookmark();
+        bookmarkRepository.delete(bookmark);
+
+        blogDocIndexer.index(blogId);
+        return blog.getBookmarkCount();
     }
 
     public boolean isBookmarked(Long blogId, Long userId) {

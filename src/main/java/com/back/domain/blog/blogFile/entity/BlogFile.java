@@ -36,4 +36,8 @@ public class BlogFile extends BaseEntity {
     public static BlogFile create(Blog blog, Image image, Integer sortOrder) {
         return new BlogFile(blog, image, sortOrder);
     }
+
+    public void updateSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
+    }
 }
