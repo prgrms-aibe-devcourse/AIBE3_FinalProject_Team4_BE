@@ -44,7 +44,7 @@ public class ApiV1BlogLinkController {
         return RsData.successOf(res);
     }
 
-    @GetMapping("/my/recent-summary-blogs")
+    @GetMapping("/my/recent-blogs")
     @Operation(summary = "연결할 내 최근 블로그 목록 조회")
     public RsData<List<MyBlogSummaryResponse>> getMyRecentBlogs(
             @AuthenticationPrincipal SecurityUser user,

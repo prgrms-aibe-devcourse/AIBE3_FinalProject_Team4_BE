@@ -43,7 +43,7 @@ public class ApiV1ShorlogBlogLinkController {
         return RsData.successOf(null);
     }
 
-    @GetMapping("/my/recent-summary-shorlogs")
+    @GetMapping("/my/recent-shorlogs")
     @Operation(summary = "연결할 내 최근 숏로그 목록 조회")
     public RsData<List<MyShorlogSummaryResponse>> getMyRecentShorlogs(
             @AuthenticationPrincipal SecurityUser user,
