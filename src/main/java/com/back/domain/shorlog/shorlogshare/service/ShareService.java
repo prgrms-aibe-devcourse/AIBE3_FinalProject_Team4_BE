@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -23,14 +24,17 @@ public class ShareService {
 
      // 숏로그 공유 미리보기 데이터 조회
     public SharePreviewDto getSharePreviewData(Long shorlogId) {
-        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+        // N+1 문제 해결
+        Shorlog shorlog = shorlogRepository.findByIdWithUser(shorlogId)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        // Lazy Loading 해결
         String title = extractTitle(shorlog);
         String description = extractDescription(shorlog);
         String imageUrl = extractImageUrl(shorlog);
-        String url = baseUrl + "/shorlog/" + shorlogId;
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/shorlog/")
+                .path(shorlogId.toString())
+                .toUriString();
         String author = shorlog.getUser().getNickname();
 
         return SharePreviewDto.builder()
@@ -74,8 +78,11 @@ public class ShareService {
 
      // 썸네일 이미지 URL 추출 (첫 번째 이미지)
     private String extractImageUrl(Shorlog shorlog) {
-        // Lazy Loading
         List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
+
+        if (thumbnailUrls == null || thumbnailUrls.isEmpty()) {
+            throw new IllegalStateException("숏로그에 썸네일 이미지가 없습니다.");
+        }
 
         return thumbnailUrls.get(0);
     }

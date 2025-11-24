@@ -7,8 +7,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.NoSuchElementException;
 
 @Tag(name = "Share", description="숏로그 공유 API (Open Graph)")
 @Controller
@@ -31,6 +34,12 @@ public class ShareController {
         model.addAttribute("author", previewData.getAuthor());
 
         return "share-preview";
+    }
+
+    // 404 페이지
+    @ExceptionHandler({NoSuchElementException.class, IllegalStateException.class})
+    public String handleNotFound() {
+        return "error-404";
     }
 }
 
