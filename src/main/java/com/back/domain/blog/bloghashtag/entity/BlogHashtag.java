@@ -18,7 +18,7 @@ public class BlogHashtag {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blog_id", nullable = false)
     private Blog blog;

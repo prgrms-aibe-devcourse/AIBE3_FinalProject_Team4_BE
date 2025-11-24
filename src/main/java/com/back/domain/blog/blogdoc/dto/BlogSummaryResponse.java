@@ -12,6 +12,7 @@ public record BlogSummaryResponse(
         Long id,
         Long userId,
         String userNickname,
+        String profileImageUrl,
         String title,
         String contentPre,
         String thumbnailUrl,
@@ -29,7 +30,8 @@ public record BlogSummaryResponse(
         this(
                 doc.getId(),
                 doc.getUserId(),
-                doc.getUserName(),
+                doc.getUserNickname(),
+                doc.getProfileImgUrl(),
                 doc.getTitle(),
                 generateContentPreview(doc.getContent()),
                 doc.getThumbnailUrl(),
@@ -47,7 +49,7 @@ public record BlogSummaryResponse(
 
     public static String generateContentPreview(String content) {
         if (content == null) return "";
-        int previewLength = 70;
+        int previewLength = 80;
         return content.length() <= previewLength ? content : content.substring(0, previewLength) + "...";
     }
 }

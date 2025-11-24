@@ -17,7 +17,9 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @EntityListeners(AuditingEntityListener.class)
 @AllArgsConstructor
@@ -76,10 +78,11 @@ public class Blog extends BaseEntity {
 
     public void updateHashtags(List<Hashtag> hashtags) {
         this.blogHashtags.clear();
-
+        Set<Long> uniqueIds = new HashSet<>();
         for (Hashtag hashtag : hashtags) {
-            BlogHashtag blogHashtag = new BlogHashtag(this, hashtag);
-            this.blogHashtags.add(blogHashtag);
+            if (uniqueIds.add(hashtag.getId())) {
+                this.blogHashtags.add(new BlogHashtag(this, hashtag));
+            }
         }
     }
 
@@ -107,5 +110,25 @@ public class Blog extends BaseEntity {
 
     public void changeThumbnailUrl(String s3Url) {
         this.thumbnailUrl = s3Url;
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount += 1;
+    }
+
+    public void decreaseLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
+    public void increaseBookmark() {
+        this.bookmarkCount += 1;
+    }
+
+    public void decreaseBookmark() {
+        if (this.bookmarkCount > 0) {
+            this.bookmarkCount--;
+        }
     }
 }
