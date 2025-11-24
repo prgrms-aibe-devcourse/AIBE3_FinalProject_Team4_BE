@@ -31,7 +31,7 @@ public class BlogDocController {
     private final FollowService followService;
 
     @GetMapping
-    @Operation(summary = "블로그 다건조회/검색", description = "블로그 다건조회/검색/팔로우/정렬 필터링 API")
+    @Operation(summary = "블로그 피드/다건조회", description = "전체/팔로잉/추천/정렬/검색 포함 블로그 피드 API")
     public BlogSliceResponse<BlogSummaryResponse> searchBlogs(
             @CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId, // 비로그인 개인화 추천용
             @AuthenticationPrincipal SecurityUser user,
@@ -55,5 +55,20 @@ public class BlogDocController {
         BlogSearchCondition condition = new BlogSearchCondition(keyword, sort, size, cursor);
 
         return blogDocService.searchBlogs(guestId, userId, condition, followingIds);
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "블로그 검색", description = "키워드/정렬 기반 블로그 검색 API")
+    public BlogSliceResponse<BlogSummaryResponse> searchBlogs(
+            @AuthenticationPrincipal SecurityUser user,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "LATEST") BlogSortType sort,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String cursor
+    ) {
+        Long userId = (user != null) ? user.getId() : null;
+        BlogSearchCondition condition = new BlogSearchCondition(keyword, sort, size, cursor);
+
+        return blogDocService.searchBlogs("", userId, condition, null);
     }
 }

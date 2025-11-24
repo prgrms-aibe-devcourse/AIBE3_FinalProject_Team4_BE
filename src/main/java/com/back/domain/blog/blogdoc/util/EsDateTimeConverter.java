@@ -2,6 +2,7 @@ package com.back.domain.blog.blogdoc.util;
 
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -21,14 +22,20 @@ public class EsDateTimeConverter {
                     .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
                     .optionalEnd()
                     .toFormatter();
-    
-    public static LocalDateTime parseToKst(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return LocalDateTime.parse(value, ES_LOCAL_DATE_TIME_FORMATTER);
-        } catch (DateTimeParseException ignore) {
-            OffsetDateTime odt = OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-            return odt.atZoneSameInstant(KST).toLocalDateTime();
+
+    public static LocalDateTime toKst(Object value) {
+        if (value == null) return null;
+        if (value instanceof Instant instant) {
+            return instant.atZone(KST).toLocalDateTime();
         }
+        if (value instanceof String str) {
+            try {
+                return LocalDateTime.parse(str, ES_LOCAL_DATE_TIME_FORMATTER);
+            } catch (DateTimeParseException ignore) {
+                OffsetDateTime odt = OffsetDateTime.parse(str);
+                return odt.atZoneSameInstant(KST).toLocalDateTime();
+            }
+        }
+        throw new IllegalArgumentException("지원하지 않는 날짜 타입: " + value.getClass());
     }
 }

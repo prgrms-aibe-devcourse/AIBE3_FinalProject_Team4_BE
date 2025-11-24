@@ -42,8 +42,8 @@ public record BlogSummaryResponse(
                 commentCounts.getOrDefault(doc.getId(), 0L),
                 likedIds.contains(doc.getId()),
                 bookmarkedIds.contains(doc.getId()),
-                EsDateTimeConverter.parseToKst(doc.getCreatedAt()),
-                EsDateTimeConverter.parseToKst(doc.getModifiedAt())
+                EsDateTimeConverter.toKst(doc.getCreatedAt()),
+                EsDateTimeConverter.toKst(doc.getModifiedAt())
         );
     }
 

@@ -80,7 +80,7 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
                     }
                     //published 상태 필터링
                     b.filter(f -> f.term(t -> t
-                            .field("status.keyword")
+                            .field("status")
                             .value("PUBLISHED")
                     ));
                     // 팔로잉 필터링
