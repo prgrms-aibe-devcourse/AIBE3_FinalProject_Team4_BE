@@ -1,6 +1,7 @@
 package com.back.domain.image.test;
 
 import com.back.domain.blog.blogFile.service.BlogMediaService;
+import com.back.global.ut.ImageUrlToMultipartFile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
