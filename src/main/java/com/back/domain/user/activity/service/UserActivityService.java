@@ -39,7 +39,7 @@ public class UserActivityService {
     }
 
     public List<UserActivityDto> getUserLikedPosts(Long userId, boolean isShorlog, int limit) {
-        int finalLimit = getValidLimit(limit, UserActivityType.LIKE.getLimit());
+        int finalLimit = getValidLimit(limit, UserActivityType.REACTION.getLimit());
         Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {
@@ -58,7 +58,7 @@ public class UserActivityService {
     }
 
     public List<UserActivityDto> getUserBookmarkedPosts(Long userId, boolean isShorlog, int limit) {
-        int finalLimit = getValidLimit(limit, UserActivityType.LIKE.getLimit());
+        int finalLimit = getValidLimit(limit, UserActivityType.REACTION.getLimit());
         Pageable pageable = PageRequest.of(0, finalLimit);
 
         if (isShorlog) {

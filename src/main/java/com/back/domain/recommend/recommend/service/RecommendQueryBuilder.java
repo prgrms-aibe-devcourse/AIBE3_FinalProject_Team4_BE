@@ -96,7 +96,7 @@ public class RecommendQueryBuilder {
 
         // 좋아요 기반
         for (UserActivityDto u : likedPosts) {
-            float weight = UserActivityType.LIKE.getEffectiveWeight(u.activityAt());
+            float weight = UserActivityType.REACTION.getEffectiveWeight(u.activityAt());
             queries.add(
                     buildFunctionScoreQuery(
                             buildMLTQuery(postType, u.postId(), weight),
@@ -108,7 +108,7 @@ public class RecommendQueryBuilder {
 
         // 북마크 기반
         for (UserActivityDto u : bookmarkedPosts) {
-            float weight = UserActivityType.LIKE.getEffectiveWeight(u.activityAt());
+            float weight = UserActivityType.REACTION.getEffectiveWeight(u.activityAt());
             queries.add(
                     buildFunctionScoreQuery(
                             buildMLTQuery(postType, u.postId(), weight),

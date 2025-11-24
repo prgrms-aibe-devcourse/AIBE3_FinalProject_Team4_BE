@@ -8,7 +8,7 @@ import java.time.temporal.ChronoUnit;
 @Getter
 public enum UserActivityType {
 
-    LIKE(
+    REACTION( // 좋아요, 북마크
             20,
             3.0f,
             1.0f,
