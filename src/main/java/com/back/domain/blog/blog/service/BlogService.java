@@ -23,14 +23,12 @@ import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -168,15 +166,13 @@ public class BlogService {
     public Page<BlogDto> findAllByMy(Long userId, BlogMySortType sortType, Pageable pageable) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
-        Page<Blog> blogs =
-                blogRepository.findAllByUserIdAndStatus(userId, BlogStatus.PUBLISHED, pageable);
+        Page<Blog> blogs = blogRepository.findMyBlogs(userId, sortType, pageable);
         List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
         final Map<Long, Long> commentCounts =
                 commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
-        return blogs.stream()
-                .map(blog -> new BlogDto(blog, false, false, commentCounts.getOrDefault(blog.getId(), 0L)))
-                .collect(Collectors.collectingAndThen(Collectors.toList(),
-                        list -> PageableExecutionUtils.getPage(list, pageable, list::size)));
+        return blogs.map(blog ->
+                new BlogDto(blog, false, false, commentCounts.getOrDefault(blog.getId(), 0L))
+        );
     }
 
     public Page<BlogDto> getMyBookmarkedBlogs(Long userId, BlogMySortType sortType, Pageable pageable) {
