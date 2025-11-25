@@ -7,8 +7,8 @@ import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
-import com.back.domain.shorlog.shorlog.dto.UploadImageOrderItem;
-import com.back.domain.shorlog.shorlog.dto.ImageOrderItemType;
+import com.back.domain.shorlog.shorlogimage.dto.UploadImageOrderRequest;
+import com.back.domain.shorlog.shorlogimage.dto.ImageOrderItemType;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -49,7 +49,7 @@ public class ImageUploadService {
     private static final String S3_FOLDER = "shorlog/images/";
 
     @Transactional
-    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<UploadImageOrderItem> orderItems) {
+    public List<UploadImageResponse> uploadImages(Long userId, List<MultipartFile> files, List<UploadImageOrderRequest> orderItems) {
         if (orderItems == null || orderItems.isEmpty()) {
             throw new IllegalArgumentException("파일은 최소 1개 이상 필요합니다.");
         }
@@ -61,18 +61,18 @@ public class ImageUploadService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        files = (files == null) ? List.of() : files;
-
         List<UploadImageResponse> responses = new ArrayList<>();
 
-        List<UploadImageOrderItem> sortedItems = orderItems.stream()
-                .sorted(Comparator.comparingInt(UploadImageOrderItem::order))
+        List<UploadImageOrderRequest> sortedItems = orderItems.stream()
+                .sorted(Comparator.comparingInt(UploadImageOrderRequest::order))
                 .toList();
+
+        files = (files == null) ? List.of() : files;
 
         for (int i = 0; i < sortedItems.size(); i++) {
             log.info("{}번 이미지 업로드 작업 시작", i);
 
-            UploadImageOrderItem item = sortedItems.get(i);
+            UploadImageOrderRequest item = sortedItems.get(i);
 
             MultipartFile file;
             if (item.type() == ImageOrderItemType.URL) {

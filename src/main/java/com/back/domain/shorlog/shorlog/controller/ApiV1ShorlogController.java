@@ -2,6 +2,7 @@ package com.back.domain.shorlog.shorlog.controller;
 
 import com.back.domain.shorlog.shorlog.dto.*;
 import com.back.domain.shorlog.shorlog.service.ShorlogService;
+import com.back.domain.shorlog.shorlogimage.dto.UploadImageOrderRequest;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.shorlog.shorlogimage.service.ImageUploadService;
 import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
@@ -110,7 +111,7 @@ public class ApiV1ShorlogController {
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("orders") String imageOrderItemsJson
     ) throws JsonProcessingException {
-        List<UploadImageOrderItem> imageOrderItems =
+        List<UploadImageOrderRequest> imageOrderItems =
                 new ObjectMapper().readValue(imageOrderItemsJson,
                         new TypeReference<>() {
                         });

@@ -1,4 +1,4 @@
-package com.back.domain.shorlog.shorlog.dto;
+package com.back.domain.shorlog.shorlogimage.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
