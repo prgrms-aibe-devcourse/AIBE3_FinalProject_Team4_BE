@@ -7,6 +7,8 @@ import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
 import com.back.domain.comments.comments.entity.Comments;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
+import com.back.domain.comments.comments.event.CommentCreatedEvent;
+import com.back.domain.comments.comments.event.CommentDeletedEvent;
 import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
 import com.back.domain.notification.entity.NotificationType;
@@ -18,6 +20,7 @@ import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class CommentsService {
     private final BlogRepository blogRepository;
     private final ShorlogRepository shorlogRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 공통
     private Comments getComment(Long id) {
@@ -77,6 +81,9 @@ public class CommentsService {
                 .build();
 
         commentsRepository.save(comment);
+        eventPublisher.publishEvent(
+                new CommentCreatedEvent(req.targetType(), req.targetId())
+        );
 
         // ===========================
         //       🔔 알림 처리 로직
@@ -182,7 +189,13 @@ public class CommentsService {
         Comments comment = getComment(commentId);
         checkOwnership(comment, userId);
 
+        CommentsTargetType targetType = comment.getTargetType();
+        Long targetId = comment.getTargetId();
+
         commentsRepository.delete(comment);
+        eventPublisher.publishEvent(
+                new CommentDeletedEvent(targetType, targetId)
+        );
 
         return RsData.of("200-3", "댓글이 삭제되었습니다.", null);
     }
@@ -239,5 +252,10 @@ public class CommentsService {
                         row -> (Long) row[0],  // targetId
                         row -> (Long) row[1]   // count
                 ));
+    }
+
+    @Transactional
+    public void deleteCommentsByTarget(CommentsTargetType targetType, Long targetId) {
+        commentsRepository.deleteByTargetTypeAndTargetId(targetType, targetId);
     }
 }

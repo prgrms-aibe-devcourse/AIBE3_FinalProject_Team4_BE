@@ -7,7 +7,7 @@
     "userId": {
       "type": "long"
     },
-    "userName": {
+    "userNickname": {
       "type": "keyword"
     },
     "title": {
@@ -20,16 +20,10 @@
       "analyzer": "korean",
       "search_analyzer": "korean"
     },
-    "thumbnailUrl": {
-      "type": "keyword"
-    },
-    "categoryId": {
-      "type": "long"
-    },
-    "categoryName": {
-      "type": "keyword"
-    },
     "hashtagName": {
+      "type": "keyword"
+    },
+    "thumbnailUrl": {
       "type": "keyword"
     },
     "status": {
@@ -43,6 +37,14 @@
     },
     "bookmarkCount": {
       "type": "long"
+    },
+    "createdAt": {
+      "type": "date",
+      "format": "strict_date_time"
+    },
+    "modifiedAt": {
+      "type": "date",
+      "format": "strict_date_time"
     }
   }
 }

@@ -4,7 +4,9 @@ import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
 import com.back.global.ut.JsonUtil;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 

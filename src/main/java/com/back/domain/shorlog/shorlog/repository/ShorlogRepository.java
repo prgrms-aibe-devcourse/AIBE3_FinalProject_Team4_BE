@@ -1,7 +1,6 @@
 package com.back.domain.shorlog.shorlog.repository;
 
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
-import com.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,8 +27,7 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "WHERE s.id = :id")
     Optional<Shorlog> findByIdWithUser(@Param("id") Long id);
 
-     // 전체 피드 조회 (최신순 - AI 추천은 나중에)
-     // TODO: AI 추천 알고리즘 연동 (5번 이지연)
+     // 전체 피드 조회 (최신순)
     @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
            "JOIN FETCH s.user " +
            "LEFT JOIN FETCH s.images si " +
@@ -80,4 +78,20 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
     Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
 
     int countAllByUserId(Long userId);
+
+    @Query("""
+            SELECT s.id, s.createdAt
+            FROM Shorlog s
+            WHERE s.user.id = :userId
+            ORDER BY s.id DESC
+            """)
+    Page<Object[]> findUserShorlogActivities(@Param("userId") Long userId, Pageable pageable);
+
+    // 블로그 연결 모달용
+    @Query("SELECT DISTINCT s FROM Shorlog s " +
+           "LEFT JOIN FETCH s.hashtags sh " +
+           "LEFT JOIN FETCH sh.hashtag " +
+           "WHERE s.user.id = :userId " +
+           "ORDER BY s.modifiedAt DESC")
+    List<Shorlog> findRecentShorlogsByUserId(@Param("userId") Long userId);
 }

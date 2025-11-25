@@ -15,7 +15,9 @@ public enum NotificationType {
     SHORLOG_LIKE("내 숏로그를 좋아했습니다."),
     SHORLOG_BOOKMARK("내 숏로그를 저장했습니다."),
 
-    COMMENT_REPLY("님이 회원님의 댓글에 답글을 남겼습니다.");
+    COMMENT_REPLY("님이 회원님의 댓글에 답글을 남겼습니다."),
+
+    FOLLOW("님이 회원님을 팔로우했습니다.");
 
     private final String messageTemplate;
 

@@ -19,8 +19,6 @@ import java.time.LocalDateTime;
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class ShorlogBlogLink {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,4 +35,11 @@ public class ShorlogBlogLink {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static ShorlogBlogLink create(Shorlog shorlog, Blog blog) {
+        ShorlogBlogLink link = new ShorlogBlogLink();
+        link.shorlog = shorlog;
+        link.blog = blog;
+        return link;
+    }
 }

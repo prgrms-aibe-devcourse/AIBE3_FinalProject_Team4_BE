@@ -3,10 +3,12 @@ package com.back.domain.shorlog.shorlog.dto;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class ShorlogFeedResponse {
 
@@ -19,7 +21,7 @@ public class ShorlogFeedResponse {
     private Integer commentCount;
     private String firstLine;
 
-    public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags, Integer likeCount) {
+    public static ShorlogFeedResponse from(Shorlog shorlog, List<String> hashtags, Integer likeCount, Integer commentCount) {
         List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
         String firstThumbnail = (thumbnailUrls != null && !thumbnailUrls.isEmpty())
                 ? thumbnailUrls.getFirst()
@@ -32,7 +34,7 @@ public class ShorlogFeedResponse {
                 shorlog.getUser().getNickname(),
                 hashtags != null ? List.copyOf(hashtags) : List.of(),
                 likeCount,
-                0, // TODO: 댓글 기능 구현 후 (4번 이해민)
+                commentCount,
                 extractFirstLine(shorlog.getContent())
         );
     }

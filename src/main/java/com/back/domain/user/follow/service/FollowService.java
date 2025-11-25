@@ -1,5 +1,7 @@
 package com.back.domain.user.follow.service;
 
+import com.back.domain.notification.entity.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.user.follow.dto.FollowCountResponseDto;
 import com.back.domain.user.follow.dto.FollowResponseDto;
 import com.back.domain.user.follow.entity.Follow;
@@ -24,23 +26,40 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
 
+    private final NotificationService notificationService;   //알림 서비스 주입
+
     @Transactional
     public Follow follow(Long followerId, Long followingId) {
-        if(followerId.equals(followingId)) {
+        if (followerId.equals(followingId)) {
             throw new ServiceException(FollowErrorCase.CANNOT_FOLLOW_YOURSELF);
         }
 
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
         User following = userRepository.findById(followingId)
                 .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        if(isFollowing(followerId, followingId)) {
+        if (isFollowing(followerId, followingId)) {
             throw new ServiceException(FollowErrorCase.ALREADY_FOLLOWING);
         }
 
+        follower.increaseFollowingCount();
+        following.increaseFollowerCount();
+
         Follow follow = Follow.create(follower, following);
-        return followRepository.save(follow);
+        followRepository.save(follow);
+
+        // 알림 전송
+        notificationService.send(
+                followingId,                    // 알림 받을 사람
+                followerId,                     // 알림 보낸 사람
+                NotificationType.FOLLOW,        // 타입
+                followerId,                     // targetId: 누가 팔로우했는지를 링크하거나 상세페이지 id
+                follower.getNickname()          // 메시지 생성용 닉네임
+        );
+
+        return follow;
     }
 
     @Transactional
@@ -54,6 +73,15 @@ public class FollowService {
         userRepository.findById(followingId).orElseThrow(
                 () -> new ServiceException(UserErrorCase.USER_NOT_FOUND)
         );
+
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+        User following = userRepository.findById(followingId)
+                .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        follower.decreaseFollowingCount();
+        following.decreaseFollowerCount();
+
         return followRepository.existsByFromUserIdAndToUserId(followerId, followingId);
     }
 
@@ -61,8 +89,9 @@ public class FollowService {
     public List<FollowResponseDto> getFollowers(Long userId) {
         Set<Long> followingIds = new HashSet<>(followRepository.findFollowingIdsByUserId(userId));
         List<Long> followerIds = followRepository.findFollowerIdsByUserId(userId);
+
         return followerIds.stream()
-                .map(followerId -> {    // 각 Follow 데이터 돌면서
+                .map(followerId -> {
                     User toUser = userRepository.findById(followerId)
                             .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
                     return new FollowResponseDto(toUser, followingIds.contains(followerId));
@@ -95,5 +124,9 @@ public class FollowService {
         long followersCount = followRepository.countByToUserId(userId);
         long followingsCount = followRepository.countByFromUserId(userId);
         return new FollowCountResponseDto(followersCount, followingsCount);
+    }
+
+    public List<Long> findFollowingUserIds(Long id) {
+        return followRepository.findFollowingIdsByUserId(id);
     }
 }

@@ -59,4 +59,11 @@ public class UserController {
         }
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "유저 검색")
+    public RsData<List<UserListResponseDto>> searchUser(@Valid @RequestParam String keyword) {
+        List<UserListResponseDto> users = userService.searchUserByKeyword(keyword);
+        return RsData.of("200", "유저 검색 성공", users);
+    }
+
 }

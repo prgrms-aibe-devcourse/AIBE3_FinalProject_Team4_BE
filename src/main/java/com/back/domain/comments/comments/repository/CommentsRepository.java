@@ -2,6 +2,8 @@ package com.back.domain.comments.comments.repository;
 
 import com.back.domain.comments.comments.entity.Comments;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,4 +26,21 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
             group by c.targetId
             """)
     List<Object[]> countByTargetIdsAndType(@Param("targetIds") List<Long> targetIds, CommentsTargetType targetType);
+
+    // 단일 댓글 수 조회
+    Long countByTargetTypeAndTargetId(CommentsTargetType targetType, Long targetId);
+
+    @Query("""
+            SELECT c.targetId, MAX(c.createdAt), COUNT(c)
+            FROM Comments c
+            WHERE c.user.id = :userId
+              AND c.targetType = :targetType
+            GROUP BY c.targetId
+            ORDER BY MAX(c.id) DESC
+            """)
+    Page<Object[]> findUserCommentActivities(
+            @Param("userId") Long userId,
+            @Param("targetType") CommentsTargetType targetType,
+            Pageable pageable
+    );
 }

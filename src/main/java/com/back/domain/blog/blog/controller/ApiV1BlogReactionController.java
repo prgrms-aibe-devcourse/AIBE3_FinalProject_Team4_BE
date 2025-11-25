@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Blog", description = "블로그 reaction API")
+@Tag(name = "Blog Reaction API", description = "블로그 리액션 관련 API")
 @RequestMapping("api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogReactionController {
@@ -41,9 +41,8 @@ public class ApiV1BlogReactionController {
     @DeleteMapping("/{id}/like")
     @Operation(summary = "블로그 글 좋아요 수 감소")
     public RsData<BlogLikeResponse> decreaseLike(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
-        boolean off = blogLikeService.likeOff(userDetails.getId(), id);
-        long likeCount = blogLikeService.getLikeCount(id);
-        return new RsData<>("200-2", "블로그 글 좋아요 수가 감소되었습니다.", new BlogLikeResponse(id, !off, likeCount));
+        long likeCount = blogLikeService.likeOff(userDetails.getId(), id);
+        return new RsData<>("200-2", "블로그 글 좋아요 수가 감소되었습니다.", new BlogLikeResponse(id, false, likeCount));
     }
 
     @PutMapping("/{id}/bookmark")
@@ -57,8 +56,7 @@ public class ApiV1BlogReactionController {
     @DeleteMapping("/{id}/bookmark")
     @Operation(summary = "블로그 글 북마크 제거")
     public RsData<BlogBookmarkResponse> removeBookmark(@PathVariable Long id, @AuthenticationPrincipal SecurityUser userDetails) {
-        boolean off = blogBookmarkService.bookmarkOff(userDetails.getId(), id);
-        long count = blogBookmarkService.getBookmarkCount(id);
-        return new RsData<>("200-2", "블로그 글이 북마크에서 제거되었습니다.", new BlogBookmarkResponse(id, !off, count));
+        long count = blogBookmarkService.bookmarkOff(userDetails.getId(), id);
+        return new RsData<>("200-2", "블로그 글이 북마크에서 제거되었습니다.", new BlogBookmarkResponse(id, false, count));
     }
 }

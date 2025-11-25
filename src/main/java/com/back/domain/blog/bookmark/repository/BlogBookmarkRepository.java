@@ -1,7 +1,6 @@
 package com.back.domain.blog.bookmark.repository;
 
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
-import com.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -27,7 +26,7 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
     // 1. 유저의 북마크 목록 (페이지네이션 N+1 방지)
     @EntityGraph(attributePaths = {"blog", "blog.user"})
     @Query("""
-                SELECT bm 
+                SELECT bm
                 FROM BlogBookmark bm
                 WHERE bm.user.id = :userId
                 ORDER BY bm.bookmarkedAt DESC
@@ -40,7 +39,7 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
     // 2. 특정 블로그들이 북마크되었는지 일괄 조회 (N+1 방지)
     @Query("""
                 SELECT bm.blog.id
-                FROM BlogBookmark bm 
+                FROM BlogBookmark bm
                 WHERE bm.blog.id IN :blogIds
                   AND bm.user.id = :userId
             """)
@@ -57,13 +56,6 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
                 GROUP BY bm.blog.id
             """)
     List<Object[]> countByBlogIds(@Param("blogIds") List<Long> blogIds);
-
-    // 사용자의 북마크 수
-    long countByUserId(Long userId);
-
-    // 블로그 삭제 시 북마크도 삭제 (cascade 대신 명시적 삭제)
-    void deleteByBlogId(Long blogId);
-
 
     boolean existsByBlog_IdAndUser_Id(Long blogId, Long userId);
 

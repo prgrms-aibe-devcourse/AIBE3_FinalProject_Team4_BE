@@ -3,6 +3,7 @@ package com.back.global.rq;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,6 +24,18 @@ public class Rq {
         }
 
         httpServletResponse.addCookie(cookie);
+    }
+
+    public void setCookie(String name, String value, int maxAge) {
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .maxAge(maxAge)
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .build();
+
+        httpServletResponse.addHeader("Set-Cookie", cookie.toString());
     }
 
     public void deleteCookie(String name) {

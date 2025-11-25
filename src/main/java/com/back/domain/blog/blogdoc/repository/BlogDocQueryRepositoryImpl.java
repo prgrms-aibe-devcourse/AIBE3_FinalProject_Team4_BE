@@ -1,5 +1,6 @@
 package com.back.domain.blog.blogdoc.repository;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -13,6 +14,7 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -20,19 +22,22 @@ import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
-public class BlogDocRepositoryImpl implements BlogDocRepository {
+public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
     private final ElasticsearchOperations operations;
 
     @Override
-    public BlogSearchResult searchBlogs(BlogSearchCondition condition) {
+    public BlogSearchResult searchBlogs(BlogSearchCondition condition, @Nullable List<Long> authorIds, @Nullable List<Query> recommendQueries) {
         List<SortOptions> sorts = buildSorts(condition.sortType());
         List<Object> searchAfter = parseCursor(condition.cursor());
 
-        Query esQuery = buildQuery(condition);
+        Query esQuery = buildQuery(condition, authorIds, recommendQueries);
         var builder = NativeQuery.builder()
                 .withQuery(esQuery)
-                .withPageable(PageRequest.of(0, condition.size()))
-                .withSort(sorts);
+                .withPageable(PageRequest.of(0, condition.size()));
+
+        if (sorts != null && !sorts.isEmpty()) {
+            builder.withSort(sorts);
+        }
 
         if (searchAfter != null && !searchAfter.isEmpty()) {
             builder.withSearchAfter(searchAfter);
@@ -55,15 +60,42 @@ public class BlogDocRepositoryImpl implements BlogDocRepository {
         return new BlogSearchResult(docs, hasNext, nextCursor);
     }
 
-    private Query buildQuery(BlogSearchCondition condition) {
+    private Query buildQuery(BlogSearchCondition condition, @Nullable List<Long> authorIds, @Nullable List<Query> recommendQueries) {
         String keyword = condition.keyword();
-        if (keyword != null && !keyword.isBlank()) {
-            return Query.of(q -> q.multiMatch(m -> m
-                    .fields("title", "content")
-                    .query(keyword)
-            ));
-        }
-        return Query.of(q -> q.matchAll(m -> m));
+        return Query.of(q -> q
+                .bool(b -> {
+                    // 추천순 쿼리
+                    if (recommendQueries != null && !recommendQueries.isEmpty()) {
+                        b.should(recommendQueries);
+                        b.minimumShouldMatch("0");
+                    }
+                    //키워드 검색
+                    if (keyword != null && !keyword.isBlank()) {
+                        b.must(m -> m.multiMatch(mm -> mm
+                                .fields("title", "content")
+                                .query(keyword)
+                        ));
+                    } else {
+                        b.must(m -> m.matchAll(ma -> ma));
+                    }
+                    //published 상태 필터링
+                    b.filter(f -> f.term(t -> t
+                            .field("status")
+                            .value("PUBLISHED")
+                    ));
+                    // 팔로잉 필터링
+                    if (authorIds != null && !authorIds.isEmpty()) {
+                        List<FieldValue> authorFieldValues = authorIds.stream()
+                                .map(FieldValue::of)
+                                .toList();
+                        b.filter(f -> f.terms(t -> t
+                                .field("userId")
+                                .terms(tv -> tv.value(authorFieldValues))
+                        ));
+                    }
+                    return b;
+                })
+        );
     }
 
     private List<SortOptions> buildSorts(BlogSortType sortType) {
@@ -85,6 +117,7 @@ public class BlogDocRepositoryImpl implements BlogDocRepository {
                     SortOptions.of(s -> s.field(f -> f.field("createdAt").order(SortOrder.Desc))),
                     SortOptions.of(s -> s.field(f -> f.field("id").order(SortOrder.Desc)))
             );
+            case RECOMMEND -> List.of();
         };
     }
 
