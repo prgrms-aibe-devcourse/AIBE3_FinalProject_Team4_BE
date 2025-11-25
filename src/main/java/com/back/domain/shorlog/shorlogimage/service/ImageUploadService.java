@@ -61,8 +61,6 @@ public class ImageUploadService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        files = (files == null) ? List.of() : files;
-
         List<UploadImageResponse> responses = new ArrayList<>();
 
         List<UploadImageOrderItem> sortedItems = orderItems.stream()
@@ -78,7 +76,11 @@ public class ImageUploadService {
             if (item.type() == ImageOrderItemType.URL) {
                 file = imageUrlToMultipartFile.convert(item.url(), "files");
             } else {
-                file = files.get(item.fileIndex());
+                if (files == null || item.fileIndex() >= files.size()) {
+                    file = null;
+                } else {
+                    file = files.get(item.fileIndex());
+                }
             }
 
             String aspectRatio = (item.aspectRatio() != null && !item.aspectRatio().isBlank())
