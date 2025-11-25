@@ -111,12 +111,12 @@ public class ApiV1ShorlogController {
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("orders") String imageOrderItemsJson
     ) throws JsonProcessingException {
-        List<UploadImageOrderRequest> imageOrderItems =
+        List<UploadImageOrderRequest> orderItems =
                 new ObjectMapper().readValue(imageOrderItemsJson,
                         new TypeReference<>() {
                         });
 
-        return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, imageOrderItems));
+        return RsData.successOf(imageUploadService.uploadImages(securityUser.getId(), files, orderItems));
     }
 
     @GetMapping("/search")
