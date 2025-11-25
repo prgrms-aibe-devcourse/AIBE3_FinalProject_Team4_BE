@@ -56,6 +56,7 @@ public class SecurityConfig {
 
             "/api/v1/blogs",
             "/api/v1/blogs/{id}",
+            "api/v1/blogs/search",
 
     };
 
