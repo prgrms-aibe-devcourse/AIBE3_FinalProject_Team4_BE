@@ -99,6 +99,22 @@ public class User extends BaseEntity {
         this.profileImgUrl = profileImgUrl;
     }
 
+    public void increaseFollowerCount() {
+        this.followersCount++;
+    }
+
+    public void decreaseFollowerCount() {
+        this.followersCount--;
+    }
+
+    public void increaseFollowingCount() {
+        this.followingCount++;
+    }
+
+    public void decreaseFollowingCount() {
+        this.followingCount--;
+    }
+
     // TTS 토큰 차감
     public void useTtsToken(int amount) {
         // 기존 사용자의 경우 null일 수 있으므로 초기화

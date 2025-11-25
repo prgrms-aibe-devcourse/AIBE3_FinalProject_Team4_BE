@@ -7,6 +7,7 @@ import com.back.domain.user.follow.service.FollowService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/follow")
+@Tag(name = "Follow API", description = "팔로우 관련 API")
 public class FollowController {
     private final FollowService followService;
 

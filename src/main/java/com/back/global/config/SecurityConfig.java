@@ -58,6 +58,9 @@ public class SecurityConfig {
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
 
+            "/api/v1/search",
+            "/api/v1/search/trends/top10",
+            "/api/v1/search/trends/recommend"
     };
 
     // 공개된 인증 API URL 패턴 [메서드 무관]
