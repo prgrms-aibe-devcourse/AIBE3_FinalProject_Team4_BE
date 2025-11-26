@@ -36,10 +36,10 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class BlogMediaService {
 
-    private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;       // 5MB
+    private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;      // 10MB
     private static final long MAX_VIDEO_SIZE = 100L * 1024 * 1024;     // 100MB
     private static final String BLOG_FOLDER = "blogs/";
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;        // 10MB
     private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "mp4", "mov", "avi"};
     private final AmazonS3 amazonS3;
     private final ImageRepository imageRepository;
@@ -70,7 +70,7 @@ public class BlogMediaService {
         long maxSize = mediaKind == MediaKind.IMAGE ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException(mediaKind == MediaKind.IMAGE
-                    ? "이미지 용량은 5MB를 초과할 수 없습니다."
+                    ? "이미지 용량은 10MB를 초과할 수 없습니다."
                     : "동영상 용량은 100MB를 초과할 수 없습니다.");
         }
 
@@ -147,7 +147,7 @@ public class BlogMediaService {
             throw new IllegalArgumentException("파일이 비어있습니다.");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 5MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
         }
         String ext = getExtension(file.getOriginalFilename());
         if (!List.of(ALLOWED_EXTENSIONS).contains(ext.toLowerCase())) {
