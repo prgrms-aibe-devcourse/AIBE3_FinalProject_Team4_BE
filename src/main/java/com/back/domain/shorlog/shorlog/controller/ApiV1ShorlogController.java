@@ -51,14 +51,22 @@ public class ApiV1ShorlogController {
     }
 
     @GetMapping("/feed")
-    @Operation(summary = "숏로그 전체 피드 조회")
+    @Operation(summary = "숏로그 전체 피드 조회 (랜덤)")
     public RsData<Page<ShorlogFeedResponse>> getFeed(
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        return RsData.successOf(shorlogService.getRandomFeed(page));
+    }
+
+    @GetMapping("/feed/recommended")
+    @Operation(summary = "숏로그 추천 피드 조회 (AI 추천)")
+    public RsData<Page<ShorlogFeedResponse>> getRecommendedFeed(
             @CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
             @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(defaultValue = "0") int page
     ) {
         Long userId = (securityUser == null) ? null : securityUser.getId();
-        return RsData.successOf(shorlogService.getFeed(guestId, userId, page));
+        return RsData.successOf(shorlogService.getRecommendedFeed(guestId, userId, page));
     }
 
     @GetMapping("/following")
