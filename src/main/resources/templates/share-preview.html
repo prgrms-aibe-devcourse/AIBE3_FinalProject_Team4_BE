@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 기본 메타태그 -->
+    <title th:text="${title}">Shorlog</title>
+    <meta name="description" th:content="${description}" />
+
+    <!-- Open Graph (Facebook, Kakao, Naver Band, LinkedIn, Email 등 모든 SNS) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Shorlog" />
+    <meta property="og:title" th:content="${title}" />
+    <meta property="og:description" th:content="${description}" />
+    <meta property="og:image" th:content="${imageUrl}" />
+    <meta property="og:url" th:content="${url}" />
+    <meta property="og:locale" content="ko_KR" />
+
+    <!-- 추가 Open Graph (선택사항) -->
+    <meta property="article:author" th:content="${author}" />
+
+    <!-- 스타일 -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .loading-container {
+            text-align: center;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+        }
+
+        p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+    </style>
+
+    <!-- 자동 리다이렉트 스크립트 -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        (function() {
+            var shorlogId = /*[[${id}]]*/ 1;
+            var redirectUrl = '/shorlog/' + shorlogId;
+
+            // 0.5초 후 리다이렉트 (사용자 경험 개선)
+            setTimeout(function() {
+                window.location.replace(redirectUrl);
+            }, 500);
+        })();
+        /*]]>*/
+    </script>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <h1>숏로그를 불러오는 중...</h1>
+        <p>잠시만 기다려주세요</p>
+    </div>
+</body>
+</html>
+
+

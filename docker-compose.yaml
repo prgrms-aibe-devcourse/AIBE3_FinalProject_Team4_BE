@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # ------------------
+  # MySQL (개발용)
+  # ------------------
+  mysql:
+    image: mysql:8.0
+    container_name: next5_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123414
+      MYSQL_DATABASE: next5_db
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=caching_sha2_password
+    networks:
+      - next5-net
+
+  # ------------------
+  # Redis (개발용)
+  # ------------------
+  redis:
+    image: redis:7.2
+    container_name: next5_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - next5-net
+
+  # ------------------
+  # Spring Boot (배포용 주석 처리)
+  # ------------------
+  # spring:
+  #   build: .
+  #   container_name: next5-spring
+  #   depends_on:
+  #     - mysql
+  #     - redis
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: prod
+  #     SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/next5_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+  #     SPRING_DATASOURCE_USERNAME: root
+  #     SPRING_DATASOURCE_PASSWORD: root123414
+  #     SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  #     SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  #     SPRING_JPA_SHOW_SQL: "true"
+  #     SPRING_CACHE_TYPE: redis
+  #     SPRING_REDIS_HOST: redis
+  #     SPRING_REDIS_PORT: 6379
+  #     SPRING_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD}
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - next5-net
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+    container_name: next5-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    command: >
+      bash -c '
+        bin/elasticsearch-plugin install analysis-nori;
+        /usr/local/bin/docker-entrypoint.sh elasticsearch
+      '
+    ports:
+      - "9200:9200"
+    networks:
+      - next5-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.3.3
+    container_name: next5-kibana
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - 5601:5601
+    profiles: [ "elk" ]
+    depends_on:
+      - elasticsearch
+    networks:
+      - next5-net
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.3.3
+    container_name: next5-logstash
+    user: root
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=next5_db
+      - MYSQL_USERNAME=${MYSQL_USERNAME}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/lib/mysql-connector-j-8.0.33.jar:/usr/share/logstash/mysql-connector.jar:ro
+    ports:
+      - "5001:5001"
+      - "5044:5044"
+    profiles: [ "elk" ]
+    depends_on:
+      - elasticsearch
+    networks:
+      - next5-net
+
+
+
+volumes:
+  mysql_data:
+
+networks:
+  next5-net:
+    driver: bridge
