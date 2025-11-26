@@ -1,0 +1,44 @@
+spring:
+  profiles: prod
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB      # 단일 파일 최대 크기
+      max-request-size: 100MB  # 전체 요청 최대 크기 (다중 업로드 고려)
+
+  datasource:
+    url: jdbc:mysql://mysql:3306/next5_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+    open-in-view: false
+
+  cache:
+    type: redis
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD}
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+
+app:
+  base-url: ${APP_BASE_URL}  # 운영 환경에서는 실제 도메인 설정 필요
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-exp: 3600000
+  refresh-exp: 604800000

@@ -1,8 +1,12 @@
 package com.back.global.config.security.jwt;
 
+import com.back.domain.user.user.entity.UserRole;
+import com.back.global.config.security.SecurityUser;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -18,10 +22,10 @@ public class JwtTokenProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String role) {
+    public String generateAccessToken(Long userId, String role) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-                .claim("role", role)
+                .claim("role", "ROLE_"+role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessExp()))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
@@ -39,7 +43,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith((SecretKey) signingKey).build().parse(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
@@ -50,7 +54,7 @@ public class JwtTokenProvider {
         if (!validateToken(token)) {
             throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
-        String subject = Jwts.parserBuilder()
+        String subject = Jwts.parser()
                 .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
@@ -59,11 +63,27 @@ public class JwtTokenProvider {
         return Long.parseLong(subject);
     }
 
-    public Long getTokenExpiry(String token) {
-        if (!validateToken(token)) {
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
-        }
-        return Jwts.parserBuilder().setSigningKey(signingKey).build()
-                .parseClaimsJws(token).getBody().getExpiration().getTime();
+    public SecurityUser parseUserFromAccessToken(String token) {
+        Claims claims  = Jwts.parser()
+                .verifyWith((SecretKey) signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        Long userId = Long.parseLong(claims.getSubject());
+        String roleStr = claims.get("role", String.class);
+        UserRole role = UserRole.valueOf(roleStr.replace("ROLE_", ""));
+
+        return new SecurityUser(userId, role);
+    }
+
+    // 임시 토큰 생성 (소셜 로그인 후 추가 정보 입력용)
+    public String generateTemporaryToken(Long userId) {
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5분 유효
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
     }
 }

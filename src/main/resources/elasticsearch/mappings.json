@@ -1,0 +1,51 @@
+{
+  "properties": {
+    "title": {
+      "type": "text",
+      "analyzer": "korean"
+    },
+    "content": {
+      "type": "text",
+      "analyzer": "korean"
+    },
+    "searchText": {
+      "type": "text",
+      "analyzer": "korean"
+    },
+    "hashtags": {
+      "type": "keyword"
+    },
+    "nickname": {
+      "type": "keyword"
+    },
+    "profileImgUrl": {
+      "type": "keyword"
+    },
+    "thumbnailUrl": {
+      "type": "keyword"
+    },
+    "viewCount": {
+      "type": "integer"
+    },
+    "likeCount": {
+      "type": "integer"
+    },
+    "commentCount": {
+      "type": "integer"
+    },
+    "popularityScore": {
+      "type": "integer"
+    },
+    "bookmarkCount": {
+      "type": "integer"
+    },
+    "createdAt": {
+      "type": "date",
+      "format": "date_time"
+    },
+    "updatedAt": {
+      "type": "date",
+      "format": "date_time"
+    }
+  }
+}

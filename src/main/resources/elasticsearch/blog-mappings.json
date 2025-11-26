@@ -1,0 +1,50 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "id": {
+      "type": "long"
+    },
+    "userId": {
+      "type": "long"
+    },
+    "userNickname": {
+      "type": "keyword"
+    },
+    "title": {
+      "type": "text",
+      "analyzer": "korean",
+      "search_analyzer": "korean"
+    },
+    "content": {
+      "type": "text",
+      "analyzer": "korean",
+      "search_analyzer": "korean"
+    },
+    "hashtagName": {
+      "type": "keyword"
+    },
+    "thumbnailUrl": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "keyword"
+    },
+    "viewCount": {
+      "type": "long"
+    },
+    "likeCount": {
+      "type": "long"
+    },
+    "bookmarkCount": {
+      "type": "long"
+    },
+    "createdAt": {
+      "type": "date",
+      "format": "strict_date_time"
+    },
+    "modifiedAt": {
+      "type": "date",
+      "format": "strict_date_time"
+    }
+  }
+}

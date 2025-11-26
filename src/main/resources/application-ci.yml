@@ -1,0 +1,78 @@
+spring:
+  config:
+    activate:
+      on-profile: ci
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 50MB
+
+  datasource:
+    url: jdbc:h2:mem:ci_db;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    open-in-view: false
+
+  cache:
+    type: none  # CI 환경에서는 Redis 비활성화
+
+  ai:
+    openai:
+      api-key: "ci-dummy-key"
+      embedding:
+        options:
+          model: text-embedding-3-small
+    huggingface:
+      chat:
+        api-key: "ci-dummy-key"
+    vectorstore:
+      pinecone:
+        api-key: "ci-dummy-key"
+        index-name: "ci-dummy-key"
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "ci-dummy-key"
+    password: "ci-dummy-key"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  elasticsearch:
+    uris: http://elasticsearch:9200
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-exp: 3600000
+  refresh-exp: 604800000
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
