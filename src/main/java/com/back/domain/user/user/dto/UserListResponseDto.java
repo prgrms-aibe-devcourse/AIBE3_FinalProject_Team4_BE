@@ -19,4 +19,14 @@ public record UserListResponseDto (
                 followersCount
         );
     }
+
+    public UserListResponseDto(User user) {
+        this(
+                user.getId(),
+                user.getNickname(),
+                user.getProfileImgUrl(),
+                user.getBio(),
+                user.getFollowersCount()
+        );
+    }
 }

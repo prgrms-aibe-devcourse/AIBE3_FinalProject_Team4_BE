@@ -297,6 +297,8 @@ public class ShorlogService {
             imageRepository.decrementReferenceCount(image.getId());
         }
 
+        commentsService.deleteCommentsByTarget(CommentsTargetType.SHORLOG, shorlogId);
+
         eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
 
         shorlogRepository.delete(shorlog);

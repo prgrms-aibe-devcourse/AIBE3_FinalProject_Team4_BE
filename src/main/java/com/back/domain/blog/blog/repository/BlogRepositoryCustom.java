@@ -2,15 +2,9 @@ package com.back.domain.blog.blog.repository;
 
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogMySortType;
-import com.back.domain.blog.blog.entity.BlogStatus;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface BlogRepositoryCustom {
-
-    List<Blog> findAllByUserIdAndStatusWithSort(
-            Long userId,
-            BlogStatus status,
-            BlogMySortType sortType
-    );
+    Page<Blog> findMyBlogs(Long userId, BlogMySortType sortType, Pageable pageable);
 }

@@ -253,4 +253,9 @@ public class CommentsService {
                         row -> (Long) row[1]   // count
                 ));
     }
+
+    @Transactional
+    public void deleteCommentsByTarget(CommentsTargetType targetType, Long targetId) {
+        commentsRepository.deleteByTargetTypeAndTargetId(targetType, targetId);
+    }
 }

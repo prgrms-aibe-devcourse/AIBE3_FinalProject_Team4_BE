@@ -20,8 +20,6 @@ public record BlogDto(
         boolean isLiked,
         boolean isBookmarked,
         long commentCount,
-        Integer relatedShorlogCount,
-        List<Long> relatedShorlogIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -43,9 +41,6 @@ public record BlogDto(
                 isLiked,
                 isBookmarked,
                 commentCount,
-                //TODO: 연결 기능 추후 수정
-                0,
-                null,
                 blog.getCreatedAt(),
                 blog.getModifiedAt()
         );
