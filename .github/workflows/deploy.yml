@@ -26,22 +26,27 @@ jobs:
 
       - name: Upload JAR to EC2
         env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
         run: |
-          printf "%b" "$SSH_KEY" > key.pem
+          printf "%b" "$SSH_KEY_B64" | base64 -d > key.pem
           chmod 600 key.pem
-          
+
+          # 찾은 JAR 중에서 plain.jar 제외하고 bootJar만 가져오기
+          REAL_JAR=$(ls build/libs/*SNAPSHOT.jar | grep -v plain)
+
+          echo "Uploading JAR: $REAL_JAR"
+
           scp -o StrictHostKeyChecking=no -i key.pem \
-            build/libs/*.jar \
+            "$REAL_JAR" \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/next5_dev/app.jar
 
       - name: Restart next5 service
         env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
         run: |
-          printf "%b" "$SSH_KEY" > key.pem
+          printf "%b" "$SSH_KEY_B64" | base64 -d > key.pem
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "sudo systemctl restart next5"
+            "sudo systemctl restart next5 && sudo systemctl status next5 --no-pager"
