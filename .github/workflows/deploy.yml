@@ -29,6 +29,7 @@ jobs:
           echo "----- START key.pem -----"
           sed -n '1,20p' key.pem
           echo "----- END key.pem -----"
+          echo "SSH_KEY length: ${#SSH_KEY}"
 
       - name: Upload JAR to EC2
         env:
