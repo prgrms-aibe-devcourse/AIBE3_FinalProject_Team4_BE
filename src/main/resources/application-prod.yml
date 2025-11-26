@@ -4,6 +4,7 @@ spring:
       on-profile: prod  # prod 프로필 활성화 조건
 
   server:
+    address: 0.0.0.0
     port: ${SERVER_PORT:8080}
 
   servlet:
