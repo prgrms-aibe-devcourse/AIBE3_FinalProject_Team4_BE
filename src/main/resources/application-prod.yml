@@ -1,6 +1,12 @@
 spring:
   profiles: prod
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB      # 단일 파일 최대 크기
+      max-request-size: 100MB  # 전체 요청 최대 크기 (다중 업로드 고려)
+
   datasource:
     url: jdbc:mysql://mysql:3306/next5_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${MYSQL_USERNAME}

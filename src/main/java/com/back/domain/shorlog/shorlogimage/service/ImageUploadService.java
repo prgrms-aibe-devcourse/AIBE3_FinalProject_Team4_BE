@@ -42,7 +42,7 @@ public class ImageUploadService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"};
     private static final int MAX_WIDTH = 1080;
     private static final int MAX_HEIGHT = 1350;
@@ -145,7 +145,7 @@ public class ImageUploadService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 5MB를 초과할 수 없습니다.");
+            throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
         }
 
         String extension = getFileExtension(file.getOriginalFilename());
