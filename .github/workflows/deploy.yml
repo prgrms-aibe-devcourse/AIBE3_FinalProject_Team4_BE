@@ -24,6 +24,12 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
+      - name: Debug key.pem
+        run: |
+          echo "----- START key.pem -----"
+          sed -n '1,20p' key.pem
+          echo "----- END key.pem -----"
+
       - name: Upload JAR to EC2
         env:
           SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
