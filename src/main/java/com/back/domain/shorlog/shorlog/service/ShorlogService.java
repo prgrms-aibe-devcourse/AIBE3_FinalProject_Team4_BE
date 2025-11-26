@@ -161,7 +161,26 @@ public class ShorlogService {
         });
     }
 
-    public Page<ShorlogFeedResponse> getFeed(String guestId, Long userId, int pageNumber) {
+     // 전체 피드 조회 (랜덤 정렬)
+    public Page<ShorlogFeedResponse> getRandomFeed(int pageNumber) {
+        // 랜덤 정렬 쿼리 (function_score 사용)
+        Query randomQuery = Query.of(q -> q.functionScore(fs -> fs
+                .query(Query.of(mq -> mq.matchAll(ma -> ma)))
+                .functions(fn -> fn.randomScore(rs -> rs
+                        .seed(String.valueOf(System.currentTimeMillis()))
+                        .field("_seq_no")  // Elasticsearch 7.0+ 필수
+                ))
+                .boostMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode.Replace)
+        ));
+
+        int pageSize = FEED_PAGE_SIZE;
+        SearchResponse<SearchShorlogResponseDto> response = shorlogDocQueryRepository.searchRecommendShorlogs(randomQuery, pageNumber, pageSize);
+
+        return convertToPage(response, pageNumber, pageSize);
+    }
+
+     // 추천 피드 조회 (AI 추천 알고리즘)
+    public Page<ShorlogFeedResponse> getRecommendedFeed(String guestId, Long userId, int pageNumber) {
         List<Query> shouldQueries = recommendService.getRecommendQueries(guestId, userId, PostType.SHORLOG);
 
         Query finalQuery = Query.of(q -> q.bool(b -> {
