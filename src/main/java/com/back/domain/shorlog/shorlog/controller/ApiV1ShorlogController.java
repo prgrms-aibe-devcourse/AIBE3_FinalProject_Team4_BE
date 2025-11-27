@@ -92,6 +92,16 @@ public class ApiV1ShorlogController {
         return RsData.successOf(shorlogService.getMyShorlogs(securityUser.getId(), sort, page));
     }
 
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "특정 사용자의 숏로그 조회 (프로필용)")
+    public RsData<Page<ShorlogFeedResponse>> getUserShorlogs(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        return RsData.successOf(shorlogService.getUserShorlogs(userId, sort, page));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "숏로그 수정")
     public RsData<UpdateShorlogResponse> updateShorlog(
