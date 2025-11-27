@@ -243,6 +243,15 @@ public class ShorlogService {
         });
     }
 
+    public Page<ShorlogFeedResponse> getUserShorlogs(Long userId, String sort, int page) {
+        if (!userRepository.existsById(userId)) {
+            throw new NoSuchElementException("사용자를 찾을 수 없습니다.");
+        }
+
+        // getMyShorlogs와 동일한 로직 재사용
+        return getMyShorlogs(userId, sort, page);
+    }
+
     @Transactional
     public UpdateShorlogResponse updateShorlog(Long userId, Long shorlogId, UpdateShorlogRequest request) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
