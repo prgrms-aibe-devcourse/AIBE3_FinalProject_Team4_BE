@@ -51,6 +51,7 @@ public class SecurityConfig {
 
             "/api/v1/shorlog/{id}",
             "/api/v1/shorlog/feed",
+            "/api/v1/shorlog/feed/recommended",
             "/api/v1/shorlog/search",
             "/api/v1/shorlog/{id:\\d+}/view",
 
