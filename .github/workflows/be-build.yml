@@ -10,7 +10,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: prgrms-aibe-devcourse/AIBE3_FinalProject_Team4_BE/backend
+  IMAGE_NAME: prgrms-aibe-devcourse/aibe3-finalproject-team4-backend
 
 jobs:
   build-and-push:
