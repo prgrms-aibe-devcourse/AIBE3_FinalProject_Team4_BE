@@ -46,7 +46,7 @@ jobs:
 
       # 6) Build Docker image
       - name: Build Docker image
-        working-directory: ./be
+        working-directory: .
         run: |
           docker build \
             -t $REGISTRY/$IMAGE_NAME:latest \
@@ -54,7 +54,7 @@ jobs:
 
       # 7) Push Docker image
       - name: Push Docker image
-        working-directory: ./be
+        working-directory: .
         run: |
           docker push $REGISTRY/$IMAGE_NAME:latest
 
