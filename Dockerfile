@@ -3,9 +3,10 @@ FROM gradle:8.5-jdk21 AS builder
 WORKDIR /app
 
 # Gradle 캐싱을 위한 의존성 먼저 복사
-COPY build.gradle settings.gradle gradle.properties ./
+COPY build.gradle settings.gradle ./
 COPY gradle ./gradle
 
+# 의존성 캐시 생성
 RUN gradle dependencies --no-daemon || true
 
 # 나머지 소스 복사
@@ -33,5 +34,4 @@ EXPOSE 8080
 # 반드시 prod 프로필로 실행
 ENV SPRING_PROFILES_ACTIVE=prod
 
-# 실행 명령
 ENTRYPOINT ["java", "-jar", "app.jar"]
