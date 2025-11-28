@@ -25,7 +25,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_PUBLIC_IP }} "
             cd /home/ec2-user/app && \
             echo '🔄 Pulling latest image...' && \
-            docker pull ghcr.io/${{ secrets.GHCR_OWNER }}/AIBE3_FinalProject_Team4_BE/backend:latest && \
+            docker pull ghcr.io/${{ secrets.GHCR_OWNER }}/aibe3-finalproject-team4-backend:latest && \
             echo '🚀 Running deploy.sh...' && \
             bash deploy.sh
           "
