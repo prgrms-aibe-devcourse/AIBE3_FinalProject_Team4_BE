@@ -66,4 +66,13 @@ public class UserController {
         return RsData.of("200", "유저 검색 성공", users);
     }
 
+    @GetMapping("/creators")
+    @Operation(summary = "크리에이터 목록 조회")
+    public RsData<List<CreatorListResponseDto>> getCreators(
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        Long userId = user != null ? user.getId() : null;
+        List<CreatorListResponseDto> creators = userService.getCreators(userId);
+        return RsData.of("200", "크리에이터 목록 조회 성공", creators);
+    }
 }
