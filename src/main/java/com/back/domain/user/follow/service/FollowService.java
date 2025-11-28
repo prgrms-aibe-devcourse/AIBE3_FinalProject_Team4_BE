@@ -16,11 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -85,35 +81,36 @@ public class FollowService {
     }
 
     @Transactional(readOnly = true)
-    public List<FollowResponseDto> getFollowers(Long userId) {
-        Set<Long> followingIds = new HashSet<>(followRepository.findFollowingIdsByUserId(userId));  // 내가 팔로잉하는 사람들
-        List<Long> followerIds = followRepository.findFollowerIdsByUserId(userId);      // 나를 팔로잉하는 사람들
+    public List<FollowResponseDto> getFollowers(Long userId, Long currentUserId) {
+        // 대상의 팔로워들
+        List<User> followers = followRepository.findFollowersByToUserId(userId);
+        // 내가 팔로우하는 사람들
+        Set<Long> myFollowingIds =
+                (currentUserId == null) ? Collections.emptySet() :
+                new HashSet<>(followRepository.findFollowingIdsByUserId(currentUserId));
 
-        List<User> users = userRepository.findAllByIdIn(followerIds);
-
-        Map<Long, User> userMap = users.stream()        // 팔로워 아이디로 유저 매핑
-                .collect(Collectors.toMap(User::getId, user -> user));
-
-        return followerIds.stream()
-                .map(followerId -> {
-                    User follower = userMap.get(followerId);
-                    if (follower == null) {
-                        throw new ServiceException(UserErrorCase.USER_NOT_FOUND);
-                    }
-                    boolean isFollowing = followingIds.contains(followerId); // 내가 팔로잉하는 사람인지 여부
-                    return new FollowResponseDto(follower, isFollowing);
-                })
+        return followers.stream()
+                .map(follower -> new FollowResponseDto(
+                        follower,
+                        myFollowingIds.contains(follower.getId())
+                ))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<FollowResponseDto> getFollowings(Long userId) {
-        List<Long> followingIds = followRepository.findFollowingIdsByUserId(userId);
-        List<User> users = userRepository.findAllByIdIn(followingIds);
-        Map<Long, User> userMap = users.stream()
-                .collect(Collectors.toMap(User::getId, user -> user));
-        return followingIds.stream()
-                .map(followingId -> new FollowResponseDto(userMap.get(followingId), true))
+    public List<FollowResponseDto> getFollowings(Long userId, Long currentUserId) {
+        //대상이 팔로우하는 사람들
+        List<User> followings = followRepository.findFollowingsByFromUserId(userId);
+        // 내가 팔로우하는 사람들
+        Set<Long> myFollowingIds =
+                (currentUserId == null) ? Collections.emptySet() :
+                        new HashSet<>(followRepository.findFollowingIdsByUserId(currentUserId));
+
+        return followings.stream()
+                .map(following -> new FollowResponseDto(
+                        following,
+                        myFollowingIds.contains(following.getId())
+                ))
                 .toList();
     }
 
