@@ -3,7 +3,7 @@ FROM gradle:8.5-jdk21 AS builder
 WORKDIR /app
 
 # Gradle 캐싱을 위한 의존성 먼저 복사
-COPY build.gradle settings.gradle ./
+COPY build.gradle.kts settings.gradle.kts ./
 COPY gradle ./gradle
 
 # 의존성 캐시 생성
