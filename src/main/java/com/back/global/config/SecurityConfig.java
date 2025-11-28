@@ -7,6 +7,7 @@ import com.back.global.config.security.jwt.JwtAuthenticationFilter;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.rq.Rq;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -108,6 +109,7 @@ public class SecurityConfig {
                             response.getWriter().write("{\"resultCode\":\"401-1\",\"message\":\"인증이 필요합니다.\"}");
                         }))
                 .authorizeHttpRequests(auth -> auth
+                                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll() // 스트리밍/비동기 재디스패치 허용
 //                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers(ALWAYS_PERMIT).permitAll()
                                 .requestMatchers(AUTH_WHITELIST).permitAll()
