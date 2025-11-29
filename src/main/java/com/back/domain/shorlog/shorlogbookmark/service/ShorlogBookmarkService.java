@@ -88,6 +88,19 @@ public class ShorlogBookmarkService {
         return new ShorlogBookmarkResponse(false, bookmarkCount);
     }
 
+    public ShorlogBookmarkResponse getBookmarkStatus(Long shorlogId, Long userId) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new NoSuchElementException("쇼로그를 찾을 수 없습니다."));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
+
+        boolean isBookmarked = shorlogBookmarkRepository.existsByShorlogAndUser(shorlog, user);
+        long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
+
+        return new ShorlogBookmarkResponse(isBookmarked, bookmarkCount);
+    }
+
     public BookmarkListResponse getMyBookmarks(Long userId, String sort, int page) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
@@ -119,4 +132,3 @@ public class ShorlogBookmarkService {
         return BookmarkListResponse.from(responsePage);
     }
 }
-
