@@ -39,6 +39,16 @@ public class ApiV1ShorlogBookmarkController {
         return RsData.successOf(response);
     }
 
+    @GetMapping("/{shorlogId}/bookmark")
+    @Operation(summary = "특정 숏로그의 북마크 상태 확인")
+    public RsData<ShorlogBookmarkResponse> getBookmarkStatus(
+            @PathVariable Long shorlogId,
+            @AuthenticationPrincipal SecurityUser securityUser
+    ) {
+        ShorlogBookmarkResponse response = shorlogBookmarkService.getBookmarkStatus(shorlogId, securityUser.getId());
+        return RsData.successOf(response);
+    }
+
     @GetMapping("/bookmark")
     @Operation(summary = "내 북마크 목록 조회 (30개씩, 6열 격자형)")
     public RsData<BookmarkListResponse> getMyBookmarks(
@@ -50,4 +60,3 @@ public class ApiV1ShorlogBookmarkController {
         return RsData.successOf(response);
     }
 }
-

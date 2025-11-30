@@ -23,7 +23,7 @@ public class SearchHistoryService {
 
     @Transactional(readOnly = true)
     public List<SearchHistoryResponseDto> getAllHistory(Long userId) {
-        List<SearchHistory> histories = searchHistoryRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
+        List<SearchHistory> histories = searchHistoryRepository.findTop10ByUserIdOrderByModifiedAtDesc(userId);
 
         return histories.stream()
                 .map(SearchHistoryResponseDto::new)

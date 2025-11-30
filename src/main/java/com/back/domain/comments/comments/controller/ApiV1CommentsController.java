@@ -66,9 +66,11 @@ public class ApiV1CommentsController {
     )
     public RsData<List<CommentResponseDto>> getCommentsByTarget(
             @PathVariable CommentsTargetType targetType,
-            @PathVariable Long targetId
+            @PathVariable Long targetId,
+            @AuthenticationPrincipal SecurityUser user
     ) {
-        return commentsService.getCommentsByTarget(targetType, targetId);
+        Long currentUserId = (user != null) ? user.getId() : null;
+        return commentsService.getCommentsByTarget(targetType, targetId, currentUserId);
     }
 
     /**

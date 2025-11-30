@@ -95,7 +95,6 @@ public class BlogService {
         blog.updateHashtags(hashtags);
         blog.modify(reqBody);
 
-        blog.publish();
         blogDocIndexer.index(blogId);
         return new BlogWriteDto(blog);
     }
@@ -178,11 +177,35 @@ public class BlogService {
         );
     }
 
+    public Page<BlogDto> findAllByUserId(Long targetId, Long viewerId, BlogMySortType sortType, Pageable pageable) {
+        Page<Blog> blogs = blogRepository.findByUserId(targetId, sortType, pageable);
+        if (blogs.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
+
+        Set<Long> likedIds = viewerId != null
+                ? blogLikeService.findLikedBlogIds(viewerId, blogIds) : Set.of();
+        Set<Long> bookmarkedIds = viewerId != null
+                ? blogBookmarkService.findBookmarkedBlogIds(viewerId, blogIds) : Set.of();
+        Map<Long, Long> commentCounts =
+                commentsService.getCommentCounts(blogIds, CommentsTargetType.BLOG);
+
+        return blogs.map(blog ->
+                new BlogDto(
+                        blog,
+                        likedIds.contains(blog.getId()),
+                        bookmarkedIds.contains(blog.getId()),
+                        commentCounts.getOrDefault(blog.getId(), 0L)
+                )
+        );
+    }
+
     public Page<BlogDto> getMyBookmarkedBlogs(Long userId, BlogMySortType sortType, Pageable pageable) {
         Page<Blog> blogs =
                 blogBookmarkQueryRepository.findBookmarkedBlogs(userId, sortType, pageable);
         if (blogs.isEmpty()) {
-            return blogs.map(blog -> null);
+            return Page.empty(pageable);
         }
         List<Long> blogIds = blogs.stream().map(Blog::getId).toList();
         final Set<Long> likedIds = blogLikeService.findLikedBlogIds(userId, blogIds);

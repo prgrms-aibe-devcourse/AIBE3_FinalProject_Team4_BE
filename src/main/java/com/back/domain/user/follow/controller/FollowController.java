@@ -49,15 +49,17 @@ public class FollowController {
 
     @GetMapping("/followers/{userId}")
     @Operation(summary = "팔로워 목록 조회")
-    public RsData<List<FollowResponseDto>> getFollowers(@Valid @PathVariable Long userId) {
-        List<FollowResponseDto> followerResponseDtos = followService.getFollowers(userId);
+    public RsData<List<FollowResponseDto>> getFollowers(@Valid @PathVariable Long userId, @AuthenticationPrincipal SecurityUser user) {
+        Long currentUserId = user != null ? user.getId() : null;
+        List<FollowResponseDto> followerResponseDtos = followService.getFollowers(userId, currentUserId);
         return RsData.of("200", "팔로워 목록 조회 성공", followerResponseDtos);
     }
 
     @GetMapping("/followings/{userId}")
     @Operation(summary = "팔로잉 목록 조회")
-    public RsData<List<FollowResponseDto>> getFollowings(@Valid @PathVariable Long userId) {
-        List<FollowResponseDto> followingResponseDtos = followService.getFollowings(userId);
+    public RsData<List<FollowResponseDto>> getFollowings(@Valid @PathVariable Long userId, @AuthenticationPrincipal SecurityUser user) {
+        Long currentUserId = user != null ? user.getId() : null;
+        List<FollowResponseDto> followingResponseDtos = followService.getFollowings(userId, currentUserId);
         return RsData.of("200", "팔로잉 목록 조회 성공", followingResponseDtos);
     }
 

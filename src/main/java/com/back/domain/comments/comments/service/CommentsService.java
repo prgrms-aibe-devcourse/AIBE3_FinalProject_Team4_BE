@@ -140,7 +140,7 @@ public class CommentsService {
         return RsData.of(
                 "200-1",
                 "댓글이 등록되었습니다.",
-                CommentResponseDto.fromEntity(comment)
+                CommentResponseDto.fromEntity(comment, userId)
         );
     }
 
@@ -149,17 +149,27 @@ public class CommentsService {
     @Transactional(readOnly = true)
     public RsData<List<CommentResponseDto>> getCommentsByTarget(
             CommentsTargetType targetType,
-            Long targetId
+            Long targetId,
+            Long currentUserId
     ) {
 
         List<Comments> comments = commentsRepository
-                .findByTargetTypeAndTargetIdAndParentIsNullOrderByCreatedAtAsc(targetType, targetId);
+                .findByTargetTypeAndTargetIdWithChildrenAndUsersOrderByCreatedAtAsc(targetType, targetId);
 
         return RsData.of("200-1", "댓글 목록 조회 성공",
                 comments.stream()
-                        .map(CommentResponseDto::fromEntity)
+                        .map(comment -> CommentResponseDto.fromEntity(comment, currentUserId))
                         .toList()
         );
+    }
+
+    // 댓글 조회 (비로그인 사용자용)
+    @Transactional(readOnly = true)
+    public RsData<List<CommentResponseDto>> getCommentsByTarget(
+            CommentsTargetType targetType,
+            Long targetId
+    ) {
+        return getCommentsByTarget(targetType, targetId, null);
     }
 
     // 댓글 수정
@@ -178,7 +188,7 @@ public class CommentsService {
         return RsData.of(
                 "200-2",
                 "댓글이 수정되었습니다.",
-                CommentResponseDto.fromEntity(comment)
+                CommentResponseDto.fromEntity(comment, userId)
         );
     }
 
@@ -218,7 +228,7 @@ public class CommentsService {
         return RsData.of(
                 "200-4",
                 "댓글에 좋아요를 눌렀습니다.",
-                CommentResponseDto.fromEntity(comment)
+                CommentResponseDto.fromEntity(comment, userId)
         );
     }
 
@@ -233,13 +243,13 @@ public class CommentsService {
         return RsData.of(
                 "200-5",
                 "댓글 좋아요를 취소했습니다.",
-                CommentResponseDto.fromEntity(comment)
+                CommentResponseDto.fromEntity(comment, userId)
         );
     }
 
     public List<CommentResponseDto> getCommentsByType(Long blogId, CommentsTargetType targetType) {
         List<Comments> comment = commentsRepository
-                .findByTargetTypeAndTargetIdAndParentIsNullOrderByCreatedAtAsc(targetType, blogId);
+                .findByTargetTypeAndTargetIdWithChildrenAndUsersOrderByCreatedAtAsc(targetType, blogId);
         return comment.stream()
                 .map(CommentResponseDto::fromEntity)
                 .toList();

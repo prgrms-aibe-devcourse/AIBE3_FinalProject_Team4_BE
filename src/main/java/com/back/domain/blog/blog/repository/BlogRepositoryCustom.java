@@ -7,4 +7,6 @@ import org.springframework.data.domain.Pageable;
 
 public interface BlogRepositoryCustom {
     Page<Blog> findMyBlogs(Long userId, BlogMySortType sortType, Pageable pageable);
+
+    Page<Blog> findByUserId(Long userId, BlogMySortType sortType, Pageable pageable);
 }
