@@ -6,6 +6,8 @@ import com.back.domain.ai.ai.dto.AiIndexBlogRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
 import com.back.domain.ai.ai.service.AiIndexService;
+import com.back.domain.ai.ai.util.AiChatHttpUtil;
+import com.back.domain.ai.model.exception.ModelUsageExceededException;
 import com.back.domain.ai.model.service.ModelUsageService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
@@ -38,7 +40,7 @@ public class ApiV1AiController {
     private final ModelUsageService modelUsageService;
 
     @PostMapping
-    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출/섬네일 문구 추천")
+    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출")
     public Mono<RsData<Object>> generate(@RequestBody @Validated AiGenerateRequest req) {
         return Mono.fromCallable(() -> aiGenerateService.generate(req))
                 .subscribeOn(Schedulers.boundedElastic())
@@ -51,7 +53,8 @@ public class ApiV1AiController {
                                                  @RequestBody @Validated AiChatRequest req) {
         // 모델 사용량 체크
         Long userId = userDetails.getId();
-        Mono<Void> check = modelUsageService.checkModelAvailability(userId, req.model());
+        String model = req.model().getValue();
+        Mono<Void> check = modelUsageService.checkModelAvailability(userId, model);
 
         // AI 응답 스트림
         Flux<ServerSentEvent<RsData<?>>> contentStream =
@@ -65,7 +68,7 @@ public class ApiV1AiController {
 
         // 사용 횟수 증가
         Mono<ServerSentEvent<RsData<?>>> metaEvent =
-                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, req.model()))
+                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, model))
                         .map(meta ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("meta")
@@ -74,8 +77,32 @@ public class ApiV1AiController {
                         );
 
         return check.thenMany(contentStream)
-                .concatWith(metaEvent)
-                .doOnCancel(() -> log.info("client cancel"));
+                .onErrorResume(ex -> {
+                    // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
+                    if (AiChatHttpUtil.isClientDisconnect(ex)) {
+                        log.info("사용자가 응답 생성 중지: {}", ex.toString());
+                        return Flux.empty();
+                    }
+                    // 사용량 초과
+                    if (ex instanceof ModelUsageExceededException usageEx) {
+                        return Flux.just(
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("error")
+                                        .data(RsData.failOf("429-1", usageEx.getMessage()))
+                                        .build()
+                        );
+                    }
+                    // 그 외 오류
+                    log.warn("AI 스트리밍 응답 중 오류", ex);
+                    return Flux.just(
+                            ServerSentEvent.<RsData<?>>builder()
+                                    .event("error")
+                                    .data(RsData.failOf("500-1", "AI 응답 중 오류가 발생했습니다."))
+                                    .build()
+                    );
+                })
+                .doOnCancel(() -> log.info("client cancel"))
+                .doFinally(sig -> log.debug("AI 스트리밍 응답 끝: {}", sig));
     }
 
     @PostMapping(value = "/chat/once", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -84,7 +111,7 @@ public class ApiV1AiController {
         return Mono.fromCallable(() -> aiChatService.chatOnce(req))
                 .subscribeOn(Schedulers.boundedElastic())
                 .map(RsData::successOf)
-                // ResponseEntity로 Content-Type JSON 명시하여 WebFlux 직렬화 문제 방지
+                // ResponseEntity로 Content-Type JSON 명시하여 직렬화 문제 방지
                 .map(rs -> ResponseEntity.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(rs))

@@ -14,8 +14,8 @@ public class ModelService {
     public void initModels() {
         if (modelRepository.count() > 0) return;
 
-        modelRepository.save(new Model("gpt-4o-mini", 5));
-        modelRepository.save(new Model("gpt-3.5-turbo", 3));
-        modelRepository.save(new Model("gpt-4", 2));
+        modelRepository.save(new Model("gpt-4o-mini", 6));
+        modelRepository.save(new Model("gpt-4.1-mini", 2));
+        modelRepository.save(new Model("gpt-5-mini", 2));
     }
 }
