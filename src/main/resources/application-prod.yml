@@ -38,7 +38,7 @@ spring:
       password: ${SPRING__REDIS__PASSWORD}
 
   elasticsearch:
-    uris: ${ELASTIC_URL}
+    uris: ${SPRING_ELASTICSEARCH_URIS}
 
   ai:
     openai:
