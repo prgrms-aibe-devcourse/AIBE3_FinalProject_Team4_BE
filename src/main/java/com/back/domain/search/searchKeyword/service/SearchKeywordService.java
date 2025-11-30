@@ -1,6 +1,5 @@
 package com.back.domain.search.searchKeyword.service;
 
-import com.back.domain.search.searchHistory.entity.SearchHistory;
 import com.back.domain.search.searchKeyword.dto.SearchKeywordResponseDto;
 import com.back.domain.search.searchKeyword.entity.SearchKeyword;
 import com.back.domain.search.searchKeyword.repository.SearchKeywordRepository;
@@ -20,6 +19,11 @@ public class SearchKeywordService {
     public List<SearchKeywordResponseDto> getTop10TrendingKeywords() {
         LocalDateTime from = LocalDateTime.now().minusHours(24);
         List<SearchKeyword> trendingKeywords = searchKeywordRepository.findTop10ByModifiedAtGreaterThanEqualOrderBySearchCountDesc(from);
+
+        if (trendingKeywords.isEmpty()) {
+            trendingKeywords =
+                    searchKeywordRepository.findTop10ByOrderBySearchCountDesc();
+        }
 
         return trendingKeywords.stream()
                 .map(SearchKeywordResponseDto::new)

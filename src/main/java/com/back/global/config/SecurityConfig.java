@@ -36,7 +36,8 @@ public class SecurityConfig {
             "/",
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/share/**"                 // Open Graph 공유 미리보기
+            "/share/**",                 // Open Graph 공유 미리보기
+            "/api/v1/search",
     };
 
     // 공개된 API URL 패턴 [GET 요청에 한함]
@@ -44,6 +45,7 @@ public class SecurityConfig {
             "/api/v1/users",
             "/api/v1/users/{id:\\d+}",          // * 이나 {id}로 하면 me/my 까지 포함되어 버림
             "/api/v1/users/check-nickname",
+            "/api/v1/users/creators",
 
             "/api/v1/follow/followers/{id:\\d+}",
             "/api/v1/follow/followings/{id:\\d+}",
@@ -59,6 +61,8 @@ public class SecurityConfig {
             "/api/v1/blogs",
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
+
+            "/api/v1/comments/{targetType}/{targetId}",
 
             "/api/v1/search",
             "/api/v1/search/trends/top10",

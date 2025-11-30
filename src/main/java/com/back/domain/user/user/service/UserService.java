@@ -6,18 +6,18 @@ import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
+import com.back.domain.user.follow.repository.FollowRepository;
 import com.back.domain.user.follow.service.FollowService;
 import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.exception.UserErrorCase;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +29,7 @@ public class UserService {
     private final BlogRepository blogRepository;
     private final BlogLikeRepository blogLikeRepository;
     private final BlogBookmarkRepository blogBookmarkRepository;
+    private final FollowRepository followRepository;
     private final FollowService followService;
 
     @Transactional(readOnly = true)
@@ -103,4 +104,97 @@ public class UserService {
                 .map(UserListResponseDto::new)
                 .toList();
     }
+
+
+    public List<CreatorListResponseDto> getCreators(Long userId) {
+        List<User> allUsers = userRepository.findAll();
+        List<Long> allUserIds = allUsers.stream()
+                .map(User::getId)
+                .toList();
+
+        Set<Long> followingIds;
+        if (userId == null) {
+            followingIds = Collections.emptySet();
+        } else {
+            followingIds = new HashSet<>(followRepository.findFollowingIdsByUserId(userId));
+        }
+
+        System.out.println("followingIds = " + followingIds);
+        // 4. 팔로워 많은 순으로 정렬
+        return allUsers.stream()
+                .map(user -> {
+                    boolean isFollowing = followingIds.contains(user.getId());
+                    return new CreatorListResponseDto(
+                            user,
+                            isFollowing
+                    );
+                })
+                // 4. 팔로워 많은 순으로 정렬
+                .sorted(Comparator.comparingLong(CreatorListResponseDto::followersCount).reversed())
+                .toList();
+    }
+
+//    public List<FullCreatorListResponseDto> getCreatorsFull(Long viewerIdOrNull) {
+//
+//        List<User> allUsers = userRepository.findAll();
+//        List<Long> allUserIds = allUsers.stream().map(User::getId).toList();
+//
+//        // ✔ 로그인 여부 분기
+//        Set<Long> followingIds;
+//        if (viewerIdOrNull == null) {
+//            followingIds = Collections.emptySet(); // 모두 false
+//        } else {
+//            followingIds = new HashSet<>(
+//                    followRepository.findFollowingIdsByUserId(viewerIdOrNull)
+//            );
+//        }
+//
+//        // followersCount bulk
+//        List<Object[]> followerCounts =
+//                followRepository.findFollowerCountsByUserIds(allUserIds);
+//
+//        Map<Long, Long> followersCountMap = followerCounts.stream()
+//                .collect(Collectors.toMap(
+//                        row -> (Long) row[0],
+//                        row -> (Long) row[1]
+//                ));
+//
+//        // 대표 썸네일 조회
+//        Map<Long, String> userThumbnailMap = new HashMap<>();
+//        for (Long targetUserId : allUserIds) {
+//            Page<Shorlog> page = shorlogRepository.findByUserIdOrderByPopularity(
+//                    targetUserId,
+//                    PageRequest.of(0, 1)
+//            );
+//            if (!page.isEmpty() && !page.getContent().get(0).getImages().isEmpty()) {
+//                userThumbnailMap.put(
+//                        targetUserId,
+//                        page.getContent().get(0).getImages().get(0).getImage().getS3Url()
+//                );
+//            } else {
+//                userThumbnailMap.put(targetUserId, null);
+//            }
+//        }
+//
+//        // followersCount 순 정렬
+//        List<User> sortedUsers = allUsers.stream()
+//                .sorted((u1, u2) -> Long.compare(
+//                        followersCountMap.getOrDefault(u2.getId(), 0L),
+//                        followersCountMap.getOrDefault(u1.getId(), 0L)
+//                ))
+//                .toList();
+//
+//        // DTO 생성
+//        return sortedUsers.stream()
+//                .map(user -> new CreatorListResponseDto(
+//                        user.getId(),
+//                        user.getNickname(),
+//                        user.getProfileImgUrl(),
+//                        followersCountMap.getOrDefault(user.getId(), 0L),
+//                        followingIds.contains(user.getId()),     // ✔ 로그인 여부에 따라 자동 처리
+//                        userThumbnailMap.get(user.getId())
+//                ))
+//                .toList();
+//    }
+
 }

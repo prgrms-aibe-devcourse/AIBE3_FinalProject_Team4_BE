@@ -29,32 +29,6 @@ services:
       - "6379:6379"
     networks:
       - next5-net
-
-  # ------------------
-  # Spring Boot (배포용 주석 처리)
-  # ------------------
-  # spring:
-  #   build: .
-  #   container_name: next5-spring
-  #   depends_on:
-  #     - mysql
-  #     - redis
-  #   environment:
-  #     SPRING_PROFILES_ACTIVE: prod
-  #     SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/next5_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-  #     SPRING_DATASOURCE_USERNAME: root
-  #     SPRING_DATASOURCE_PASSWORD: root123414
-  #     SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-  #     SPRING_JPA_HIBERNATE_DDL_AUTO: update
-  #     SPRING_JPA_SHOW_SQL: "true"
-  #     SPRING_CACHE_TYPE: redis
-  #     SPRING_REDIS_HOST: redis
-  #     SPRING_REDIS_PORT: 6379
-  #     SPRING_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD}
-  #   ports:
-  #     - "8080:8080"
-  #   networks:
-  #     - next5-net
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
     container_name: next5-elasticsearch

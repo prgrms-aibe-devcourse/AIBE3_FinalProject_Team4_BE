@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
-    List<SearchHistory> findTop10ByUserIdOrderByCreatedAtDesc(Long userId); //최근 10개만 조회
+    List<SearchHistory> findTop10ByUserIdOrderByModifiedAtDesc(Long userId); //최근 10개만 조회
 
     Optional<SearchHistory> findByUserIdAndKeyword(Long userId, String keyword);
 }
