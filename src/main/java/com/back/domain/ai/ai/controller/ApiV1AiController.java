@@ -6,6 +6,8 @@ import com.back.domain.ai.ai.dto.AiIndexBlogRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
 import com.back.domain.ai.ai.service.AiIndexService;
+import com.back.domain.ai.model.service.ModelUsageService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +35,7 @@ public class ApiV1AiController {
     private final AiGenerateService aiGenerateService;
     private final AiIndexService aiIndexService;
     private final AiChatService aiChatService;
+    private final ModelUsageService modelUsageService;
 
     @PostMapping
     @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출/섬네일 문구 추천")
@@ -42,10 +47,35 @@ public class ApiV1AiController {
 
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "챗봇 (스트리밍 응답)")
-    public Flux<RsData<String>> chat(@RequestBody @Validated AiChatRequest req) {
-        return aiChatService.chatStream(req)
-                .map(RsData::successOf)
-                .doOnCancel(() -> log.info("클라이언트가 AI 요청 중단"));
+    public Flux<ServerSentEvent<RsData<?>>> chat(@AuthenticationPrincipal SecurityUser userDetails,
+                                                 @RequestBody @Validated AiChatRequest req) {
+        // 모델 사용량 체크
+        Long userId = userDetails.getId();
+        Mono<Void> check = modelUsageService.checkModelAvailability(userId, req.model());
+
+        // AI 응답 스트림
+        Flux<ServerSentEvent<RsData<?>>> contentStream =
+                aiChatService.chatStream(req)
+                        .map(chunk ->
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("chunk")
+                                        .data(RsData.successOf(chunk))
+                                        .build()
+                        );
+
+        // 사용 횟수 증가
+        Mono<ServerSentEvent<RsData<?>>> metaEvent =
+                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, req.model()))
+                        .map(meta ->
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("meta")
+                                        .data(RsData.successOf(meta))
+                                        .build()
+                        );
+
+        return check.thenMany(contentStream)
+                .concatWith(metaEvent)
+                .doOnCancel(() -> log.info("client cancel"));
     }
 
     @PostMapping(value = "/chat/once", produces = MediaType.APPLICATION_JSON_VALUE)
