@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 public class AiGenerateService {
     private final ChatClient openAiChatClient;
     private final OpenAiChatOptions modelOption = OpenAiChatOptions.builder()
-            .model("gpt-4o-mini")
+            .model("gpt-4o-mini") // "gpt-4o-mini" or "gpt-5-nano" ("gpt-5-nano"는 temperature 1.0만 허용)
             .build();
 
     // 시스템 프롬프트

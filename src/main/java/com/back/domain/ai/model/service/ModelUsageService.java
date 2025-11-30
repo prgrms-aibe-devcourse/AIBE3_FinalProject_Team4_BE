@@ -3,6 +3,7 @@ package com.back.domain.ai.model.service;
 import com.back.domain.ai.model.dto.ModelAvailabilityDto;
 import com.back.domain.ai.model.entity.Model;
 import com.back.domain.ai.model.entity.ModelUsage;
+import com.back.domain.ai.model.exception.ModelUsageExceededException;
 import com.back.domain.ai.model.repository.ModelRepository;
 import com.back.domain.ai.model.repository.ModelUsageRepository;
 import com.back.domain.user.user.entity.User;
@@ -63,7 +64,7 @@ public class ModelUsageService {
         ModelAvailabilityDto availabilityDto = getModelAvailability(userId, modelName);
 
         if (!availabilityDto.available()) {
-            return Mono.error(new IllegalStateException("MODEL_USAGE_LIMIT_EXCEEDED"));
+            return Mono.error(new ModelUsageExceededException("MODEL_USAGE_LIMIT_EXCEEDED"));
         }
 
         return Mono.empty();
@@ -83,10 +84,10 @@ public class ModelUsageService {
             usage.setCount(0);
         }
 
-        usage.setCount(usage.getCount() + 1);
+        int newUsedCount = usage.getCount() + 1;
+        usage.setCount(newUsedCount);
         modelUsageRepository.save(usage);
 
-        int newUsedCount = usage.getCount();
         return new ModelAvailabilityDto(model.getId(), model.getName(), newUsedCount < model.getLimitCount());
     }
 
