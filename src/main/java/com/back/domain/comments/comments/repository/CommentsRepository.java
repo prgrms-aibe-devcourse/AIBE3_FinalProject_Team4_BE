@@ -16,6 +16,21 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
             Long targetId
     );
 
+    @Query("""
+            SELECT DISTINCT c FROM Comments c 
+            LEFT JOIN FETCH c.user 
+            LEFT JOIN FETCH c.children child 
+            LEFT JOIN FETCH child.user 
+            WHERE c.targetType = :targetType 
+              AND c.targetId = :targetId 
+              AND c.parent IS NULL 
+            ORDER BY c.createdAt ASC
+            """)
+    List<Comments> findByTargetTypeAndTargetIdWithChildrenAndUsersOrderByCreatedAtAsc(
+            @Param("targetType") CommentsTargetType targetType,
+            @Param("targetId") Long targetId
+    );
+
     void deleteByTargetTypeAndTargetId(CommentsTargetType targetType, Long targetId);
 
     @Query("""

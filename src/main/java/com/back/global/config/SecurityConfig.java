@@ -62,6 +62,8 @@ public class SecurityConfig {
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
 
+            "/api/v1/comments/{targetType}/{targetId}",
+
             "/api/v1/search",
             "/api/v1/search/trends/top10",
             "/api/v1/search/trends/recommend"
