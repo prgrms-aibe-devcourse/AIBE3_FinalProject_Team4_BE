@@ -77,6 +77,7 @@ public class ApiV1AiController {
                         );
 
         return check.thenMany(contentStream)
+                .concatWith(metaEvent)
                 .onErrorResume(ex -> {
                     // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
                     if (AiChatHttpUtil.isClientDisconnect(ex)) {

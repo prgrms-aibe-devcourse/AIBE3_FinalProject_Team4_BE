@@ -1,6 +1,7 @@
 package com.back.domain.ai.ai.service;
 
 import com.back.domain.ai.ai.dto.AiChatRequest;
+import com.back.domain.ai.model.dto.AiModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -49,9 +50,8 @@ public class AiChatService {
     }
 
     private Prompt buildPrompt(AiChatRequest req) {
-        OpenAiChatOptions modelOption = OpenAiChatOptions.builder()
-                .model(req.model().getValue())
-                .build();
+
+        OpenAiChatOptions modelOption = buildOptions(req.model());
 
         SystemMessage systemMessage = SystemMessage.builder()
                 .text("""
@@ -127,6 +127,19 @@ public class AiChatService {
                 )
                 .call()
                 .content();
+    }
+
+    private OpenAiChatOptions buildOptions(AiModel model) {
+
+        OpenAiChatOptions.Builder optionBuilder = OpenAiChatOptions.builder()
+                .model(model.getValue());
+
+        // gpt-5-mini는 temperature 커스텀을 못 받고 1.0만 허용
+        if (model == AiModel.GPT_5_MINI) {
+            optionBuilder.temperature(1.0);
+        }
+
+        return optionBuilder.build();
     }
 
     private List<Document> searchRelevantDocuments(Integer blogId, String query) {
