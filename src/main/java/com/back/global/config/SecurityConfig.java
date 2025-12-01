@@ -39,6 +39,7 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/share/**",                 // Open Graph 공유 미리보기
             "/api/v1/search",
+            "/actuator/**",
     };
 
     // 공개된 API URL 패턴 [GET 요청에 한함]
