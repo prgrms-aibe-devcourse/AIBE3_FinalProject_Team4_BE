@@ -125,4 +125,15 @@ public class AuthService {
             throw new AuthException("401-1", "비밀번호가 일치하지 않습니다.");
         }
     }
+
+    @Transactional(readOnly = true)
+    public boolean isAvailableUsername(String username) {
+        return userRepository.findByUsername(username).isEmpty();
+    }
+
+    public String getEmailByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."))
+                .getEmail();
+    }
 }
