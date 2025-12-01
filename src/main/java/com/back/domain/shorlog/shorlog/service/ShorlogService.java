@@ -224,7 +224,28 @@ public class ShorlogService {
         Page<Shorlog> shorlogs;
 
         switch (sort.toLowerCase()) {
-            case "popular" -> shorlogs = shorlogRepository.findByUserIdOrderByPopularity(userId, pageable);
+            case "popular" -> {
+                // 인기순으로 ID만 조회
+                List<Long> ids = shorlogRepository.findShorlogIdsByUserIdOrderByPopularity(userId, pageable);
+
+                if (ids.isEmpty()) {
+                    return Page.empty(pageable);
+                }
+
+                // ID로 엔티티 FETCH JOIN
+                List<Shorlog> shorlogList = shorlogRepository.findByIdsWithFetch(ids);
+
+                // 원래 정렬 순서대로 재정렬
+                java.util.Map<Long, Integer> idIndexMap = new java.util.HashMap<>();
+                for (int i = 0; i < ids.size(); i++) {
+                    idIndexMap.put(ids.get(i), i);
+                }
+                shorlogList.sort(java.util.Comparator.comparingInt(s -> idIndexMap.get(s.getId())));
+
+                // 전체 개수 조회
+                int totalCount = shorlogRepository.countAllByUserId(userId);
+                shorlogs = new PageImpl<>(shorlogList, pageable, totalCount);
+            }
             case "oldest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
             case "latest" -> shorlogs = shorlogRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");

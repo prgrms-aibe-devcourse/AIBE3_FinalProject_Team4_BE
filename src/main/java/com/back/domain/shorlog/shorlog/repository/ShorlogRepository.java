@@ -66,16 +66,21 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
     Page<Shorlog> findByUserIdOrderByCreatedAtAsc(@Param("userId") Long userId, Pageable pageable);
 
     // 내 쇼로그 조회 (인기순 - 조회수 + 좋아요 * 2 종합 점수)
-    @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
-           "JOIN FETCH s.user " +
-           "LEFT JOIN FETCH s.images si " +
-           "LEFT JOIN FETCH si.image " +
+    // Step 1: ID만 조회 (인기순 정렬)
+    @Query("SELECT s.id FROM Shorlog s " +
            "LEFT JOIN ShorlogLike sl ON sl.shorlog.id = s.id " +
            "WHERE s.user.id = :userId " +
            "GROUP BY s.id " +
-           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC",
-           countQuery = "SELECT COUNT(DISTINCT s) FROM Shorlog s WHERE s.user.id = :userId")
-    Page<Shorlog> findByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
+           "ORDER BY (s.viewCount + COUNT(sl) * 2) DESC")
+    List<Long> findShorlogIdsByUserIdOrderByPopularity(@Param("userId") Long userId, Pageable pageable);
+
+    // Step 2: ID로 FETCH JOIN 조회
+    @Query("SELECT DISTINCT s FROM Shorlog s " +
+           "JOIN FETCH s.user " +
+           "LEFT JOIN FETCH s.images si " +
+           "LEFT JOIN FETCH si.image " +
+           "WHERE s.id IN :ids")
+    List<Shorlog> findByIdsWithFetch(@Param("ids") List<Long> ids);
 
     int countAllByUserId(Long userId);
 
