@@ -1,5 +1,6 @@
 package com.back.domain.user.follow.controller;
 
+import com.back.domain.user.follow.dto.FollowCheckResponse;
 import com.back.domain.user.follow.dto.FollowCountResponseDto;
 import com.back.domain.user.follow.dto.FollowResponseDto;
 import com.back.domain.user.follow.entity.Follow;
@@ -38,13 +39,9 @@ public class FollowController {
 
     @GetMapping("/is-following/{followingId}")
     @Operation(summary = "특정 유저 팔로우 여부 확인")
-    public RsData<Void> isFollowing(@Valid @PathVariable Long followingId, @AuthenticationPrincipal SecurityUser user) {
+    public RsData<FollowCheckResponse> isFollowing(@Valid @PathVariable Long followingId, @AuthenticationPrincipal SecurityUser user) {
         boolean isFollowing = followService.isFollowing(user.getId(), followingId);
-        if(isFollowing) {
-            return RsData.of("200", "팔로우 중입니다.", null);
-        } else {
-            return RsData.of("200", "팔로우 중이 아닙니다.", null);
-        }
+        return RsData.of("200", "확인 완료", new FollowCheckResponse(isFollowing));
     }
 
     @GetMapping("/followers/{userId}")
