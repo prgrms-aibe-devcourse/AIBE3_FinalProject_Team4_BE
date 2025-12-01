@@ -38,7 +38,7 @@ public class AiIndexService {
         List<Document> chunks = textSplitter.split(blogDocument);
 
         // 3. 임베딩 및 Pinecone Vector DB에 저장
-        // 추가로, WebFlux의 Flux를 사용하여 청크 단위로 병렬/비동기 I/O 처리
+        // 추가로, Flux를 사용하여 청크 단위로 병렬/비동기 I/O 처리
         Flux.fromIterable(chunks)
                 .flatMap(chunk -> Mono.fromRunnable(() -> vectorStore.add(List.of(chunk)))
                         .subscribeOn(Schedulers.boundedElastic()))

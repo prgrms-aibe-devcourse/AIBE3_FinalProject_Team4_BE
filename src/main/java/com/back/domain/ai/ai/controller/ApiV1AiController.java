@@ -6,17 +6,27 @@ import com.back.domain.ai.ai.dto.AiIndexBlogRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
 import com.back.domain.ai.ai.service.AiIndexService;
+import com.back.domain.ai.ai.util.AiChatHttpUtil;
+import com.back.domain.ai.model.exception.ModelUsageExceededException;
+import com.back.domain.ai.model.service.ModelUsageService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @RestController
 @RequestMapping("/api/v1/ais")
@@ -27,30 +37,104 @@ public class ApiV1AiController {
     private final AiGenerateService aiGenerateService;
     private final AiIndexService aiIndexService;
     private final AiChatService aiChatService;
+    private final ModelUsageService modelUsageService;
 
     @PostMapping
-    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출/섬네일 문구 추천")
-    public RsData<Object> generate(@RequestBody @Validated AiGenerateRequest req) {
-        return RsData.successOf(aiGenerateService.generate(req));
+    @Operation(summary = "블로그 제목 추천/해시태그 추천/블로그 내용 요약/키워드 추출")
+    public Mono<RsData<Object>> generate(@RequestBody @Validated AiGenerateRequest req) {
+        return Mono.fromCallable(() -> aiGenerateService.generate(req))
+                .subscribeOn(Schedulers.boundedElastic())
+                .map(RsData::successOf);
     }
 
-    @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "챗봇 (스트리밍 응답)")
+    public Flux<ServerSentEvent<RsData<?>>> chat(@AuthenticationPrincipal SecurityUser userDetails,
+                                                 @RequestBody @Validated AiChatRequest req) {
+        // 모델 사용량 체크
+        Long userId = userDetails.getId();
+        String model = req.model().getValue();
+        Mono<Void> check = modelUsageService.checkModelAvailability(userId, model);
+
+        // AI 응답 스트림
+        Flux<ServerSentEvent<RsData<?>>> contentStream =
+                aiChatService.chatStream(req)
+                        .map(chunk ->
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("chunk")
+                                        .data(RsData.successOf(chunk))
+                                        .build()
+                        );
+
+        // 사용 횟수 증가
+        Mono<ServerSentEvent<RsData<?>>> metaEvent =
+                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, model))
+                        .map(meta ->
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("meta")
+                                        .data(RsData.successOf(meta))
+                                        .build()
+                        );
+
+        return check.thenMany(contentStream)
+                .concatWith(metaEvent)
+                .onErrorResume(ex -> {
+                    // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
+                    if (AiChatHttpUtil.isClientDisconnect(ex)) {
+                        log.info("사용자가 응답 생성 중지: {}", ex.toString());
+                        return Flux.empty();
+                    }
+                    // 사용량 초과
+                    if (ex instanceof ModelUsageExceededException usageEx) {
+                        return Flux.just(
+                                ServerSentEvent.<RsData<?>>builder()
+                                        .event("error")
+                                        .data(RsData.failOf("429-1", usageEx.getMessage()))
+                                        .build()
+                        );
+                    }
+                    // 그 외 오류
+                    log.warn("AI 스트리밍 응답 중 오류", ex);
+                    return Flux.just(
+                            ServerSentEvent.<RsData<?>>builder()
+                                    .event("error")
+                                    .data(RsData.failOf("500-1", "AI 응답 중 오류가 발생했습니다."))
+                                    .build()
+                    );
+                })
+                .doOnCancel(() -> log.info("client cancel"))
+                .doFinally(sig -> log.debug("AI 스트리밍 응답 끝: {}", sig));
+    }
+
+    @PostMapping(value = "/chat/once", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "챗봇 (단일 응답)")
-    public RsData<String> chatOnce(@RequestBody @Validated AiChatRequest req) {
-        return RsData.successOf(aiChatService.chatOnce(req));
+    public Mono<ResponseEntity<RsData<String>>> chatOnce(@RequestBody @Validated AiChatRequest req) {
+        return Mono.fromCallable(() -> aiChatService.chatOnce(req))
+                .subscribeOn(Schedulers.boundedElastic())
+                .map(RsData::successOf)
+                // ResponseEntity로 Content-Type JSON 명시하여 직렬화 문제 방지
+                .map(rs -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(rs))
+                .doOnError(e -> log.error("AI 챗봇 에러: ", e));
     }
 
     // 추후 챗봇 API를 통합하고, 내부 로직에서 RAG 기반 여부에 따라 분기 처리할 예정입니다.
     @PostMapping("/chat/rag")
     @Operation(summary = "RAG 기반 챗봇")
-    public RsData<String> chatWithRag(@RequestBody @Validated AiChatRequest req) {
-        return RsData.successOf(aiChatService.chatWithRag(req.id(), req.message()));
+    public Mono<RsData<String>> chatWithRag(@RequestBody @Validated AiChatRequest req) {
+        return Mono.fromCallable(() -> aiChatService.chatWithRag(req.id(), req.message()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .map(RsData::successOf)
+                .doOnError(e -> log.error("AI 챗봇 (RAG) 에러: ", e));
     }
 
     @PostMapping("/index")
     @Operation(summary = "블로그 벡터 DB 등록")
-    public RsData indexBlog(@RequestBody AiIndexBlogRequest req) {
-        aiIndexService.indexBlog(req.blogId(), req.title(), req.content());
-        return new RsData<>("201-1", "벡터 DB 등록이 완료되었습니다.");
+    public Mono<RsData<String>> indexBlog(@RequestBody AiIndexBlogRequest req) {
+        return Mono.fromRunnable(() -> aiIndexService.indexBlog(req.blogId(), req.title(), req.content()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then(Mono.just(RsData.successOf("블로그 벡터 등록이 완료되었습니다.")))
+                .doOnError(e -> log.error("AI 블로그 벡터 DB 에러: ", e));
     }
 }
