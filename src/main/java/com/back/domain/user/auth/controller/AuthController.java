@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
@@ -90,6 +92,26 @@ public class AuthController {
                 "200-1",
                 "로그아웃 되었습니다."
         );
+    }
+
+    @GetMapping("/check-username")
+    @Operation(summary = "아이디 중복 확인")
+    public RsData<Map<String, Boolean>> checkUsernameAvailable(@RequestParam String username) {
+        boolean result = userService.isAvailableUsername(username);
+        Map<String, Boolean> data = Map.of("isAvailable", result);
+        if (result) {
+            return RsData.of("200", "사용 가능한 아이디입니다.", data);
+        } else {
+            return RsData.of("200", "이미 사용 중인 아이디입니다.", data);
+        }
+    }
+
+    @GetMapping("/get-email")
+    @Operation(summary = "아이디로 이메일 조회")
+    public RsData<Map<String, String>> getEmailByUsername(@RequestParam String username) {
+        String email = userService.getEmailByUsername(username);
+        Map<String, String> data = Map.of("email", email);
+        return RsData.of("200", "이메일 조회 성공", data);
     }
 
     @PostMapping("/password-reset")

@@ -47,6 +47,8 @@ public class SecurityConfig {
             "/api/v1/users/{id:\\d+}",          // * 이나 {id}로 하면 me/my 까지 포함되어 버림
             "/api/v1/users/check-nickname",
             "/api/v1/users/creators",
+            "/api/v1/users/{id:\\d+}/blogs",
+            "api/v1/users/search",
 
             "/api/v1/follow/followers/{id:\\d+}",
             "/api/v1/follow/followings/{id:\\d+}",
@@ -74,10 +76,12 @@ public class SecurityConfig {
     private static final String[] AUTH_WHITELIST = {
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
+            "/api/v1/auth/check-username",
             "/api/v1/auth/password-reset",
             "/api/v1/auth/complete-oauth2-join",
             "/api/v1/auth/send-code",
             "/api/v1/auth/verify-code",
+            "/api/v1/auth/get-email",
             "/tmp-for-complete-join-of-oauth2-user"    // todo 추후 프론트 페이지 개발 후 제거
     };
 

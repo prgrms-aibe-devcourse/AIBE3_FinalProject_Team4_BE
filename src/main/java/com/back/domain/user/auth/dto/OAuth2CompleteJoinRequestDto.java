@@ -14,7 +14,6 @@ public record OAuth2CompleteJoinRequestDto(
         String nickname,
 
         @NotNull
-        @JsonFormat(pattern = "yyyyMMdd")
         LocalDate dateOfBirth,
 
         @NotNull
