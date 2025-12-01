@@ -23,6 +23,9 @@
     "hashtagName": {
       "type": "keyword"
     },
+    "profileImgUrl": {
+      "type": "keyword"
+    },
     "thumbnailUrl": {
       "type": "keyword"
     },
