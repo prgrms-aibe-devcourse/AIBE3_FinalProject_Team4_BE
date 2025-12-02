@@ -20,4 +20,12 @@ public record ImageSearchContentDto(
                 googleImageItem.image().height()
         );
     }
+
+    public ImageSearchContentDto(PixabayImageItem pixabayImageItem) {
+        this(
+                pixabayImageItem.webformatURL(),
+                pixabayImageItem.webformatWidth(),
+                pixabayImageItem.webformatHeight()
+        );
+    }
 }
