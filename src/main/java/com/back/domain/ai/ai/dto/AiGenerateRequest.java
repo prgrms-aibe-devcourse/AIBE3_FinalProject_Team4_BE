@@ -11,6 +11,8 @@ public record AiGenerateRequest(
 
         String message,
 
-        String content
+        String content,
+
+        String[] previousResults
 ) {
 }
