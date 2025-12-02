@@ -10,8 +10,12 @@ import java.util.Optional;
 
 public interface ShorlogBlogLinkRepository extends JpaRepository<ShorlogBlogLink, Long> {
 
-    // 쇼로그 ID로 연결된 블로그 ID 조회
+    // 쇼로그 ID로 연결된 블로그 ID 목록 조회 (다대다 지원)
     @Query("SELECT sbl.blog.id FROM ShorlogBlogLink sbl WHERE sbl.shorlog.id = :shorlogId")
+    List<Long> findBlogIdsByShorlogId(@Param("shorlogId") Long shorlogId);
+
+    // 하위 호환성을 위한 메서드 (첫 번째 연결된 블로그만 반환)
+    @Query("SELECT sbl.blog.id FROM ShorlogBlogLink sbl WHERE sbl.shorlog.id = :shorlogId ORDER BY sbl.createdAt ASC LIMIT 1")
     Optional<Long> findBlogIdByShorlogId(@Param("shorlogId") Long shorlogId);
 
     // 블로그 ID로 연결된 쇼로그 ID 목록 조회
