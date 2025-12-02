@@ -68,6 +68,7 @@ public class SecurityConfig {
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
             "api/v1/blogs/{id:\\d+}/linked-shorlogs",
+            "/api/v1/blogs/{id:\\d+}/view",
 
             "/api/v1/comments/{targetType}/{targetId}",
 
