@@ -146,12 +146,10 @@ public class ShorlogBlogLinkService {
     }
 
     @Transactional(readOnly = true)
-    public List<Long> getLinkedBlogIds(Long shorlogId, Long userId) {
-        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+    public List<Long> getLinkedBlogIdsPublic(Long shorlogId) {
+        // 숏로그 존재 여부만 확인, 권한 검증 없음 (공개 API)
+        shorlogRepository.findById(shorlogId)
                 .orElseThrow(() -> new ServiceException(LinkErrorCase.SHORLOG_NOT_FOUND));
-        if (!shorlog.getUser().getId().equals(userId)) {
-            throw new ServiceException(LinkErrorCase.FORBIDDEN);
-        }
         return shorlogBlogLinkRepository.findBlogIdsByShorlogId(shorlogId);
     }
 }

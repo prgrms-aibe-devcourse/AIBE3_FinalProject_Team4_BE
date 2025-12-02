@@ -44,12 +44,9 @@ public class ApiV1ShorlogBlogLinkController {
     }
 
     @GetMapping("/{id}/linked-blogs")
-    @Operation(summary = "숏로그에 연결된 블로그 ID 목록 조회")
-    public RsData<List<Long>> getLinkedBlogs(
-            @PathVariable Long id,
-            @AuthenticationPrincipal SecurityUser securityUser
-    ) {
-        List<Long> linkedBlogIds = shorlogBlogLinkService.getLinkedBlogIds(id, securityUser.getId());
+    @Operation(summary = "숏로그에 연결된 블로그 ID 목록 조회 (공개)")
+    public RsData<List<Long>> getLinkedBlogs(@PathVariable Long id) {
+        List<Long> linkedBlogIds = shorlogBlogLinkService.getLinkedBlogIdsPublic(id);
         return RsData.successOf(linkedBlogIds);
     }
 
