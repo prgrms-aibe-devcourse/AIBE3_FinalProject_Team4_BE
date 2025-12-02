@@ -109,7 +109,7 @@ public class ShorlogBlogLinkService {
         boolean linked = count > 0;
         return new BlogShorlogLinkResponse(blogId, shorlogId, linked, count);
     }
-    
+
     public List<MyBlogSummaryResponse> getRecentBlogByAuthor(Long userId, int size) {
         List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId, PageRequest.of(0, size));
         return blogs.stream()
@@ -129,9 +129,6 @@ public class ShorlogBlogLinkService {
     public List<LinkedShorlogSummaryResponse> getLinkedShorlogs(Long blogId, Long userId) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(LinkErrorCase.BLOG_NOT_FOUND));
-        if (!blog.getUser().getId().equals(userId)) {
-            throw new ServiceException(LinkErrorCase.FORBIDDEN);
-        }
         List<ShorlogBlogLink> links = shorlogBlogLinkRepository.findByBlogId(blogId);
         List<Long> shorlogIds = links.stream()
                 .map(ShorlogBlogLink::getShorlog)

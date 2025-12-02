@@ -61,11 +61,12 @@ public class SecurityConfig {
             "/api/v1/shorlog/search",
             "/api/v1/shorlog/{id:\\d+}/view",
             "/api/v1/shorlog/user/{userId:\\d+}",
-            "/api/v1/shorlog/{id:\\d+}/linked-blogs",
+            "api/v1/shorlog/{id:\\d+}/linked-blogs",
 
             "/api/v1/blogs",
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
+            "api/v1/blogs/{id:\\d+}/linked-shorlogs",
 
             "/api/v1/comments/{targetType}/{targetId}",
 
