@@ -48,6 +48,7 @@ public class SecurityConfig {
             "/api/v1/users/{id:\\d+}",          // * 이나 {id}로 하면 me/my 까지 포함되어 버림
             "/api/v1/users/check-nickname",
             "/api/v1/users/creators",
+            "/api/v1/users/creators/v2",
             "/api/v1/users/{id:\\d+}/blogs",
             "api/v1/users/search",
 

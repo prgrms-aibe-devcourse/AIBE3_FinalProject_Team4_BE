@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -50,8 +51,10 @@ public class UserController {
 
     @PutMapping("/update")
     @Operation(summary = "내 프로필 수정")
-    public RsData<UserDto> updateMyProfile(@AuthenticationPrincipal SecurityUser user, @Valid @RequestBody UpdateProfileRequestDto dto) {
-        UserDto userDto = userService.updateProfile(user.getId(), dto);
+    public RsData<UserDto> updateMyProfile(@AuthenticationPrincipal SecurityUser user,
+                                           @Valid @RequestPart UpdateProfileRequestDto dto,
+                                           @RequestPart (required = false) MultipartFile profileImage) {
+        UserDto userDto = userService.updateProfile(user.getId(), dto, profileImage);
         return RsData.of("200", "프로필 수정 성공", userDto);
     }
 
@@ -80,6 +83,16 @@ public class UserController {
     ) {
         Long userId = user != null ? user.getId() : null;
         List<CreatorListResponseDto> creators = userService.getCreators(userId);
+        return RsData.of("200", "크리에이터 목록 조회 성공", creators);
+    }
+
+    @GetMapping("/creators/v2")
+    @Operation(summary = "크리에이터 목록 조회")
+    public RsData<List<FullCreatorListResponseDto>> getCreatorsFull(
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        Long userId = user != null ? user.getId() : null;
+        List<FullCreatorListResponseDto> creators = userService.getCreatorsFull(userId);
         return RsData.of("200", "크리에이터 목록 조회 성공", creators);
     }
 
