@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -119,4 +120,17 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
         WHERE t.rn = 1
         """, nativeQuery = true)
     List<Object[]> findTopShorlogIdByUserIdsOrderByPopularity(@Param("userIds") List<Long> userIds);
+
+    @Query("""
+    select distinct s from Shorlog s
+    left join fetch s.user u
+    left join fetch s.images si
+    left join fetch si.image img
+    where s.createdAt >= :from
+    order by s.createdAt desc, si.sortOrder
+""")
+    List<Shorlog> findPopularWithImages(@Param("from") LocalDateTime from, Pageable pageable);
+
+    @Query("SELECT s.viewCount FROM Shorlog s WHERE s.id = :id")
+    long findViewCount(@Param("id") Long id);
 }

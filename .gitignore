@@ -56,3 +56,5 @@ logstash/lib/
 src/main/generated/
 /build/generated/
 /**/generated/
+
+/monitoring/influxdb

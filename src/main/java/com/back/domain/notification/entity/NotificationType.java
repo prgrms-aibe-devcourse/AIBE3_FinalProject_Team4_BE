@@ -9,11 +9,11 @@ public enum NotificationType {
 
     BLOG_BOOKMARK("님이 회원님의 블로그를 북마크했습니다."),
     BLOG_LIKE("님이 회원님의 블로그를 좋아했습니다."),
-    BLOG_COMMENT("님이 게시글에 댓글을 달았습니다."),
+    BLOG_COMMENT("님이 블로그에에 댓글을 달았습니다."),
 
-    SHORLOG_COMMENT("님이 쇼로그에 댓글을 달았습니다."),
-    SHORLOG_LIKE("내 숏로그를 좋아했습니다."),
-    SHORLOG_BOOKMARK("내 숏로그를 저장했습니다."),
+    SHORLOG_COMMENT("님이 숏로그에 댓글을 달았습니다."),
+    SHORLOG_LIKE("님이 내 숏로그를 좋아했습니다."),
+    SHORLOG_BOOKMARK("님이 내 숏로그를 저장했습니다."),
 
     COMMENT_REPLY("님이 회원님의 댓글에 답글을 남겼습니다."),
 

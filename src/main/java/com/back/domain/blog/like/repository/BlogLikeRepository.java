@@ -40,4 +40,5 @@ public interface BlogLikeRepository extends JpaRepository<BlogLike, Long> {
             "ORDER BY bm.likedAt DESC")
     Page<BlogLike> findByUserIdWithBlog(@Param("userId") Long userId, Pageable pageable);
 
+    long countByBlogId(Long blogId);
 }

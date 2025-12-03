@@ -47,4 +47,14 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     """)
     List<Object[]> findFollowerCountsByUserIds(List<Long> userIds);
 
+
+    // 내가 팔로우한 유저들
+    List<Follow> findByFromUser_Id(Long fromUserId);
+
+    // 특정 유저가 팔로우한 유저들
+    List<Follow> findByFromUser(User fromUser);
+
+    // 팔로우 관계 존재 여부 (중복 제거용)
+    boolean existsByFromUser_IdAndToUser_Id(Long fromUserId, Long toUserId);
+
 }
