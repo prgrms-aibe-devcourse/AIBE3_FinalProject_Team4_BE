@@ -50,6 +50,7 @@ public class AiGenerateService {
             [해시태그 추천]: 주어진 콘텐츠 유형의 본문을 분석하여, SNS 공유에 적합한 해시태그 10개를 %s
                 - '#' 기호는 붙이지 마세요.
                 - 한글, 영문, 숫자만 사용하세요.
+                - 두 단어 이상으로 이루어진 해시태그는 한글/영문 구분 없이 '_'로 연결하세요.
                 - '_' 기호 이외의 특수문자나 공백은 포함하지 마세요.
             """.formatted(JSON_RESULTS_FORMAT_INSTRUCTION);
 
@@ -107,9 +108,40 @@ public class AiGenerateService {
 
         userPrompt.append(modePrompt).append("\n")
                 .append("[콘텐츠 유형]: ").append(req.contentType()).append("\n");
+
         if (req.message() != null && !req.message().isBlank()) {
-            userPrompt.append("[질문]: ").append(req.message()).append("\n");
+            userPrompt.append("[질문]: \n");
+
+            if (req.previousResults() != null && req.previousResults().length > 0) {
+                userPrompt.append("""
+                        (새 요청)을 보고,
+                        A: (이전 결과)는 아예 무시하고, 새로운 결과를 생성하라는 건지
+                        아니면
+                        B: (이전 결과)를 바탕으로 더 나은 결과를 생성하라는 건지
+                        판단해서 결과를 내라.
+                        
+                        A인 경우,
+                        (이전 결과)에 등장한 단어/표현/키워드/색상/고유명사를 절대 재사용하지 마라.
+                        단, (새 요청)이나 [본문]에 같은 단어가 명시된 경우는 예외로 허용한다.
+                        
+                        B인 경우,
+                        (이전 결과)를 유지한 채 추가만 하거나,
+                        (이전 결과)에서 일부만 개선/수정/보완하거나,
+                        (이전 결과)를 완전히 재구성하라.
+                        
+                        
+                        다음은 (이전 결과)와 (새 요청)이다.
+                        """);
+                userPrompt.append("(이전 결과): \n");
+                for (String previousResult : req.previousResults()) {
+                    userPrompt.append(previousResult).append("\n");
+                }
+                userPrompt.append("\n(새 요청): ");
+            }
+
+            userPrompt.append(req.message()).append("\n");
         }
+
         userPrompt.append("[본문]: \n").append(req.content());
 
         return userPrompt.toString();

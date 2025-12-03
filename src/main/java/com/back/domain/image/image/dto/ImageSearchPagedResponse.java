@@ -85,6 +85,45 @@ public record ImageSearchPagedResponse(
         );
     }
 
+    public static ImageSearchPagedResponse fromPixabay(String keyword, int number, int size, PixabayImageSearchResult result) {
+        if (result == null) {
+            return new ImageSearchPagedResponse(
+                    keyword,
+                    number,
+                    size,
+                    0,
+                    0,
+                    true,
+                    true,
+                    List.of()
+            );
+        }
+
+        List<ImageSearchContentDto> content = Optional.ofNullable(result.hits())
+                .orElse(List.of())
+                .stream()
+                .map(ImageSearchContentDto::new)
+                .toList();
+
+        long totalElements = result.totalHits();
+
+        int totalPages = (int) ((totalElements + size - 1) / size);
+
+        boolean first = number == 0;
+        boolean last = totalPages == 0 || number >= (totalPages - 1);
+
+        return new ImageSearchPagedResponse(
+                keyword,
+                number,
+                content.size(),
+                totalElements,
+                totalPages,
+                first,
+                last,
+                content
+        );
+    }
+
     private static long getTotalElements(int size, GoogleImageSearchResult result) {
         String totalElementsString = result.searchInformation().totalResults();
         long maxTotalElements = (long) (MAX_RESULTS_LIMIT / size) * size;
