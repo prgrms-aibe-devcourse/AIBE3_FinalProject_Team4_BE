@@ -8,5 +8,5 @@ public record MainUserCardDto(
         String nickname,
         String bio,
         String avatarUrl,
-        boolean isFollowed
+        boolean isFollowing
 ) {}

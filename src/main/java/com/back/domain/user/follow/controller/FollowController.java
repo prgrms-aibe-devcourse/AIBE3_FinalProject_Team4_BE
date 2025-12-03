@@ -71,18 +71,14 @@ public class FollowController {
         return RsData.of("200", "팔로워/팔로잉 카운트 조회 성공", followCountResponseDto);
     }
 
-    @GetMapping("/{UserId}/profile")
-    @Operation(
-            summary = "프로필 + 팔로우 상태 조회",
-            description = "특정 유저의 프로필과 현재 로그인한 사용자의 팔로우 상태를 함께 조회합니다."
-    )
+    @GetMapping("/{targetUserId}/profile")
+    @Operation(summary = "프로필 + 팔로우 상태 조회")
     public RsData<UserProfileWithFollowStatusResponseDto> getUserProfileWithFollowStatus(
             @AuthenticationPrincipal SecurityUser viewer,
             @PathVariable Long targetUserId
     ) {
-        UserProfileWithFollowStatusResponseDto dto =
-                followService.getUserProfileWithFollowStatus(viewer.getId(), targetUserId);
-
-        return RsData.successOf(dto);
+        return RsData.successOf(
+                followService.getUserProfileWithFollowStatus(viewer.getId(), targetUserId)
+        );
     }
 }

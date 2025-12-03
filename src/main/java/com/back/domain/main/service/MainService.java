@@ -225,18 +225,15 @@ public class MainService {
     }
 
 
-    // ============================================
-    // =               추천 유저 (캐싱)            =
-    // ============================================
-
+    // 추천 유저 (캐싱)
     @Cacheable(cacheNames = "main:recommended", key="'rec-'+#loginUserId")
     public List<MainUserCardDto> findRecommendedUsers(Long loginUserId) {
 
-        if (loginUserId == null) return fallbackRecentUsers();
+        if (loginUserId == null) return fallbackRecentUsers(null);
 
         List<Follow> myFollows = followRepository.findByFromUser_Id(loginUserId);
 
-        if (myFollows.isEmpty()) return fallbackRecentUsers();
+        if (myFollows.isEmpty()) return fallbackRecentUsers(loginUserId);
 
         Map<Long, Integer> scoreMap = new HashMap<>();
 
@@ -260,29 +257,38 @@ public class MainService {
                 .map(Map.Entry::getKey)
                 .toList();
 
-        if (sortedIds.isEmpty()) return fallbackRecentUsers();
+        if (sortedIds.isEmpty()) return fallbackRecentUsers(loginUserId);
 
         return userRepository.findAllById(sortedIds)
                 .stream()
-                .map(this::toUserCardDto)
+                .map(u -> toUserCardDto(u, loginUserId))
                 .toList();
     }
 
 
-    private List<MainUserCardDto> fallbackRecentUsers() {
+    // fallback도 loginUserId 필요
+    private List<MainUserCardDto> fallbackRecentUsers(Long loginUserId) {
         return userRepository.findTop5ByOrderByCreatedAtDesc()
                 .stream()
-                .map(this::toUserCardDto)
+                .map(u -> toUserCardDto(u, loginUserId))
                 .toList();
     }
 
-    private MainUserCardDto toUserCardDto(User u) {
+
+    private MainUserCardDto toUserCardDto(User u, Long loginUserId) {
+
+        boolean isFollowing = false;
+
+        if (loginUserId != null && !loginUserId.equals(u.getId())) {
+            isFollowing = followRepository.existsByFromUser_IdAndToUser_Id(loginUserId, u.getId());
+        }
+
         return MainUserCardDto.builder()
                 .id(u.getId())
                 .nickname(u.getNickname())
                 .bio(u.getBio())
                 .avatarUrl(u.getProfileImgUrl())
-                .isFollowed(false)
+                .isFollowing(isFollowing)
                 .build();
     }
 }
