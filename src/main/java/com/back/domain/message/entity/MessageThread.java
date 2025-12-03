@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MessageThread extends BaseEntity {
-    private Long userId1;
-    private Long userId2;
+    private Long userId1;   // lowerId
+    private Long userId2;   // higherId
+    // private List<Message> messages;
 }
