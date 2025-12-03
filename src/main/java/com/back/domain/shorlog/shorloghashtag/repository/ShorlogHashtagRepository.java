@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -21,4 +22,12 @@ public interface ShorlogHashtagRepository extends JpaRepository<ShorlogHashtag, 
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM ShorlogHashtag sh WHERE sh.shorlog.id = :shorlogId")
     void deleteByShorlogId(@Param("shorlogId") Long shorlogId);
+
+    @Query("""
+        SELECT sh.hashtag.name, COUNT(sh)
+        FROM ShorlogHashtag sh
+        WHERE sh.shorlog.createdAt >= :from
+        GROUP BY sh.hashtag.name
+        """)
+    List<Object[]> countHashtagUsageSince(LocalDateTime from);
 }

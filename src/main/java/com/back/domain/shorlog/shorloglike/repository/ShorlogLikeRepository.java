@@ -24,5 +24,7 @@ public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, Shorlo
 
     @EntityGraph(attributePaths = "shorlog")
     Page<ShorlogLike> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    long countByShorlog_Id(Long shorlogId);
 }
 

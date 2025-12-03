@@ -76,4 +76,16 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
             ORDER BY b.id DESC
             """)
     Page<Object[]> findUserBlogActivities(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+    select distinct b from Blog b
+    left join fetch b.user u
+    where b.createdAt >= :from
+      and b.status = 'PUBLISHED'
+    order by b.createdAt desc
+    """)
+    List<Blog> findPopularBlogs(@Param("from") LocalDateTime from, Pageable pageable);
+
+    @Query("SELECT b.viewCount FROM Blog b WHERE b.id = :id")
+    long findViewCount(@Param("id") Long id);
 }
