@@ -1,6 +1,6 @@
 package com.back.domain.user.follow.controller;
 
-import com.back.domain.user.follow.dto.UserProfileWithFollowStatusResponseDto;
+import com.back.domain.user.follow.dto.FollowCheckResponse;
 import com.back.domain.user.follow.dto.FollowCountResponseDto;
 import com.back.domain.user.follow.dto.FollowResponseDto;
 import com.back.domain.user.follow.entity.Follow;
@@ -39,29 +39,25 @@ public class FollowController {
 
     @GetMapping("/is-following/{followingId}")
     @Operation(summary = "특정 유저 팔로우 여부 확인")
-    public RsData<Void> isFollowing(@Valid @PathVariable Long followingId, @AuthenticationPrincipal SecurityUser user) {
+    public RsData<FollowCheckResponse> isFollowing(@Valid @PathVariable Long followingId, @AuthenticationPrincipal SecurityUser user) {
         boolean isFollowing = followService.isFollowing(user.getId(), followingId);
-        if(isFollowing) {
-            return RsData.of("200", "팔로우 중입니다.", null);
-        } else {
-            return RsData.of("200", "팔로우 중이 아닙니다.", null);
-        }
+        return RsData.of("200", "확인 완료", new FollowCheckResponse(isFollowing));
     }
 
     @GetMapping("/followers/{userId}")
     @Operation(summary = "팔로워 목록 조회")
     public RsData<List<FollowResponseDto>> getFollowers(@Valid @PathVariable Long userId, @AuthenticationPrincipal SecurityUser user) {
         Long currentUserId = user != null ? user.getId() : null;
-        List<FollowResponseDto> followerResponseDto = followService.getFollowers(userId, currentUserId);
-        return RsData.of("200", "팔로워 목록 조회 성공", followerResponseDto);
+        List<FollowResponseDto> followerResponseDtos = followService.getFollowers(userId, currentUserId);
+        return RsData.of("200", "팔로워 목록 조회 성공", followerResponseDtos);
     }
 
     @GetMapping("/followings/{userId}")
     @Operation(summary = "팔로잉 목록 조회")
     public RsData<List<FollowResponseDto>> getFollowings(@Valid @PathVariable Long userId, @AuthenticationPrincipal SecurityUser user) {
         Long currentUserId = user != null ? user.getId() : null;
-        List<FollowResponseDto> followingResponseDto = followService.getFollowings(userId, currentUserId);
-        return RsData.of("200", "팔로잉 목록 조회 성공", followingResponseDto);
+        List<FollowResponseDto> followingResponseDtos = followService.getFollowings(userId, currentUserId);
+        return RsData.of("200", "팔로잉 목록 조회 성공", followingResponseDtos);
     }
 
     @GetMapping("/counts/{userId}")
@@ -69,16 +65,5 @@ public class FollowController {
     public RsData<FollowCountResponseDto> getFollowCounts(@Valid @PathVariable Long userId) {
         FollowCountResponseDto followCountResponseDto = followService.getFollowCounts(userId);
         return RsData.of("200", "팔로워/팔로잉 카운트 조회 성공", followCountResponseDto);
-    }
-
-    @GetMapping("/{targetUserId}/profile")
-    @Operation(summary = "프로필 + 팔로우 상태 조회")
-    public RsData<UserProfileWithFollowStatusResponseDto> getUserProfileWithFollowStatus(
-            @AuthenticationPrincipal SecurityUser viewer,
-            @PathVariable Long targetUserId
-    ) {
-        return RsData.successOf(
-                followService.getUserProfileWithFollowStatus(viewer.getId(), targetUserId)
-        );
     }
 }

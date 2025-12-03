@@ -17,5 +17,20 @@ public interface ShorlogImagesRepository extends JpaRepository<ShorlogImages, Lo
     @Modifying
     @Query("DELETE FROM ShorlogImages si WHERE si.shorlog.id = :shorlogId")
     void deleteByShorlogId(@Param("shorlogId") Long shorlogId);
+
+    // 쇼로그들의 썸네일 이미지 URL 조회
+    @Query(value = """
+        SELECT si.shorlog_id AS shorlogId, img.s3_url AS url
+        FROM shorlog_images si
+        JOIN images img ON img.id = si.image_id
+        JOIN (
+            SELECT shorlog_id, MIN(sort_order) AS minSort
+            FROM shorlog_images
+            WHERE shorlog_id IN (:shorlogIds)
+            GROUP BY shorlog_id
+        ) m ON m.shorlog_id = si.shorlog_id AND si.sort_order = m.minSort
+        WHERE si.shorlog_id IN (:shorlogIds)
+        """, nativeQuery = true)
+    List<Object[]> findFirstImageUrlByShorlogIds(@Param("shorlogIds") List<Long> shorlogIds);
 }
 

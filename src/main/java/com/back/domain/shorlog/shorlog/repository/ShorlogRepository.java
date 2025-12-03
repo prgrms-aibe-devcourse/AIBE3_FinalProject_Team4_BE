@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -101,16 +100,23 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
            "ORDER BY s.modifiedAt DESC")
     List<Shorlog> findRecentShorlogsByUserId(@Param("userId") Long userId);
 
-    @Query("""
-    select distinct s from Shorlog s
-    left join fetch s.user u
-    left join fetch s.images si
-    left join fetch si.image img
-    where s.createdAt >= :from
-    order by s.createdAt desc, si.sortOrder
-""")
-    List<Shorlog> findPopularWithImages(@Param("from") LocalDateTime from, Pageable pageable);
-
-    @Query("SELECT s.viewCount FROM Shorlog s WHERE s.id = :id")
-    long findViewCount(@Param("id") Long id);
+    // creators 목록용 - 각 유저별 인기 숏로그 ID 조회
+    @Query(value = """
+        SELECT user_id, shorlog_id
+        FROM (
+            SELECT s.user_id,
+                   s.id AS shorlog_id,
+                   (s.view_count + COUNT(sl.user_id) * 2) AS score,
+                   ROW_NUMBER() OVER (
+                        PARTITION BY s.user_id
+                        ORDER BY (s.view_count + COUNT(sl.user_id) * 2) DESC, s.id DESC
+                   ) AS rn
+            FROM shorlog s
+            LEFT JOIN shorlog_like sl ON sl.shorlog_id = s.id
+            WHERE s.user_id IN (:userIds)
+            GROUP BY s.user_id, s.id, s.view_count
+        ) t
+        WHERE t.rn = 1
+        """, nativeQuery = true)
+    List<Object[]> findTopShorlogIdByUserIdsOrderByPopularity(@Param("userIds") List<Long> userIds);
 }

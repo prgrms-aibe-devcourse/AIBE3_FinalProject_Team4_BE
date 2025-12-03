@@ -10,6 +10,6 @@ public record UpdateProfileRequestDto(
 
         String bio,
 
-        String profileImgUrl
+        Boolean deleteExistingImage
 ) {
 }

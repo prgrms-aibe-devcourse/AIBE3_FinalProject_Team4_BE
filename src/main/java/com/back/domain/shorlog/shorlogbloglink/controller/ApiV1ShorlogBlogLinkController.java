@@ -43,6 +43,13 @@ public class ApiV1ShorlogBlogLinkController {
         return RsData.successOf(null);
     }
 
+    @GetMapping("/{id}/linked-blogs")
+    @Operation(summary = "숏로그에 연결된 블로그 ID 목록 조회 (공개)")
+    public RsData<List<Long>> getLinkedBlogs(@PathVariable Long id) {
+        List<Long> linkedBlogIds = shorlogBlogLinkService.getLinkedBlogIdsPublic(id);
+        return RsData.successOf(linkedBlogIds);
+    }
+
     @GetMapping("/my/recent-shorlogs")
     @Operation(summary = "연결할 내 최근 숏로그 목록 조회")
     public RsData<List<MyShorlogSummaryResponse>> getMyRecentShorlogs(

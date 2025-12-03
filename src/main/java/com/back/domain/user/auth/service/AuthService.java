@@ -53,7 +53,6 @@ public class AuthService {
             user = new User(username, profileImgUrl);
             return userRepository.save(user);
         }
-        user.updateProfileImgUrl(profileImgUrl);
         return user;
     }
 
