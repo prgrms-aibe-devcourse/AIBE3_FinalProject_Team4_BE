@@ -88,4 +88,23 @@ public class ApiV1NotificationController {
         notificationService.markAllAsRead(user.getId());
         return RsData.successOf(null);
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "특정 알림 삭제")
+    public RsData<Void> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        notificationService.deleteNotification(id, user.getId());
+        return RsData.successOf(null);
+    }
+
+    @DeleteMapping
+    @Operation(summary = "전체 알림 삭제")
+    public RsData<Void> deleteAll(
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        notificationService.deleteAllNotifications(user.getId());
+        return RsData.successOf(null);
+    }
 }
