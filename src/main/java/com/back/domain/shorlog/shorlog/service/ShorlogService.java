@@ -251,14 +251,19 @@ public class ShorlogService {
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
+        // shorlog ID 목록 추출
         List<Long> shorlogIds = shorlogs.stream()
                 .map(Shorlog::getId)
                 .toList();
+
+        // 일괄 조회 (N+1 해결)
+        var hashtagsMap = buildHashtagsMap(shorlogIds);
+        var likeCountMap = buildLikeCountMap(shorlogIds);
         var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
 
         return shorlogs.map(shorlog -> {
-            List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
-            long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
+            List<String> hashtags = hashtagsMap.getOrDefault(shorlog.getId(), List.of());
+            long likeCount = likeCountMap.getOrDefault(shorlog.getId(), 0L);
             int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
             return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
@@ -457,5 +462,46 @@ public class ShorlogService {
                 : content.size();
 
         return new PageImpl<>(content, pageable, totalHits);
+    }
+
+    /**
+     * N+1 해결: 여러 숏로그의 해시태그를 한 번의 쿼리로 조회하여 Map으로 변환
+     */
+    private java.util.Map<Long, List<String>> buildHashtagsMap(List<Long> shorlogIds) {
+        if (shorlogIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        List<Object[]> results = shorlogHashtagRepository.findHashtagsByShorlogIds(shorlogIds);
+        java.util.Map<Long, List<String>> hashtagsMap = new java.util.HashMap<>();
+
+        for (Object[] row : results) {
+            Long shorlogId = (Long) row[0];
+            String hashtagName = (String) row[1];
+
+            hashtagsMap.computeIfAbsent(shorlogId, k -> new java.util.ArrayList<>()).add(hashtagName);
+        }
+
+        return hashtagsMap;
+    }
+
+    /**
+     * N+1 해결: 여러 숏로그의 좋아요 수를 한 번의 쿼리로 조회하여 Map으로 변환
+     */
+    private java.util.Map<Long, Long> buildLikeCountMap(List<Long> shorlogIds) {
+        if (shorlogIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        List<Object[]> results = shorlogLikeRepository.countByShorlogIds(shorlogIds);
+        java.util.Map<Long, Long> likeCountMap = new java.util.HashMap<>();
+
+        for (Object[] row : results) {
+            Long shorlogId = (Long) row[0];
+            Long count = (Long) row[1];
+            likeCountMap.put(shorlogId, count);
+        }
+
+        return likeCountMap;
     }
 }

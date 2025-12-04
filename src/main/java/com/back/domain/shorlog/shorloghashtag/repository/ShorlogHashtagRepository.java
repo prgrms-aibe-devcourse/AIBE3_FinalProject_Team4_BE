@@ -30,4 +30,13 @@ public interface ShorlogHashtagRepository extends JpaRepository<ShorlogHashtag, 
         GROUP BY sh.hashtag.name
         """)
     List<Object[]> countHashtagUsageSince(LocalDateTime from);
+
+    // N+1 해결: 여러 숏로그의 해시태그를 한 번에 조회
+    @Query("""
+        SELECT sh.shorlog.id, h.name
+        FROM ShorlogHashtag sh
+        JOIN sh.hashtag h
+        WHERE sh.shorlog.id IN :shorlogIds
+        """)
+    List<Object[]> findHashtagsByShorlogIds(@Param("shorlogIds") List<Long> shorlogIds);
 }
