@@ -67,4 +67,6 @@ public interface BlogBookmarkRepository extends JpaRepository<BlogBookmark, Long
     long countBlogBookmarkBy(Long blogId);
 
     int countAllByUserId(Long userId);
+
+    long countByBlogId(Long blogId);
 }

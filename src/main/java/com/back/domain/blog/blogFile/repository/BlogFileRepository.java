@@ -3,6 +3,8 @@ package com.back.domain.blog.blogFile.repository;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blogFile.entity.BlogFile;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,4 +19,11 @@ public interface BlogFileRepository extends JpaRepository<BlogFile, Long> {
     List<BlogFile> findAllByBlog_IdAndSortOrderGreaterThanOrderBySortOrderAsc(Long blogId, int deletedOrder);
 
     List<BlogFile> findAllByBlog_IdOrderBySortOrderAsc(Long blogId);
+
+    @Query("""
+    select bf.image.s3Url from BlogFile bf
+    where bf.blog.id = :blogId
+    order by bf.sortOrder asc
+    """)
+    List<String> findThumbnailListByBlogId(@Param("blogId") Long blogId);
 }

@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Table(uniqueConstraints = {
         @UniqueConstraint(
-                name = "uk_shorlog",
-                columnNames = {"shorlog_id"} // 하나의 숏로그는 하나의 블로그에만 연결되도록 제한
+                name = "uk_shorlog_blog",
+                columnNames = {"shorlog_id", "blog_id"} // 같은 숏로그-블로그 조합의 중복 방지
         )
 })
 @Getter

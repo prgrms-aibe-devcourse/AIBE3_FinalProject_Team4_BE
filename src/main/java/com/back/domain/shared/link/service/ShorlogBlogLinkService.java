@@ -8,9 +8,9 @@ import com.back.domain.blog.link.dto.MyBlogSummaryResponse;
 import com.back.domain.shared.link.entity.ShorlogBlogLink;
 import com.back.domain.shared.link.exception.LinkErrorCase;
 import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
-import com.back.domain.shorlog.shorlogbloglink.dto.MyShorlogSummaryResponse;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.shorlog.shorlogbloglink.dto.MyShorlogSummaryResponse;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -46,19 +45,12 @@ public class ShorlogBlogLinkService {
             throw new ServiceException(LinkErrorCase.FORBIDDEN);
         }
 
-        // 기존 연결이 있으면 삭제
+        // 동일한 숏로그-블로그 조합의 중복 연결 방지
         shorlogBlogLinkRepository.findByShorlogIdAndBlogId(shorlogId, blogId)
                 .ifPresent(existingLink -> {
                     throw new ServiceException(LinkErrorCase.ALREADY_LINKED);
                 });
 
-        // 기존 다른 블로그와의 연결이 있으면 자동 해제
-        Optional<Long> existingBlogId = shorlogBlogLinkRepository.findBlogIdByShorlogId(shorlogId);
-        existingBlogId.ifPresent(existingId -> {
-            ShorlogBlogLink existingLink = shorlogBlogLinkRepository.findByShorlogIdAndBlogId(shorlogId, existingId)
-                    .orElseThrow(() -> new ServiceException(LinkErrorCase.LINK_NOT_FOUND));
-            shorlogBlogLinkRepository.delete(existingLink);
-        });
 
         ShorlogBlogLink link = ShorlogBlogLink.create(shorlog, blog);
         shorlogBlogLinkRepository.save(link);
@@ -117,7 +109,7 @@ public class ShorlogBlogLinkService {
         boolean linked = count > 0;
         return new BlogShorlogLinkResponse(blogId, shorlogId, linked, count);
     }
-    
+
     public List<MyBlogSummaryResponse> getRecentBlogByAuthor(Long userId, int size) {
         List<Blog> blogs = blogRepository.findRecentBlogsByUserId(userId, PageRequest.of(0, size));
         return blogs.stream()
@@ -137,9 +129,6 @@ public class ShorlogBlogLinkService {
     public List<LinkedShorlogSummaryResponse> getLinkedShorlogs(Long blogId, Long userId) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(LinkErrorCase.BLOG_NOT_FOUND));
-        if (!blog.getUser().getId().equals(userId)) {
-            throw new ServiceException(LinkErrorCase.FORBIDDEN);
-        }
         List<ShorlogBlogLink> links = shorlogBlogLinkRepository.findByBlogId(blogId);
         List<Long> shorlogIds = links.stream()
                 .map(ShorlogBlogLink::getShorlog)
@@ -151,6 +140,14 @@ public class ShorlogBlogLinkService {
         return shorlogs.stream()
                 .map(LinkedShorlogSummaryResponse::new)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> getLinkedBlogIdsPublic(Long shorlogId) {
+        // 숏로그 존재 여부만 확인, 권한 검증 없음 (공개 API)
+        shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new ServiceException(LinkErrorCase.SHORLOG_NOT_FOUND));
+        return shorlogBlogLinkRepository.findBlogIdsByShorlogId(shorlogId);
     }
 }
 

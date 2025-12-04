@@ -9,6 +9,9 @@ import com.back.domain.shorlog.shorlogtts.exception.TtsErrorCase;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.texttospeech.v1.*;
 import com.google.protobuf.ByteString;
 import lombok.RequiredArgsConstructor;
@@ -79,32 +82,53 @@ public class ShorlogTtsService {
         }
     }
 
-     // Google Cloud Text-to-Speech API 호출
+    // Google Cloud Text-to-Speech API 호출
     private byte[] synthesizeSpeech(String text) throws IOException {
-        try (TextToSpeechClient textToSpeechClient = TextToSpeechClient.create()) {
-            SynthesisInput input = SynthesisInput.newBuilder()
-                    .setText(text)
-                    .build();
+        String credentialsPath = System.getProperty("GOOGLE_APPLICATION_CREDENTIALS");
 
-            // 음성 설정
-            VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
-                    .setLanguageCode("ko-KR")
-                    .setName("ko-KR-Standard-A")  // Standard 음성 (무료)
-                    .setSsmlGender(SsmlVoiceGender.FEMALE)
-                    .build();
+        if (credentialsPath == null || credentialsPath.isEmpty()) {
+            throw new IOException("Google Cloud 인증 정보가 설정되지 않았습니다.");
+        }
 
-            AudioConfig audioConfig = AudioConfig.newBuilder()
-                    .setAudioEncoding(AudioEncoding.MP3)
-                    .setSpeakingRate(1.0)  // 속도 (1.0 = 기본)
-                    .setPitch(0.0)  // 음높이 (0.0 = 기본)
-                    .build();
+        try {
+            // 명시적으로 인증 정보를 사용하여 클라이언트 생성
+            GoogleCredentials credentials = ServiceAccountCredentials.fromStream(
+                new java.io.FileInputStream(credentialsPath)
+            ).createScoped("https://www.googleapis.com/auth/cloud-platform");
 
-            SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(
-                    input, voice, audioConfig
-            );
+            TextToSpeechSettings settings = TextToSpeechSettings.newBuilder()
+                .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                .build();
 
-            ByteString audioContents = response.getAudioContent();
-            return audioContents.toByteArray();
+            try (TextToSpeechClient textToSpeechClient = TextToSpeechClient.create(settings)) {
+
+                SynthesisInput input = SynthesisInput.newBuilder()
+                        .setText(text)
+                        .build();
+
+                // 음성 설정
+                VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
+                        .setLanguageCode("ko-KR")
+                        .setName("ko-KR-Standard-A")  // Standard 음성 (무료)
+                        .setSsmlGender(SsmlVoiceGender.FEMALE)
+                        .build();
+
+                AudioConfig audioConfig = AudioConfig.newBuilder()
+                        .setAudioEncoding(AudioEncoding.MP3)
+                        .setSpeakingRate(1.0)  // 속도 (1.0 = 기본)
+                        .setPitch(0.0)  // 음높이 (0.0 = 기본)
+                        .build();
+
+                SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(
+                        input, voice, audioConfig
+                );
+
+                ByteString audioContents = response.getAudioContent();
+                return audioContents.toByteArray();
+            }
+        } catch (Exception e) {
+            log.error("Google Cloud TTS API 호출 실패: {}", e.getMessage());
+            throw new IOException("TTS 음성 합성 실패: " + e.getMessage(), e);
         }
     }
 

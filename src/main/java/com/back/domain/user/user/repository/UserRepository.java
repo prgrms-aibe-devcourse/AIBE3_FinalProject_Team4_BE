@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             String nicknameKeyword, String bioKeyword);
 
     List<User> findAllByIdIn(Collection<Long> ids);
+
+    List<User> findTop5ByOrderByCreatedAtDesc();
 }

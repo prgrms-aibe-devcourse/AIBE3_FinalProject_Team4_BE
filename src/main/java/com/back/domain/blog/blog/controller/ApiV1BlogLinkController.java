@@ -59,10 +59,11 @@ public class ApiV1BlogLinkController {
     @Operation(summary = "블로그에 연결된 숏로그 목록 조회")
     public RsData<List<LinkedShorlogSummaryResponse>> getLinkedShorlogs(
             @PathVariable Long blogId,
-            @AuthenticationPrincipal SecurityUser securityUser
+            @AuthenticationPrincipal SecurityUser user
     ) {
+        Long userId = (user != null) ? user.getId() : null;
         List<LinkedShorlogSummaryResponse> list =
-                shorlogBlogLinkService.getLinkedShorlogs(blogId, securityUser.getId());
+                shorlogBlogLinkService.getLinkedShorlogs(blogId, userId);
 
         return RsData.of("200-1", "연결된 숏로그 목록입니다.", list);
     }

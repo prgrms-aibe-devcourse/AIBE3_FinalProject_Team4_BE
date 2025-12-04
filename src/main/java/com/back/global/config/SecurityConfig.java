@@ -44,10 +44,13 @@ public class SecurityConfig {
 
     // 공개된 API URL 패턴 [GET 요청에 한함]
     private static final String[] PUBLIC_GET_API = {
+            "/api/v1/main/summary",
+
             "/api/v1/users",
             "/api/v1/users/{id:\\d+}",          // * 이나 {id}로 하면 me/my 까지 포함되어 버림
             "/api/v1/users/check-nickname",
             "/api/v1/users/creators",
+            "/api/v1/users/creators/v2",
             "/api/v1/users/{id:\\d+}/blogs",
             "api/v1/users/search",
 
@@ -60,11 +63,14 @@ public class SecurityConfig {
             "/api/v1/shorlog/feed/recommended",
             "/api/v1/shorlog/search",
             "/api/v1/shorlog/{id:\\d+}/view",
-            "/api/v1/shorlog/user/{userId:\\d+}", 
+            "/api/v1/shorlog/user/{userId:\\d+}",
+            "api/v1/shorlog/{id:\\d+}/linked-blogs",
 
             "/api/v1/blogs",
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
+            "api/v1/blogs/{id:\\d+}/linked-shorlogs",
+            "/api/v1/blogs/{id:\\d+}/view",
 
             "/api/v1/comments/{targetType}/{targetId}",
 

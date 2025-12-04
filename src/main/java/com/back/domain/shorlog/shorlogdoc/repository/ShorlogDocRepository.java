@@ -7,6 +7,8 @@ import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ShorlogDocRepository extends ElasticsearchRepository<ShorlogDoc, String> {
 
@@ -38,5 +40,15 @@ public interface ShorlogDocRepository extends ElasticsearchRepository<ShorlogDoc
         }
     """)
     Page<ShorlogDoc> searchByKeywordOrHashtag(String keyword, Pageable pageable);
+
+    // userId로 해당 사용자의 모든 숏로그 문서 조회
+    @Query("""
+        {
+            "term": {
+                "userId": "?0"
+            }
+        }
+    """)
+    List<ShorlogDoc> findByUserId(Long userId);
 }
 

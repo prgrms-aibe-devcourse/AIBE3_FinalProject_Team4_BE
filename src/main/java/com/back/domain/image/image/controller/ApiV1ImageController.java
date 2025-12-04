@@ -49,4 +49,19 @@ public class ApiV1ImageController {
 
         return RsData.successOf(imageService.getGoogleImages(keyword, number, size));
     }
+
+    @GetMapping("/pixabay")
+    @Operation(summary = "무료 이미지(Pixabay) 목록 조회")
+    public RsData<ImageSearchPagedResponse> searchPixabayImages(@RequestParam(required = false) String keyword,
+                                                               @RequestParam(defaultValue = "0") Integer number,
+                                                               @RequestParam(defaultValue = "10") Integer size) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("검색 키워드는 필수 항목이며 공백만으로는 검색할 수 없습니다.");
+        }
+
+        number = Math.max(0, number);
+        if (size < 3 || size > 200) size = 10;
+
+        return RsData.successOf(imageService.getPixabayImages(keyword, number, size));
+    }
 }

@@ -70,6 +70,10 @@ public class CommentsService {
         Comments parent = null;
         if (req.parentId() != null && req.parentId() != 0) {
             parent = getParentComment(req.parentId());
+
+            if (parent.getParent() != null) {
+                throw new ServiceException(CommentsErrorCase.REPLY_DEPTH_EXCEEDED);
+            }
         }
 
         Comments comment = Comments.builder()

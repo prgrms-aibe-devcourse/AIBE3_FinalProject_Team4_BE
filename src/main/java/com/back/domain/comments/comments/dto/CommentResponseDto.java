@@ -13,12 +13,14 @@ public record CommentResponseDto(
         String userProfileImgUrl,
         int likeCount,
         boolean isLiked,
+        boolean isMine,   // ← 추가
         LocalDateTime createdAt,
         LocalDateTime modifiedAt,
         List<CommentResponseDto> children
 ) {
     public static CommentResponseDto fromEntity(Comments comment, Long currentUserId) {
         boolean isLiked = currentUserId != null && comment.getLikedUserIds().contains(currentUserId);
+        boolean isMine  = currentUserId != null && comment.getUser().getId().equals(currentUserId); // 추가
 
         return new CommentResponseDto(
                 comment.getId(),
@@ -28,6 +30,7 @@ public record CommentResponseDto(
                 comment.getUser().getProfileImgUrl(),
                 comment.getLikeCount(),
                 isLiked,
+                isMine,   // 추가됨
                 comment.getCreatedAt(),
                 comment.getModifiedAt(),
                 comment.getChildren().stream()
@@ -35,12 +38,7 @@ public record CommentResponseDto(
                         .toList()
         );
     }
-
     public static CommentResponseDto fromEntity(Comments comment) {
         return fromEntity(comment, null);
     }
 }
-
-
-
-

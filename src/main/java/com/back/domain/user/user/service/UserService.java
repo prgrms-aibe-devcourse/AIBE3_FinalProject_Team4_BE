@@ -5,19 +5,25 @@ import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
+import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.follow.repository.FollowRepository;
 import com.back.domain.user.follow.service.FollowService;
 import com.back.domain.user.user.dto.*;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.exception.UserErrorCase;
+import com.back.domain.user.user.file.ProfileImageService;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +37,9 @@ public class UserService {
     private final BlogBookmarkRepository blogBookmarkRepository;
     private final FollowRepository followRepository;
     private final FollowService followService;
+    private final ProfileImageService profileImageService;
+    private final ShorlogImagesRepository shorlogImagesRepository;
+    private final ShorlogDocService shorlogDocService;
 
     @Transactional(readOnly = true)
 
@@ -79,15 +88,28 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateProfile(Long userId, UpdateProfileRequestDto dto) {
-        if (!isAvailableNickname(dto.nickname())) {
-            throw new ServiceException(UserErrorCase.NICKNAME_ALREADY_EXISTS);
-        }
-
+    public UserDto updateProfile(Long userId, UpdateProfileRequestDto dto, MultipartFile profileImage) {
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        user.updateProfile(dto.nickname(), dto.bio(), dto.profileImgUrl());
+        if(!dto.nickname().equals(user.getNickname())) {
+            if (!isAvailableNickname(dto.nickname())) {
+                throw new ServiceException(UserErrorCase.NICKNAME_ALREADY_EXISTS);
+            }
+        }
+
+        String currentImgUrl = user.getProfileImgUrl();
+        String updatedImageUrl = null;
+        try {
+            updatedImageUrl = profileImageService.updateFile(currentImgUrl, profileImage, dto.deleteExistingImage());
+        } catch (IOException e) {
+            throw new RuntimeException("파일 처리 중 오류가 발생했습니다.", e);
+        }
+
+        user.updateProfile(dto.nickname(), dto.bio(), updatedImageUrl);
+
+        shorlogDocService.updateUserProfileInShorlogs(userId, dto.nickname(), updatedImageUrl);
+
         return new UserDto(user);
     }
 
@@ -108,9 +130,6 @@ public class UserService {
 
     public List<CreatorListResponseDto> getCreators(Long userId) {
         List<User> allUsers = userRepository.findAll();
-        List<Long> allUserIds = allUsers.stream()
-                .map(User::getId)
-                .toList();
 
         Set<Long> followingIds;
         if (userId == null) {
@@ -119,7 +138,6 @@ public class UserService {
             followingIds = new HashSet<>(followRepository.findFollowingIdsByUserId(userId));
         }
 
-        System.out.println("followingIds = " + followingIds);
         // 4. 팔로워 많은 순으로 정렬
         return allUsers.stream()
                 .map(user -> {
@@ -134,67 +152,70 @@ public class UserService {
                 .toList();
     }
 
-//    public List<FullCreatorListResponseDto> getCreatorsFull(Long viewerIdOrNull) {
-//
-//        List<User> allUsers = userRepository.findAll();
-//        List<Long> allUserIds = allUsers.stream().map(User::getId).toList();
-//
-//        // ✔ 로그인 여부 분기
-//        Set<Long> followingIds;
-//        if (viewerIdOrNull == null) {
-//            followingIds = Collections.emptySet(); // 모두 false
-//        } else {
-//            followingIds = new HashSet<>(
-//                    followRepository.findFollowingIdsByUserId(viewerIdOrNull)
-//            );
-//        }
-//
-//        // followersCount bulk
-//        List<Object[]> followerCounts =
-//                followRepository.findFollowerCountsByUserIds(allUserIds);
-//
-//        Map<Long, Long> followersCountMap = followerCounts.stream()
-//                .collect(Collectors.toMap(
-//                        row -> (Long) row[0],
-//                        row -> (Long) row[1]
-//                ));
-//
-//        // 대표 썸네일 조회
-//        Map<Long, String> userThumbnailMap = new HashMap<>();
-//        for (Long targetUserId : allUserIds) {
-//            Page<Shorlog> page = shorlogRepository.findByUserIdOrderByPopularity(
-//                    targetUserId,
-//                    PageRequest.of(0, 1)
-//            );
-//            if (!page.isEmpty() && !page.getContent().get(0).getImages().isEmpty()) {
-//                userThumbnailMap.put(
-//                        targetUserId,
-//                        page.getContent().get(0).getImages().get(0).getImage().getS3Url()
-//                );
-//            } else {
-//                userThumbnailMap.put(targetUserId, null);
-//            }
-//        }
-//
-//        // followersCount 순 정렬
-//        List<User> sortedUsers = allUsers.stream()
-//                .sorted((u1, u2) -> Long.compare(
-//                        followersCountMap.getOrDefault(u2.getId(), 0L),
-//                        followersCountMap.getOrDefault(u1.getId(), 0L)
-//                ))
-//                .toList();
-//
-//        // DTO 생성
-//        return sortedUsers.stream()
-//                .map(user -> new CreatorListResponseDto(
-//                        user.getId(),
-//                        user.getNickname(),
-//                        user.getProfileImgUrl(),
-//                        followersCountMap.getOrDefault(user.getId(), 0L),
-//                        followingIds.contains(user.getId()),     // ✔ 로그인 여부에 따라 자동 처리
-//                        userThumbnailMap.get(user.getId())
-//                ))
-//                .toList();
-//    }
+    public List<FullCreatorListResponseDto> getCreatorsFull(Long viewerIdOrNull) {
+
+        List<User> allUsers = userRepository.findAll();
+        List<Long> allUserIds = allUsers.stream().map(User::getId).toList();
+
+        // 로그인 여부 분기
+        Set<Long> followingIds = (viewerIdOrNull == null)
+                ? Collections.emptySet()
+                : new HashSet<>(followRepository.findFollowingIdsByUserId(viewerIdOrNull));
+
+        // followersCount bulk
+        List<Object[]> followerCounts = followRepository.findFollowerCountsByUserIds(allUserIds);
+        Map<Long, Long> followersCountMap = followerCounts.stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> ((Number) row[1]).longValue()
+                ));
+
+        // ✅ 대표 썸네일 bulk (N+1 제거)
+        Map<Long, String> userThumbnailMap = new HashMap<>();
+        allUserIds.forEach(id -> userThumbnailMap.put(id, null)); // 기본 null 깔기
+
+        List<Object[]> topRows = shorlogRepository.findTopShorlogIdByUserIdsOrderByPopularity(allUserIds);
+        Map<Long, Long> userTopShorlogIdMap = topRows.stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> ((Number) row[1]).longValue()
+                ));
+
+        List<Long> topShorlogIds = new ArrayList<>(new HashSet<>(userTopShorlogIdMap.values()));
+        if (!topShorlogIds.isEmpty()) {
+            List<Object[]> thumbRows = shorlogImagesRepository.findFirstImageUrlByShorlogIds(topShorlogIds);
+            Map<Long, String> shorlogIdToUrl = thumbRows.stream()
+                    .collect(Collectors.toMap(
+                            row -> ((Number) row[0]).longValue(),
+                            row -> (String) row[1],
+                            (a, b) -> a
+                    ));
+
+            userTopShorlogIdMap.forEach((userId, shorlogId) -> {
+                userThumbnailMap.put(userId, shorlogIdToUrl.get(shorlogId)); // 없으면 null 유지
+            });
+        }
+
+        // followersCount 순 정렬
+        List<User> sortedUsers = allUsers.stream()
+                .sorted((u1, u2) -> Long.compare(
+                        followersCountMap.getOrDefault(u2.getId(), 0L),
+                        followersCountMap.getOrDefault(u1.getId(), 0L)
+                ))
+                .toList();
+
+        // DTO 생성
+        return sortedUsers.stream()
+                .map(user -> new FullCreatorListResponseDto(
+                        user.getId(),
+                        user.getNickname(),
+                        user.getProfileImgUrl(),
+                        followersCountMap.getOrDefault(user.getId(), 0L),
+                        followingIds.contains(user.getId()),
+                        userThumbnailMap.get(user.getId())
+                ))
+                .toList();
+    }
+
 
 }

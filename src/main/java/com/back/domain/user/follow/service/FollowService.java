@@ -1,5 +1,6 @@
 package com.back.domain.user.follow.service;
 
+import com.back.domain.user.follow.dto.UserProfileWithFollowStatusResponseDto;
 import com.back.domain.notification.entity.NotificationType;
 import com.back.domain.notification.service.NotificationService;
 import com.back.domain.user.follow.dto.FollowCountResponseDto;
@@ -16,7 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -131,5 +135,31 @@ public class FollowService {
 
     public List<Long> findFollowingUserIds(Long id) {
         return followRepository.findFollowingIdsByUserId(id);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileWithFollowStatusResponseDto getUserProfileWithFollowStatus(
+            Long viewerId,      // 현재 로그인한 사용자
+            Long targetUserId   // 프로필 주인
+    ) {
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
+
+        long followersCount = followRepository.countByToUserId(targetUserId);
+        long followingsCount = followRepository.countByFromUserId(targetUserId);
+
+        // 내가 이 사람을 팔로우 중인가
+        boolean isFollowing = followRepository.existsByFromUserIdAndToUserId(viewerId, targetUserId);
+
+        // 이 사람이 나를 팔로우 중인가
+        boolean isFollower = followRepository.existsByFromUserIdAndToUserId(targetUserId, viewerId);
+
+        return UserProfileWithFollowStatusResponseDto.of(
+                target,
+                followersCount,
+                followingsCount,
+                isFollowing,
+                isFollower
+        );
     }
 }
