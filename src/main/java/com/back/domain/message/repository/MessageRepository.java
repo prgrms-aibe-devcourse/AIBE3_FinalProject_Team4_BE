@@ -12,4 +12,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     Optional<Message> findTop1ByMessageThreadIdOrderByIdDesc(Long id);
 
     List<Message> findByMessageThreadIdOrderByIdAsc(Long threadId);
+
+    long countByMessageThreadIdAndIdGreaterThan(Long id, long lastReadId);
 }

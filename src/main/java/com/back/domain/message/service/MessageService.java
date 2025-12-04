@@ -2,9 +2,12 @@ package com.back.domain.message.service;
 
 import com.back.domain.message.dto.MessageRequestDto;
 import com.back.domain.message.dto.MessageResponseDto;
+import com.back.domain.message.dto.ReadMessageThreadResponseDto;
 import com.back.domain.message.entity.Message;
+import com.back.domain.message.entity.MessageParticipant;
 import com.back.domain.message.entity.MessageThread;
 import com.back.domain.message.exception.MessageErrorCase;
+import com.back.domain.message.repository.MessageParticipantRepository;
 import com.back.domain.message.repository.MessageRepository;
 import com.back.domain.message.repository.MessageThreadRepository;
 import com.back.domain.user.user.entity.User;
@@ -21,6 +24,7 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final MessageThreadRepository messageThreadRepository;
     private final UserRepository userRepository;
+    private final MessageParticipantRepository messageParticipantRepository;
 
     @Transactional
     public MessageResponseDto save(Long meId, MessageRequestDto req) {
@@ -34,6 +38,8 @@ public class MessageService {
         if(!meId.equals(messageThread.getUserId1()) && !meId.equals(messageThread.getUserId2())) {
             throw new ServiceException(MessageErrorCase.PERMISSION_DENIED);
         }
+
+
 
         User user = userRepository.findById(meId)
                 .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));

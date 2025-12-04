@@ -89,6 +89,7 @@ public class SecurityConfig {
             "/api/v1/auth/send-code",
             "/api/v1/auth/verify-code",
             "/api/v1/auth/get-email",
+            "/message-threads/**",  // todo 추후 메시지에 인증 적용 시 제거
             "/tmp-for-complete-join-of-oauth2-user"    // todo 추후 프론트 페이지 개발 후 제거
     };
 

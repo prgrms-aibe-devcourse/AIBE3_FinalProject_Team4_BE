@@ -1,12 +1,11 @@
 package com.back.domain.message.service;
 
-import com.back.domain.message.dto.CreateMessageThreadResponseDto;
-import com.back.domain.message.dto.MessageDto;
-import com.back.domain.message.dto.MessageThreadListResponseDto;
-import com.back.domain.message.dto.MessageThreadResponseDto;
+import com.back.domain.message.dto.*;
 import com.back.domain.message.entity.Message;
+import com.back.domain.message.entity.MessageParticipant;
 import com.back.domain.message.entity.MessageThread;
 import com.back.domain.message.exception.MessageErrorCase;
+import com.back.domain.message.repository.MessageParticipantRepository;
 import com.back.domain.message.repository.MessageRepository;
 import com.back.domain.message.repository.MessageThreadRepository;
 import com.back.domain.user.user.entity.User;
@@ -29,12 +28,14 @@ public class MessageThreadService {
     private final UserRepository userRepository;
     private final MessageThreadRepository messageThreadRepository;
     private final MessageRepository messageRepository;
+    private final MessageParticipantRepository messageParticipantRepository;
 
     @Transactional(readOnly = true)
     public List<MessageThreadListResponseDto> getAllThreads(Long myUserId) {
-        List<MessageThread> messageThreads = messageThreadRepository.findByUserId1OrUserId2(myUserId, myUserId);
+        List<MessageThread> threads = messageThreadRepository.findByUserId1OrUserId2(myUserId, myUserId);
 
-        List<Long> otherUserIds = messageThreads.stream()
+        // 상대 유저들 미리 조회
+        List<Long> otherUserIds = threads.stream()
                 .map(t -> myUserId.equals(t.getUserId1()) ? t.getUserId2() : t.getUserId1())
                 .distinct()
                 .toList();
@@ -42,41 +43,42 @@ public class MessageThreadService {
         Map<Long, User> userMap = userRepository.findAllById(otherUserIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
-        return messageThreads.stream()
+        return threads.stream()
                 .map(thread -> {
-                    Long otherUserId = myUserId.equals(thread.getUserId1())
-                            ? thread.getUserId2()
-                            : thread.getUserId1();
+                    Long otherId = myUserId.equals(thread.getUserId1()) ? thread.getUserId2() : thread.getUserId1();
+                    User otherUser = userMap.get(otherId);
+                    if (otherUser == null) return null;
 
-                    User otherUser = userMap.get(otherUserId);
-                    if (otherUser == null) {
-                        // MVP: 데이터 이상 케이스는 스킵하거나 기본 User로 처리(택1)
-                        return null;
-                    }
+                    Optional<Message> lastMessageOpt = messageRepository.findTop1ByMessageThreadIdOrderByIdDesc(thread.getId());
+                    String lastContent = lastMessageOpt.map(Message::getContent).orElse(null);
+                    LocalDateTime lastAt = lastMessageOpt.map(Message::getCreatedAt).orElse(null);
 
-                    Optional<Message> lastMessage =
-                            messageRepository.findTop1ByMessageThreadIdOrderByIdDesc(thread.getId());
+                    // ✅ 내 participant의 lastReadMessageId
+                    long lastReadId = messageParticipantRepository
+                            .findByMessageThreadIdAndUserId(thread.getId(), myUserId)
+                            .map(mp -> Optional.ofNullable(mp.getLastReadMessageId()).orElse(0L))
+                            .orElse(0L);
 
-                    String lastMessageContent = lastMessage.map(Message::getContent).orElse(null);
-                    LocalDateTime lastMessageCreatedAt = lastMessage.map(Message::getCreatedAt).orElse(null);
+                    long unread = (lastReadId <= 0)
+                            ? (lastMessageOpt.isEmpty() ? 0 : messageRepository.countByMessageThreadIdAndIdGreaterThan(thread.getId(), 0L))
+                            : messageRepository.countByMessageThreadIdAndIdGreaterThan(thread.getId(), lastReadId);
 
                     return new MessageThreadListResponseDto(
                             thread,
                             otherUser,
-                            lastMessageContent,
-                            lastMessageCreatedAt
+                            lastContent,
+                            lastAt,
+                            unread
                     );
                 })
                 .filter(Objects::nonNull)
-                .sorted(
-                        Comparator.comparing(
-                                        MessageThreadListResponseDto::lastMessageCreatedAt,
-                                        Comparator.nullsLast(Comparator.naturalOrder())
-                                )
-                                .reversed()
-                )
+                .sorted(Comparator.comparing(
+                        MessageThreadListResponseDto::lastMessageCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ).reversed())
                 .toList();
     }
+
 
     @Transactional(readOnly = true)
     public MessageThreadResponseDto getThread(Long loginId, Long threadId) {
@@ -105,18 +107,63 @@ public class MessageThreadService {
             throw new ServiceException(MessageErrorCase.CANNOT_CREATE_THREAD_WITH_SELF);
         }
 
-       Long lowerId = Math.min(myUserId, otherUserId);
-       Long higherId = Math.max(myUserId, otherUserId);
+        Long lowerId = Math.min(myUserId, otherUserId);
+        Long higherId = Math.max(myUserId, otherUserId);
 
-       MessageThread messageThread = messageThreadRepository.findByUserId1AndUserId2(lowerId, higherId)
-               .orElseGet(() -> {
-                   MessageThread newThread = new MessageThread(lowerId, higherId);
-                   return messageThreadRepository.save(newThread);
-               });
+        // 1) thread 먼저 찾거나 생성
+        MessageThread thread = messageThreadRepository.findByUserId1AndUserId2(lowerId, higherId)
+                .orElseGet(() -> messageThreadRepository.save(new MessageThread(lowerId, higherId)));
 
+        // 2) participant 2명 보장 (이미 있으면 만들지 않음)
+        ensureParticipant(thread.getId(), lowerId);
+        ensureParticipant(thread.getId(), higherId);
+
+        // 응답용 otherUser
         User otherUser = userRepository.findById(otherUserId)
                 .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        return new CreateMessageThreadResponseDto(messageThread, otherUser);
+        return new CreateMessageThreadResponseDto(thread, otherUser);
+    }
+
+    private void ensureParticipant(Long threadId, Long userId) {
+        boolean exists = messageParticipantRepository
+                .findByMessageThreadIdAndUserId(threadId, userId)
+                .isPresent();
+
+        if (exists) return;
+
+        MessageThread threadRef = messageThreadRepository.getReferenceById(threadId);
+        User userRef = userRepository.getReferenceById(userId);
+
+        messageParticipantRepository.save(MessageParticipant.create(threadRef, userRef));
+    }
+
+
+
+
+    @Transactional
+    public ReadMessageThreadResponseDto markAsRead(Long myId, Long threadId, Long lastMessageId) {
+        // 1) thread 존재 확인
+        MessageThread thread = messageThreadRepository.findById(threadId)
+                .orElseThrow(() -> new IllegalArgumentException("Thread not found"));
+
+        // 2) participant 조회(없으면 접근 불가 or 생성 정책 택1)
+        MessageParticipant mp = messageParticipantRepository
+                .findByMessageThreadIdAndUserId(threadId, myId)
+                .orElseThrow(() -> new IllegalArgumentException("Not a participant"));
+
+        // 3) lastMessageId 없으면 최신 메시지 id로
+        if (lastMessageId == null || lastMessageId <= 0) {
+            lastMessageId = messageRepository.findTop1ByMessageThreadIdOrderByIdDesc(threadId)
+                    .map(Message::getId)
+                    .orElse(0L);
+        }
+
+        // 4) 되돌리기 방지
+        Long cur = mp.getLastReadMessageId() == null ? 0L : mp.getLastReadMessageId();
+        mp.setLastReadMessageId(Math.max(cur, lastMessageId));
+        messageParticipantRepository.save(mp);
+
+        return new ReadMessageThreadResponseDto(threadId, mp.getLastReadMessageId());
     }
 }
