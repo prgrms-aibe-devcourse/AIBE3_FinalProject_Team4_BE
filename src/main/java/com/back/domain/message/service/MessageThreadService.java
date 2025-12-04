@@ -19,9 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,22 +42,40 @@ public class MessageThreadService {
         Map<Long, User> userMap = userRepository.findAllById(otherUserIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
-        return messageThreads.stream().map(thread -> {
-            Long otherUserId = myUserId.equals(thread.getUserId1()) ? thread.getUserId2() : thread.getUserId1();
-            User otherUser = userMap.get(otherUserId);
+        return messageThreads.stream()
+                .map(thread -> {
+                    Long otherUserId = myUserId.equals(thread.getUserId1())
+                            ? thread.getUserId2()
+                            : thread.getUserId1();
 
-            Optional<Message> lastMessage = messageRepository.findTop1ByMessageThreadIdOrderByIdDesc(thread.getId());
+                    User otherUser = userMap.get(otherUserId);
+                    if (otherUser == null) {
+                        // MVP: 데이터 이상 케이스는 스킵하거나 기본 User로 처리(택1)
+                        return null;
+                    }
 
-            String lastMessageContent = lastMessage.map(Message::getContent).orElse(null);
-            LocalDateTime lastMessageCreatedAt = lastMessage.map(Message::getCreatedAt).orElse(null);
+                    Optional<Message> lastMessage =
+                            messageRepository.findTop1ByMessageThreadIdOrderByIdDesc(thread.getId());
 
-            return new MessageThreadListResponseDto(
-                    thread,
-                    otherUser,
-                    lastMessageContent,
-                    lastMessageCreatedAt
-            );
-        }).toList();
+                    String lastMessageContent = lastMessage.map(Message::getContent).orElse(null);
+                    LocalDateTime lastMessageCreatedAt = lastMessage.map(Message::getCreatedAt).orElse(null);
+
+                    return new MessageThreadListResponseDto(
+                            thread,
+                            otherUser,
+                            lastMessageContent,
+                            lastMessageCreatedAt
+                    );
+                })
+                .filter(Objects::nonNull)
+                .sorted(
+                        Comparator.comparing(
+                                        MessageThreadListResponseDto::lastMessageCreatedAt,
+                                        Comparator.nullsLast(Comparator.naturalOrder())
+                                )
+                                .reversed()
+                )
+                .toList();
     }
 
     @Transactional(readOnly = true)
