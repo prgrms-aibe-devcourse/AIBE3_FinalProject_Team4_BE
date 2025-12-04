@@ -134,16 +134,3 @@ google:
   base-url: https://www.googleapis.com/customsearch/v1
   api-key: ${GOOGLE_API_KEY}
   cx-id: ${GOOGLE_CX_ID}
-
-pixabay:
-  base-url: https://pixabay.com
-  access-key: ${PIXABAY_ACCESS_KEY}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
