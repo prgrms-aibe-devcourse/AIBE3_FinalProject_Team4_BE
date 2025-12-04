@@ -29,6 +29,10 @@ public class MessageParticipant extends BaseEntity {
 
     private LocalDateTime lastReadAt;
 
+    private String status;  // ACTIVE, LEFT
+
+    Long visibleFromMessageId = 0L;
+
     public static MessageParticipant create(MessageThread thread, User user) {
         MessageParticipant mp = new MessageParticipant();
         mp.messageThread = thread;
