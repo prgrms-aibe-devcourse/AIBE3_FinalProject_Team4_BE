@@ -5,11 +5,13 @@ import com.back.domain.message.entity.MessageThread;
 import com.back.domain.message.repository.MessageThreadRepository;
 import com.back.domain.message.service.MessageService;
 import com.back.domain.message.service.MessageThreadService;
+import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -57,6 +59,13 @@ public class MessageSocketController {
         Long lastMessageId = (req == null) ? null : req.lastMessageId();
         return RsData.of("200", "읽음 처리 성공",
                 messageThreadService.markAsRead(meId, threadId, lastMessageId));
+    }
+
+    @PostMapping("/message-threads/{threadId}/leave")
+    public RsData<Void> leaveThread(@AuthenticationPrincipal SecurityUser user,
+                                    @PathVariable Long threadId) {
+        messageThreadService.leaveThread(user.getId(), threadId);
+        return RsData.of("200", "채팅방 나가기 성공", null);
     }
 
 }

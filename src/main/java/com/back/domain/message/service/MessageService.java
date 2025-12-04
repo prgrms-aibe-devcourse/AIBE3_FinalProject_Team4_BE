@@ -2,9 +2,7 @@ package com.back.domain.message.service;
 
 import com.back.domain.message.dto.MessageRequestDto;
 import com.back.domain.message.dto.MessageResponseDto;
-import com.back.domain.message.dto.ReadMessageThreadResponseDto;
 import com.back.domain.message.entity.Message;
-import com.back.domain.message.entity.MessageParticipant;
 import com.back.domain.message.entity.MessageThread;
 import com.back.domain.message.exception.MessageErrorCase;
 import com.back.domain.message.repository.MessageParticipantRepository;
@@ -39,7 +37,7 @@ public class MessageService {
             throw new ServiceException(MessageErrorCase.PERMISSION_DENIED);
         }
 
-
+        restoreIfLeft(req.messageThreadId(), meId);
 
         User user = userRepository.findById(meId)
                 .orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
@@ -49,4 +47,18 @@ public class MessageService {
 
         return new MessageResponseDto(message);
     }
+
+    private void restoreIfLeft(Long threadId, Long senderId) {
+        MessageThread thread = messageThreadRepository.findById(threadId)
+                .orElseThrow(() -> new IllegalArgumentException("Message thread not found"));
+
+        Long otherId = senderId.equals(thread.getUserId1()) ? thread.getUserId2() : thread.getUserId1();
+
+        messageParticipantRepository.findByMessageThreadIdAndUserId(threadId, senderId)
+                .ifPresent(p -> { if ("LEFT".equals(p.getStatus())) p.setStatus("ACTIVE"); });
+
+        messageParticipantRepository.findByMessageThreadIdAndUserId(threadId, otherId)
+                .ifPresent(p -> { if ("LEFT".equals(p.getStatus())) p.setStatus("ACTIVE"); });
+    }
+
 }

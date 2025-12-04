@@ -11,7 +11,9 @@ import java.util.Optional;
 public interface MessageRepository extends JpaRepository<Message, Long> {
     Optional<Message> findTop1ByMessageThreadIdOrderByIdDesc(Long id);
 
-    List<Message> findByMessageThreadIdOrderByIdAsc(Long threadId);
+    long countByMessageThreadIdAndIdGreaterThan(Long threadId, long id);
 
-    long countByMessageThreadIdAndIdGreaterThan(Long id, long lastReadId);
+    List<Message> findByMessageThreadIdAndIdGreaterThanEqualOrderByIdAsc(Long threadId, long fromId);
+
+    Optional<Message> findTop1ByMessageThreadIdAndIdGreaterThanEqualOrderByIdDesc(Long threadId, long fromId);
 }
