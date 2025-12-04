@@ -3,7 +3,6 @@ package com.back.domain.message.controller;
 import com.back.domain.message.dto.CreateMessageThreadResponseDto;
 import com.back.domain.message.dto.MessageThreadListResponseDto;
 import com.back.domain.message.dto.MessageThreadResponseDto;
-import com.back.domain.message.dto.ReadMessageThreadResponseDto;
 import com.back.domain.message.service.MessageThreadService;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;

@@ -11,16 +11,24 @@ public record MessageThreadListResponseDto(
         String otherUserNickname,
         String otherUserProfileImgUrl,
         String lastMessageContent,
-        LocalDateTime lastMessageCreatedAt
+        LocalDateTime lastMessageCreatedAt,
+        long unreadCount
 ) {
-    public MessageThreadListResponseDto(MessageThread messageThread, User otherUser, String lastMessageContent, LocalDateTime lastMessageCreatedAt) {
+    public MessageThreadListResponseDto(
+            MessageThread messageThread,
+            User otherUser,
+            String lastMessageContent,
+            LocalDateTime lastMessageCreatedAt,
+            long unreadCount
+    ) {
         this(
                 messageThread.getId(),
                 otherUser.getId(),
                 otherUser.getNickname(),
                 otherUser.getProfileImgUrl(),
                 lastMessageContent,
-                lastMessageCreatedAt
+                lastMessageCreatedAt,
+                unreadCount
         );
     }
 }
