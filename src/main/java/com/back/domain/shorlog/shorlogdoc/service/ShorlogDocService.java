@@ -122,6 +122,33 @@ public class ShorlogDocService {
             });
         });
     }
+
+    // 사용자 프로필 정보 업데이트 (닉네임, 프로필 이미지)
+    @Transactional
+    public void updateUserProfileInShorlogs(Long userId, String newNickname, String newProfileImgUrl) {
+        // 해당 사용자의 모든 숏로그 문서 조회
+        List<ShorlogDoc> userShorlogs = shorlogDocRepository.findByUserId(userId);
+
+        // 각 문서의 닉네임과 프로필 이미지 업데이트
+        userShorlogs.forEach(doc -> {
+            ShorlogDoc updatedDoc = ShorlogDoc.builder()
+                    .id(doc.getId())
+                    .userId(doc.getUserId())
+                    .nickname(newNickname)
+                    .profileImgUrl(newProfileImgUrl)
+                    .content(doc.getContent())
+                    .thumbnailUrl(doc.getThumbnailUrl())
+                    .hashtags(doc.getHashtags())
+                    .viewCount(doc.getViewCount())
+                    .likeCount(doc.getLikeCount())
+                    .commentCount(doc.getCommentCount())
+                    .popularityScore(doc.getPopularityScore())
+                    .createdAt(doc.getCreatedAt())
+                    .build();
+
+            shorlogDocRepository.save(updatedDoc);
+        });
+    }
 }
 
 

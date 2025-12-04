@@ -5,6 +5,7 @@ import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogbookmark.repository.ShorlogBookmarkRepository;
+import com.back.domain.shorlog.shorlogdoc.service.ShorlogDocService;
 import com.back.domain.shorlog.shorlogimage.repository.ShorlogImagesRepository;
 import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.follow.repository.FollowRepository;
@@ -38,6 +39,7 @@ public class UserService {
     private final FollowService followService;
     private final ProfileImageService profileImageService;
     private final ShorlogImagesRepository shorlogImagesRepository;
+    private final ShorlogDocService shorlogDocService;
 
     @Transactional(readOnly = true)
 
@@ -105,6 +107,9 @@ public class UserService {
         }
 
         user.updateProfile(dto.nickname(), dto.bio(), updatedImageUrl);
+
+        shorlogDocService.updateUserProfileInShorlogs(userId, dto.nickname(), updatedImageUrl);
+
         return new UserDto(user);
     }
 
