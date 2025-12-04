@@ -2,6 +2,10 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['next5-prometheus:9090']
+
   - job_name: 'spring-boot'
     metrics_path: '/actuator/prometheus'
     static_configs:

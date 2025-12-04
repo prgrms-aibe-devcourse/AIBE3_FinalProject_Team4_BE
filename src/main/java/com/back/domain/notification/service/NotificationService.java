@@ -114,15 +114,32 @@ public class NotificationService {
     // Notification → DTO 변환 (확장된 정보 포함)
     private NotificationResponseDto toDto(Notification n) {
 
-        // 🔍 보낸 사람 정보 조회
+        // 보낸 사람 정보 조회
         User sender = userRepository.findById(n.getSenderId()).orElse(null);
 
         String senderNickname = sender != null ? sender.getNickname() : "알 수 없음";
         String profileImage = sender != null ? sender.getProfileImgUrl() : null;
 
-        // ⏳ 상대적 시간 계산
+        // 상대적 시간 계산
         String relativeTime = TimeUtil.toRelativeTime(n.getCreatedAt());
 
         return NotificationResponseDto.from(n, senderNickname, profileImage, relativeTime);
+    }
+
+    @Transactional
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification n = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ServiceException(NotificationErrorCase.NOTIFICATION_NOT_FOUND));
+
+        if (!n.getReceiverId().equals(userId)) {
+            throw new ServiceException(NotificationErrorCase.NOTIFICATION_FORBIDDEN);
+        }
+
+        notificationRepository.deleteById(notificationId);
+    }
+
+    @Transactional
+    public void deleteAllNotifications(Long userId) {
+        notificationRepository.deleteAllByReceiverId(userId);
     }
 }
