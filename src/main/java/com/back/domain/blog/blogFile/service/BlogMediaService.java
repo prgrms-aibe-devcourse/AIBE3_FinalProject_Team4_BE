@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BlogMediaService {
-
     private static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024;      // 10MB
     private static final long MAX_VIDEO_SIZE = 100L * 1024 * 1024;     // 100MB
     private static final String BLOG_FOLDER = "blogs/";
@@ -67,38 +66,30 @@ public class BlogMediaService {
     @Transactional
     public BlogMediaUploadResponse uploadBlogMedia(Long userId, Long blogId, MultipartFile file, String apiImageUrl, ImageType type, String aspectRatios) {
         // 무료 이미지 API에서 가져온 경우 URL을 파일로 변환하기
-        if (apiImageUrl != null && !apiImageUrl.isBlank() && (file == null || file.isEmpty())) {
-            file = imageUrlToMultipartFile.convert(apiImageUrl, "files");
-        }
+        MultipartFile finalFile = (apiImageUrl != null && !apiImageUrl.isBlank() && (file == null || file.isEmpty()))
+                ? imageUrlToMultipartFile.convert(apiImageUrl, "files")
+                : file;
+        validateFile(finalFile);
 
-        validateFile(file);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
-
-        Blog blog = blogRepository.findById(blogId)
-                .orElseThrow(() -> new IllegalArgumentException("블로그를 찾을 수 없습니다."));
-
-        String originalFilename = Optional.ofNullable(file.getOriginalFilename())
-                .orElse("file");
-
+        // 1. 리사이즈 & 메타 정보 계산 (트랜잭션 X)
+        String originalFilename = Optional.ofNullable(finalFile.getOriginalFilename()).orElse("file");
         String ext = getExtension(originalFilename);
         MediaKind mediaKind = mediaTypeDetector.detectKind(ext);
 
         long maxSize = mediaKind == MediaKind.IMAGE ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
-        if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException(mediaKind == MediaKind.IMAGE
-                    ? "이미지 용량은 10MB를 초과할 수 없습니다."
-                    : "동영상 용량은 100MB를 초과할 수 없습니다.");
+        if (finalFile.getSize() > maxSize) {
+            throw new IllegalArgumentException(
+                    mediaKind == MediaKind.IMAGE
+                            ? "이미지 용량은 10MB를 초과할 수 없습니다."
+                            : "동영상 용량은 100MB를 초과할 수 없습니다."
+            );
         }
 
-        // 리사이징 처리
         byte[] uploadBytes;
         try {
-            if (mediaKind == MediaKind.IMAGE) {
-                uploadBytes = imageResizeUtil.resize(file, aspectRatios);
-            } else {
-                uploadBytes = videoResizeUtil.resizeIfNeeded(file); // 현재는 원본 그대로
-            }
+            uploadBytes = (mediaKind == MediaKind.IMAGE)
+                    ? imageResizeUtil.resize(finalFile, aspectRatios)
+                    : videoResizeUtil.resizeIfNeeded(finalFile);
         } catch (IOException e) {
             throw new RuntimeException("파일 리사이징 중 오류가 발생했습니다.", e);
         }
@@ -111,12 +102,12 @@ public class BlogMediaService {
         } else {
             folder += (mediaKind == MediaKind.VIDEO ? "video/" : "content/");
         }
-
         String s3Key = folder + savedFilename;
 
+        // 2. S3 업로드 (트랜잭션 X)
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(uploadBytes.length);
-        metadata.setContentType(file.getContentType());
+        metadata.setContentType(finalFile.getContentType());
 
         try (ByteArrayInputStream bais = new ByteArrayInputStream(uploadBytes)) {
             PutObjectRequest request = new PutObjectRequest(bucket, s3Key, bais, metadata);
@@ -127,28 +118,50 @@ public class BlogMediaService {
 
         String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-        Image image = Image.create(
-                user,
-                type,
-                originalFilename,
-                savedFilename,
-                s3Url,
-                uploadBytes.length,
-                file.getContentType()
-        );
+        // 3. DB 저장 (짧은 트랜잭션)
+        try {
+            return saveImageMetadata(userId, blogId, type, mediaKind, originalFilename, savedFilename, s3Url, uploadBytes.length, finalFile.getContentType()
+            );
+        } catch (RuntimeException e) {
+            // DB 쪽에서 실패하면 S3 정리 (베스트 에포트)
+            safeDeleteFromS3(s3Key);
+            throw e;
+        }
+    }
+
+    @Transactional
+    protected BlogMediaUploadResponse saveImageMetadata(Long userId, Long blogId, ImageType type, MediaKind mediaKind, String originalFilename, String savedFilename, String s3Url, long size, String contentType
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new IllegalArgumentException("블로그를 찾을 수 없습니다."));
+
+        Image image = Image.create(user, type, originalFilename, savedFilename, s3Url, size, contentType);
 
         Image savedImage = imageRepository.save(image);
 
         if (type == ImageType.THUMBNAIL) {
             blog.changeThumbnailUrl(s3Url);
+            // ES 인덱싱은 commit 이후로 빼주면 더 좋음 (하지만 지금 구조에서는 일단 유지 가능)
             blogDocIndexer.index(blogId);
             return new BlogMediaUploadResponse(savedImage, mediaKind);
         }
+
         int sortOrder = blogFileRepository.findByBlog(blog).size();
         BlogFile blogFile = BlogFile.create(blog, savedImage, sortOrder);
         blogFileRepository.save(blogFile);
 
         return new BlogMediaUploadResponse(savedImage, mediaKind);
+    }
+
+    private void safeDeleteFromS3(String key) {
+        try {
+            amazonS3.deleteObject(bucket, key);
+        } catch (Exception e) {
+            log.warn("S3 삭제 실패 key={}", key, e);
+        }
     }
 
     private String getExtension(String filename) {
