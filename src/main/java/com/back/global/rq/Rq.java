@@ -1,8 +1,8 @@
 package com.back.global.rq;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
@@ -14,16 +14,15 @@ public class Rq {
     public void setCookie(String name, String value) {
         if (value == null) value = "";
 
-        Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(value.isBlank() ? 0 : -1)
+                .build();
 
-        if (value.isBlank()) {
-            cookie.setMaxAge(0);
-        }
-
-        httpServletResponse.addCookie(cookie);
+        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     public void setCookie(String name, String value, int maxAge) {
