@@ -126,6 +126,13 @@ cloud:
     stack:
       auto: false
 
+springdoc:
+  swagger-ui:
+    display-request-duration: true
+    doc-expansion: none
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+
 unsplash:
   base-url: https://api.unsplash.com
   access-key: ${UNSPLASH_ACCESS_KEY}
