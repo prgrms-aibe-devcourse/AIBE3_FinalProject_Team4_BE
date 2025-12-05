@@ -167,5 +167,18 @@ public class ShorlogTtsService {
 
         return s3Url;
     }
+
+    // TTS URL 조회 (토큰 차감 없음)
+    public TtsResponse getTtsUrl(Long shorlogId) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
+
+        if (shorlog.getTtsUrl() == null) {
+            throw new ServiceException(TtsErrorCase.TTS_NOT_FOUND);
+        }
+
+        // TTS URL만 반환 (remainingToken은 null)
+        return TtsResponse.of(shorlog.getTtsUrl(), null);
+    }
 }
 
