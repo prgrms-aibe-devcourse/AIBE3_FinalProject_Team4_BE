@@ -141,6 +141,10 @@ google:
   base-url: https://www.googleapis.com/customsearch/v1
   api-key: ${GOOGLE_API_KEY}
   cx-id: ${GOOGLE_CX_ID}
+  cloud:
+    credentials:
+      json: ${GOOGLE_CLOUD_CREDENTIALS_JSON:}
+
 
 pixabay:
   base-url: https://pixabay.com
