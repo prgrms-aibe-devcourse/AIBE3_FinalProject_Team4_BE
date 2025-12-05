@@ -45,6 +45,9 @@ public class Shorlog extends BaseEntity {
     @Column(name = "tts_url")
     private String ttsUrl;
 
+    @Column(name = "tts_creator_id")
+    private Long ttsCreatorId;
+
     public static Shorlog create(User user, String content) {
         Shorlog shorlog = new Shorlog();
         shorlog.user = user;
@@ -61,6 +64,10 @@ public class Shorlog extends BaseEntity {
 
     public void updateTtsUrl(String ttsUrl) {
         this.ttsUrl = ttsUrl;
+    }
+
+    public void updateTtsCreatorId(Long ttsCreatorId) {
+        this.ttsCreatorId = ttsCreatorId;
     }
 
     public List<String> getThumbnailUrlList() {
