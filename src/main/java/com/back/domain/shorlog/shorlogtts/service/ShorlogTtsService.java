@@ -41,6 +41,22 @@ public class ShorlogTtsService {
     private static final String S3_TTS_FOLDER = "shorlog/tts/";
     private static final int CHARS_PER_TOKEN = 400;  // 1토큰 = 400자
 
+    // TTS URL 조회
+    public TtsResponse getTtsUrl(Long shorlogId, Long userId) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(TtsErrorCase.USER_NOT_FOUND));
+
+        // TTS가 없으면 null 반환
+        if (shorlog.getTtsUrl() == null) {
+            return TtsResponse.of(null, user.getTtsToken());
+        }
+
+        return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
+    }
+
     @Transactional
     public TtsResponse generateTts(Long shorlogId, Long userId) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)

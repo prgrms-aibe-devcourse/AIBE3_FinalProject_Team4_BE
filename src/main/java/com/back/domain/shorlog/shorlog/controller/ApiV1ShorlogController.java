@@ -163,7 +163,7 @@ public class ApiV1ShorlogController {
             @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id
     ) {
-        TtsResponse response = shorlogTtsService.generateTts(id, securityUser.getId());
+        TtsResponse response = shorlogTtsService.getTtsUrl(id, securityUser.getId());
         return RsData.successOf(response);
     }
 
