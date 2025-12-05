@@ -1,4 +1,4 @@
-name: be-build
+name: backend-ci-cd
 
 on:
   push:
@@ -13,7 +13,7 @@ env:
   IMAGE_NAME: prgrms-aibe-devcourse/aibe3-finalproject-team4-backend
 
 jobs:
-  build-and-push:
+  build-test-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,33 +29,50 @@ jobs:
           username: ${{ secrets.GHCR_OWNER }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      # 3) Set up JDK
+      # 3) Setup JDK
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      # 4) Grant execute permission to Gradle
+      # 4) Gradle permission
       - name: Grant execute permission to Gradle wrapper
         run: chmod +x ./gradlew
 
-      # 5) Build JAR (선행 빌드)
-      - name: Build Spring Boot Jar
+      # 5) Build JAR
+      - name: Build Spring Boot JAR
         run: ./gradlew clean bootJar --no-daemon
 
-      # 6) Build Docker image
+      # 6) Build Docker Image
       - name: Build Docker image
         run: |
           docker build \
             -t $REGISTRY/$IMAGE_NAME:latest \
             .
 
-      # 7) Push Docker image
+      # 7) Push Docker Image
       - name: Push Docker image
         run: |
           docker push $REGISTRY/$IMAGE_NAME:latest
 
-      # 8) Store tag for deploy workflow
-      - name: Save image version
-        run: echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+      # 8) SSH Key 설정
+      - name: Setup SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      # 9) Deploy to EC2
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_PUBLIC_IP }} "
+            cd /home/ec2-user/app && \
+            echo '📦 Pulling latest image...' && \
+            docker pull ghcr.io/${{ secrets.GHCR_OWNER }}/aibe3-finalproject-team4-backend:latest && \
+            echo '🚀 Running deploy.sh...' && \
+            bash deploy.sh
+          "
+
+      # 10) Done
+      - name: Deployment completed
+        run: echo "🎉 Backend CD (Build → Push → Deploy) finished successfully!"
