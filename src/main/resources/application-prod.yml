@@ -1,3 +1,6 @@
+server:
+  forward-headers-strategy: framework
+
 spring:
   config:
     activate:
@@ -10,8 +13,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 5MB
-      max-request-size: 50MB
+      max-file-size: 10MB
+      max-request-size: 100MB
 
   datasource:
     url: ${SPRING__DATASOURCE__URL}
@@ -112,7 +115,7 @@ jwt:
 
 file:
   upload:
-    max-size: 5242880
+    max-size: 10485760
 
 cloud:
   aws:
