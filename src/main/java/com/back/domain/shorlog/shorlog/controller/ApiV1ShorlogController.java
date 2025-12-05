@@ -153,8 +153,8 @@ public class ApiV1ShorlogController {
             @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id
     ) {
-        String ttsUrl = shorlogTtsService.generateTts(id, securityUser.getId());
-        return RsData.successOf(TtsResponse.of(ttsUrl));
+        TtsResponse response = shorlogTtsService.generateTts(id, securityUser.getId());
+        return RsData.successOf(response);
     }
 
     @GetMapping("/{id}/tts")
@@ -163,8 +163,8 @@ public class ApiV1ShorlogController {
             @AuthenticationPrincipal SecurityUser securityUser,
             @PathVariable Long id
     ) {
-        String ttsUrl = shorlogTtsService.generateTts(id, securityUser.getId());
-        return RsData.successOf(TtsResponse.of(ttsUrl));
+        TtsResponse response = shorlogTtsService.generateTts(id, securityUser.getId());
+        return RsData.successOf(response);
     }
 
     @GetMapping("/{id}/view")
