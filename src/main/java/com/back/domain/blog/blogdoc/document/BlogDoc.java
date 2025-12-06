@@ -72,4 +72,12 @@ public class BlogDoc {
                 modifiedAt
         );
     }
+
+    public void changeUserNickname(String newNickname) {
+        this.userNickname = newNickname;
+    }
+
+    public void changeProfileImgUrl(String newProfileImgUrl) {
+        this.profileImgUrl = newProfileImgUrl;
+    }
 }
