@@ -48,7 +48,7 @@ public class BlogBookmarkService {
         BlogBookmark bookmark = new BlogBookmark(blog, user);
         try {
             bookmarkRepository.save(bookmark);
-            blog.increaseBookmark();
+            blogRepository.incrementBookmarkCount(blogId);
             blogDocIndexer.index(blogId);
             // 🔔 북마크 알림
             User sender = userRepository.findById(userId)
@@ -77,7 +77,7 @@ public class BlogBookmarkService {
         BlogBookmark bookmark = bookmarkRepository.findByBlogIdAndUserId(blogId, user.getId())
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.REACTION_NOT_FOUND));
 
-        blog.decreaseBookmark();
+        blogRepository.decrementBookmarkCount(blogId);
         bookmarkRepository.delete(bookmark);
 
         blogDocIndexer.index(blogId);

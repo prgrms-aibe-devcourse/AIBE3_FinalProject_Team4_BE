@@ -46,7 +46,7 @@ public class BlogLikeService {
 
         try {
             likeRepository.save(like);
-            blog.increaseLikeCount();
+            blogRepository.incrementLikeCount(blogId);
             blogDocIndexer.index(blogId);
             // 🔔 알림 전송
             User sender = userRepository.findById(userId)
@@ -74,7 +74,7 @@ public class BlogLikeService {
         BlogLike blogLike = likeRepository.findByBlogIdAndUserId(blog.getId(), user.getId())
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.REACTION_NOT_FOUND));
 
-        blog.decreaseLikeCount();
+        blogRepository.decrementLikeCount(blogId);
         likeRepository.delete(blogLike);
         blogDocIndexer.index(blogId);
         return blog.getLikeCount();
