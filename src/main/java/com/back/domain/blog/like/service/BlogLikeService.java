@@ -77,7 +77,7 @@ public class BlogLikeService {
         blogRepository.decrementLikeCount(blogId);
         likeRepository.delete(blogLike);
         blogDocIndexer.index(blogId);
-        return blog.getLikeCount();
+        return blogRepository.getLikeCountById(blogId);
     }
 
     public long getLikeCount(Long blogId) {
