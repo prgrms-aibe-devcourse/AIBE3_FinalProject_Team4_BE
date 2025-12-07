@@ -78,20 +78,20 @@ spring:
             clientSecret: ${GOOGLE_CLIENT_SECRET}
             scope: profile, email
             authorization-grant-type: authorization_code
-            redirect-uri: '{baseUrl}/{action}/oauth2/code/{registrationId}'
+            redirect-uri: https://api.textok.site/login/oauth2/code/google
           kakao:
             clientId: ${KAKAO_CLIENT_ID}
             scope: profile_nickname, profile_image
             client-name: Kakao
             authorization-grant-type: authorization_code
-            redirect-uri: '{baseUrl}/{action}/oauth2/code/{registrationId}'
+            redirect-uri: https://api.textok.site/login/oauth2/code/kakao
           naver:
             client-id: ${NAVER_CLIENT_ID}
             client-secret: ${NAVER_CLIENT_SECRET}
             scope: profile_nickname, profile_image
             client-name: Naver
             authorization-grant-type: authorization_code
-            redirect-uri: '{baseUrl}/{action}/oauth2/code/{registrationId}'
+            redirect-uri: https://api.textok.site/login/oauth2/code/naver
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
