@@ -24,7 +24,7 @@ public class WebClientConfig {
                 .clientConnector(new ReactorClientHttpConnector(httpClient));
     }
 
-    // [이미지 URL 파일로 변환] 버퍼 크기 제한 5MB로 늘림
+    // [이미지 URL 파일로 변환] 버퍼 크기 제한 10MB로 늘림
     @Bean
     public WebClient.Builder highCapacityWebClientBuilder() {
         HttpClient httpClient = HttpClient.create()
@@ -34,7 +34,7 @@ public class WebClientConfig {
         return WebClient.builder()
                 .codecs(configurer -> configurer
                         .defaultCodecs()
-                        .maxInMemorySize(5 * 1024 * 1024)) // 5MB
+                        .maxInMemorySize(10 * 1024 * 1024)) // 10MB
                 .clientConnector(new ReactorClientHttpConnector(httpClient));
     }
 
