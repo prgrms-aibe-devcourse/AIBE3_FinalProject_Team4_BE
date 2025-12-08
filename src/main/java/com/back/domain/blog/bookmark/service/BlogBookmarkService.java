@@ -98,6 +98,7 @@ public class BlogBookmarkService {
 
     public Set<Long> findBookmarkedBlogIds(Long userId, List<Long> blogIds) {
         if (userId == null) return Set.of();
+        if (blogIds == null || blogIds.isEmpty()) return Set.of();
         return bookmarkRepository.findBookmarkedBlogIdsByUserId(blogIds, userId);
     }
 }
