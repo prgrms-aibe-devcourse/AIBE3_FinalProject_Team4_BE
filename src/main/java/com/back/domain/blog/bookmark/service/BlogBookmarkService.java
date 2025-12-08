@@ -81,7 +81,7 @@ public class BlogBookmarkService {
         bookmarkRepository.delete(bookmark);
 
         blogDocIndexer.index(blogId);
-        return blog.getBookmarkCount();
+        return blogRepository.getBookmarkCountById(blogId);
     }
 
     public boolean isBookmarked(Long blogId, Long userId) {
@@ -90,7 +90,7 @@ public class BlogBookmarkService {
 
     @Transactional
     public long getBookmarkCount(Long blogId) {
-        return blogRepository.getBookmarkCountById(blogId).orElse(0L);
+        return blogRepository.getBookmarkCountById(blogId);
     }
 
     public Set<Long> findBookmarkedBlogIds(Long userId, List<Long> blogIds) {
