@@ -62,8 +62,8 @@ public class UserService {
 
         long followersCount = followService.countFollowers(userId);
         long followingCount = followService.countFollowings(userId);
-        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long bloglikesCount = blogLikeRepository.countByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
         int shorlogsCount = shorlogRepository.countAllByUserId(userId);
         int blogsCount = blogRepository.countAllByUserId(userId);
@@ -78,8 +78,8 @@ public class UserService {
 
         long followersCount = followService.countFollowers(userId);
         long followingCount = followService.countFollowings(userId);
-        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long bloglikesCount = blogLikeRepository.countByUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countByUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
         int shorlogsCount = shorlogRepository.countAllByUserId(userId);
         int blogsCount = blogRepository.countAllByUserId(userId);

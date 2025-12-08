@@ -31,7 +31,7 @@ public interface BlogLikeRepository extends JpaRepository<BlogLike, Long> {
 
     boolean existsByBlog_IdAndUser_Id(Long blogId, Long userId);
 
-    long countAllByUserId(Long userId);
+    long countByUserId(Long userId);
 
     // 사용자의 Like 목록 조회 (Fetch Join으로 N+1 방지)
     @EntityGraph(attributePaths = {"blog", "blog.user"})
