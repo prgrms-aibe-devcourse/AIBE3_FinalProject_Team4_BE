@@ -6,7 +6,6 @@ import com.back.domain.blog.blog.entity.BlogMySortType;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
-import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.bookmark.repository.BlogBookmarkQueryRepository;
 import com.back.domain.blog.bookmark.service.BlogBookmarkService;
 import com.back.domain.blog.like.service.BlogLikeService;
@@ -23,6 +22,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,29 +44,27 @@ public class BlogService {
     private final CommentsService commentsService;
     private final HashtagService hashtagService;
     private final ImageLifecycleService imageLifecycleService;
-    private final BlogDocIndexer blogDocIndexer;
+    private final ApplicationEventPublisher eventPublisher;
+
     private final ShorlogBlogLinkRepository shorlogBlogLinkRepository;
     private final RecentViewService recentViewService;
 
-    public void truncate() {
-        blogRepository.deleteAll();
-    }
-
     @Transactional
-    public BlogDetailDto findById(Long userId, Long id) {
-        Blog blog = blogRepository.findDetailWithFiles(id)
+    public BlogDetailDto findById(Long userId, Long blogId) {
+        Blog blog = blogRepository.findDetailWithFiles(blogId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
         if (blog.getStatus() == BlogStatus.DRAFT &&
                 (userId == null || !blog.getUser().getId().equals(userId))) {
             throw new ServiceException(BlogErrorCase.PERMISSION_DENIED);
         }
-        boolean liked = blogLikeService.isLiked(id, userId);
-        boolean bookmarked = blogBookmarkService.isBookmarked(id, userId);
-        List<CommentResponseDto> comments = commentsService.getCommentsByType(id, CommentsTargetType.BLOG);
-        Map<Long, Long> commentCount = commentsService.getCommentCounts(List.of(id), CommentsTargetType.BLOG);
-        long linkedShorlogCount = shorlogBlogLinkRepository.countByBlogId(id);
-        List<String> hashtagNames = blogRepository.findHashtagNamesByBlogId(id);
-        return new BlogDetailDto(blog, hashtagNames, liked, bookmarked, comments, commentCount.getOrDefault(id, 0L), linkedShorlogCount);
+        boolean liked = (userId != null) && blogLikeService.isLiked(blogId, userId);
+        boolean bookmarked = (userId != null) && blogBookmarkService.isBookmarked(blogId, userId);
+
+        List<CommentResponseDto> comments = commentsService.getCommentsByType(blogId, CommentsTargetType.BLOG);
+        Map<Long, Long> commentCount = commentsService.getCommentCounts(List.of(blogId), CommentsTargetType.BLOG);
+        long linkedShorlogCount = shorlogBlogLinkRepository.countByBlogId(blogId);
+        List<String> hashtagNames = blogRepository.findHashtagNamesByBlogId(blogId);
+        return new BlogDetailDto(blog, hashtagNames, liked, bookmarked, comments, commentCount.getOrDefault(blogId, 0L), linkedShorlogCount);
     }
 
     @Transactional
@@ -80,7 +78,7 @@ public class BlogService {
 
         blog.publish();
         blog = blogRepository.save(blog);
-        blogDocIndexer.index(blog.getId());
+        eventPublisher.publishEvent(new BlogIndexEvent(blog.getId()));
         return new BlogWriteDto(blog);
     }
 
@@ -95,7 +93,7 @@ public class BlogService {
         blog.updateHashtags(hashtags);
         blog.modify(reqBody);
 
-        blogDocIndexer.index(blogId);
+        eventPublisher.publishEvent(new BlogIndexEvent(blog.getId()));
         return new BlogWriteDto(blog);
     }
 
@@ -105,7 +103,7 @@ public class BlogService {
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
 
         blog.increaseViewCount();
-        blogDocIndexer.index(blogId);
+        eventPublisher.publishEvent(new BlogIndexEvent(blog.getId()));
         return blog.getViewCount();
     }
 
@@ -119,7 +117,7 @@ public class BlogService {
         imageLifecycleService.decrementReference(blog.getThumbnailUrl());
 
         if (blog.getStatus() == BlogStatus.PUBLISHED) {
-            blogDocIndexer.delete(id);
+            eventPublisher.publishEvent(new BlogIndexDeleteEvent(id));
             shorlogBlogLinkRepository.deleteByBlogId(id);
         }
         blogRepository.delete(blog);
@@ -161,7 +159,7 @@ public class BlogService {
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
         List<Blog> drafts = blogRepository.findByStatusAndUserId(BlogStatus.DRAFT, userId);
         return drafts.stream()
-                .map(b -> new BlogDraftDto(b))
+                .map(BlogDraftDto::new)
                 .toList();
     }
 
