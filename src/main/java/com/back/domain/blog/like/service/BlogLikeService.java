@@ -1,9 +1,9 @@
 package com.back.domain.blog.like.service;
 
+import com.back.domain.blog.blog.dto.BlogIndexEvent;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
-import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.like.entity.BlogLike;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.notification.entity.NotificationType;
@@ -12,6 +12,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class BlogLikeService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final BlogDocIndexer blogDocIndexer;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public boolean likeOn(Long userId, Long blogId) {
@@ -36,7 +37,6 @@ public class BlogLikeService {
         }
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new IllegalArgumentException("블로그 게시글을 찾을 수 없습니다."));
-        // 자기 글 좋아요 금지
         if (blog.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("본인의 글에는 좋아요할 수 없습니다.");
         }
@@ -47,7 +47,8 @@ public class BlogLikeService {
         try {
             likeRepository.save(like);
             blogRepository.incrementLikeCount(blogId);
-            blogDocIndexer.index(blogId);
+            eventPublisher.publishEvent(new BlogIndexEvent(blogId));
+
             // 🔔 알림 전송
             User sender = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -76,7 +77,7 @@ public class BlogLikeService {
 
         blogRepository.decrementLikeCount(blogId);
         likeRepository.delete(blogLike);
-        blogDocIndexer.index(blogId);
+        eventPublisher.publishEvent(new BlogIndexEvent(blogId));
         return blogRepository.getLikeCountById(blogId);
     }
 
@@ -85,6 +86,7 @@ public class BlogLikeService {
     }
 
     public boolean isLiked(Long id, Long userId) {
+        if (userId == null) return false;
         return likeRepository.existsByBlog_IdAndUser_Id(id, userId);
     }
 
