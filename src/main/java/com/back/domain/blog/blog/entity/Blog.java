@@ -112,23 +112,4 @@ public class Blog extends BaseEntity {
         this.thumbnailUrl = s3Url;
     }
 
-    public void increaseLikeCount() {
-        this.likeCount += 1;
-    }
-
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount--;
-        }
-    }
-
-    public void increaseBookmark() {
-        this.bookmarkCount += 1;
-    }
-
-    public void decreaseBookmark() {
-        if (this.bookmarkCount > 0) {
-            this.bookmarkCount--;
-        }
-    }
 }

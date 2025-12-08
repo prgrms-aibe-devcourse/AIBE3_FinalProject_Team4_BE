@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
+import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
 import com.back.domain.shorlog.shorlogtts.exception.TtsErrorCase;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -40,8 +41,24 @@ public class ShorlogTtsService {
     private static final String S3_TTS_FOLDER = "shorlog/tts/";
     private static final int CHARS_PER_TOKEN = 400;  // 1토큰 = 400자
 
+    // TTS URL 조회
+    public TtsResponse getTtsUrl(Long shorlogId, Long userId) {
+        Shorlog shorlog = shorlogRepository.findById(shorlogId)
+                .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ServiceException(TtsErrorCase.USER_NOT_FOUND));
+
+        // TTS가 없으면 null 반환
+        if (shorlog.getTtsUrl() == null) {
+            return TtsResponse.of(null, user.getTtsToken());
+        }
+
+        return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
+    }
+
     @Transactional
-    public String generateTts(Long shorlogId, Long userId) {
+    public TtsResponse generateTts(Long shorlogId, Long userId) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
                 .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
 
@@ -49,9 +66,25 @@ public class ShorlogTtsService {
                 .orElseThrow(() -> new ServiceException(TtsErrorCase.USER_NOT_FOUND));
 
         if (shorlog.getTtsUrl() != null) {
-            log.info("캐시된 TTS 반환: {}", shorlog.getTtsUrl());
-            return shorlog.getTtsUrl();
+            if (shorlog.getTtsCreatorId() != null && shorlog.getTtsCreatorId().equals(userId)) {
+                log.info("생성자의 캐시된 TTS 반환 (무료): userId={}, shorlogId={}", userId, shorlogId);
+                return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
+            } else {
+                int contentLength = shorlog.getContent().length();
+                int requiredTokens = (int) Math.ceil((double) contentLength / CHARS_PER_TOKEN);
+
+                if (user.getTtsToken() < requiredTokens) {
+                    throw new ServiceException(TtsErrorCase.TTS_TOKEN_INSUFFICIENT);
+                }
+
+                user.useTtsToken(requiredTokens);
+                log.info("다른 사용자의 TTS 재사용 - 토큰 차감: userId={}, shorlogId={}, tokens={}",
+                        userId, shorlogId, requiredTokens);
+
+                return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
+            }
         }
+
         int contentLength = shorlog.getContent().length();
         int requiredTokens = (int) Math.ceil((double) contentLength / CHARS_PER_TOKEN);
 
@@ -68,13 +101,11 @@ public class ShorlogTtsService {
             // S3에 업로드
             String s3Url = uploadToS3(audioBytes, shorlogId);
 
-            // Shorlog 엔티티에 TTS URL 저장
+            // Shorlog 엔티티에 TTS URL과 생성자 ID 저장
             shorlog.updateTtsUrl(s3Url);
+            shorlog.updateTtsCreatorId(userId);
 
-            log.info("TTS 생성 완료 - 숏로그 ID: {}, 사용 토큰: {}, URL: {}",
-                    shorlogId, requiredTokens, s3Url);
-
-            return s3Url;
+            return TtsResponse.of(s3Url, user.getTtsToken());
 
         } catch (IOException e) {
             log.error("TTS 생성 실패: {}", e.getMessage(), e);
@@ -151,17 +182,6 @@ public class ShorlogTtsService {
         log.info("S3 TTS 업로드 성공: {}", s3Url);
 
         return s3Url;
-    }
-
-    public String getTtsUrl(Long shorlogId) {
-        Shorlog shorlog = shorlogRepository.findById(shorlogId)
-                .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
-
-        if (shorlog.getTtsUrl() == null) {
-            throw new ServiceException(TtsErrorCase.TTS_NOT_FOUND);
-        }
-
-        return shorlog.getTtsUrl();
     }
 }
 

@@ -1,6 +1,7 @@
 package com.back.domain.user.user.service;
 
 import com.back.domain.blog.blog.repository.BlogRepository;
+import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
 import com.back.domain.blog.like.repository.BlogLikeRepository;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
@@ -40,6 +41,7 @@ public class UserService {
     private final ProfileImageService profileImageService;
     private final ShorlogImagesRepository shorlogImagesRepository;
     private final ShorlogDocService shorlogDocService;
+    private final BlogDocIndexer blogDocIndexer;
 
     @Transactional(readOnly = true)
 
@@ -92,7 +94,7 @@ public class UserService {
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new ServiceException(UserErrorCase.USER_NOT_FOUND));
 
-        if(!dto.nickname().equals(user.getNickname())) {
+        if (!dto.nickname().equals(user.getNickname())) {
             if (!isAvailableNickname(dto.nickname())) {
                 throw new ServiceException(UserErrorCase.NICKNAME_ALREADY_EXISTS);
             }
@@ -109,7 +111,7 @@ public class UserService {
         user.updateProfile(dto.nickname(), dto.bio(), updatedImageUrl);
 
         shorlogDocService.updateUserProfileInShorlogs(userId, dto.nickname(), updatedImageUrl);
-
+        blogDocIndexer.updateUserProfileInBlogs(userId, dto.nickname(), updatedImageUrl);
         return new UserDto(user);
     }
 

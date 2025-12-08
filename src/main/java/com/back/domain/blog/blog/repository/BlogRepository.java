@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,7 +26,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     long getLikeCountById(Long blogId);
 
     @Query("select coalesce(b.bookmarkCount, 0) from Blog b where b.id = :blogId")
-    Optional<Long> getBookmarkCountById(Long blogId);
+    long getBookmarkCountById(Long blogId);
 
     int countAllByUserId(Long userId);
 
@@ -78,14 +79,30 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     Page<Object[]> findUserBlogActivities(@Param("userId") Long userId, Pageable pageable);
 
     @Query("""
-    select distinct b from Blog b
-    left join fetch b.user u
-    where b.createdAt >= :from
-      and b.status = 'PUBLISHED'
-    order by b.createdAt desc
-    """)
+            select distinct b from Blog b
+            left join fetch b.user u
+            where b.createdAt >= :from
+              and b.status = 'PUBLISHED'
+            order by b.createdAt desc
+            """)
     List<Blog> findPopularBlogs(@Param("from") LocalDateTime from, Pageable pageable);
 
     @Query("SELECT b.viewCount FROM Blog b WHERE b.id = :id")
     long findViewCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Blog b SET b.likeCount = b.likeCount + 1 WHERE b.id = :id")
+    void incrementLikeCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Blog b SET b.likeCount = GREATEST(b.likeCount - 1, 0) WHERE b.id = :id")
+    void decrementLikeCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Blog b SET b.bookmarkCount = b.bookmarkCount + 1 WHERE b.id = :id")
+    void incrementBookmarkCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Blog b SET b.bookmarkCount = GREATEST(b.bookmarkCount - 1, 0) WHERE b.id = :id")
+    void decrementBookmarkCount(@Param("id") Long id);
 }
