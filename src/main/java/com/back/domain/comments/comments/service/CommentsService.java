@@ -11,6 +11,7 @@ import com.back.domain.comments.comments.event.CommentCreatedEvent;
 import com.back.domain.comments.comments.event.CommentDeletedEvent;
 import com.back.domain.comments.comments.exception.CommentsErrorCase;
 import com.back.domain.comments.comments.repository.CommentsRepository;
+import com.back.domain.notification.dto.CommentLocationResponse;
 import com.back.domain.notification.entity.NotificationType;
 import com.back.domain.notification.service.NotificationService;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
@@ -63,7 +64,7 @@ public class CommentsService {
                 .orElseThrow(() -> new ServiceException(CommentsErrorCase.USER_NOT_FOUND));
 
         // target 존재 여부 검증
-        if (!req.targetType().exists(req.targetId(),blogRepository, shorlogRepository)) {
+        if (!req.targetType().exists(req.targetId(), blogRepository, shorlogRepository)) {
             throw new ServiceException(CommentsErrorCase.TARGET_NOT_FOUND);
         }
 
@@ -271,5 +272,18 @@ public class CommentsService {
     @Transactional
     public void deleteCommentsByTarget(CommentsTargetType targetType, Long targetId) {
         commentsRepository.deleteByTargetTypeAndTargetId(targetType, targetId);
+    }
+
+    @Transactional(readOnly = true)
+    public CommentLocationResponse getCommentLocation(Long commentId) {
+
+        Comments comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new ServiceException(CommentsErrorCase.COMMENT_NOT_FOUND));
+
+        return new CommentLocationResponse(
+                comment.getTargetType(),  // BLOG or SHORLOG
+                comment.getTargetId(),
+                commentId
+        );
     }
 }

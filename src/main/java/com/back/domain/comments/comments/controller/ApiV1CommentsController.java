@@ -5,6 +5,7 @@ import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.dto.CommentUpdateRequestDto;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.notification.dto.CommentLocationResponse;
 import com.back.global.config.security.SecurityUser;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
@@ -166,5 +167,13 @@ public class ApiV1CommentsController {
             @AuthenticationPrincipal SecurityUser user
     ) {
         return commentsService.unlikeComment(commentId, user.getId());
+    }
+
+    @GetMapping("/{commentId}/location")
+    @Operation(summary = "댓글이 속한 게시글 조회")
+    public RsData<CommentLocationResponse> getCommentLocation(
+            @PathVariable Long commentId
+    ) {
+        return RsData.successOf(commentsService.getCommentLocation(commentId));
     }
 }
