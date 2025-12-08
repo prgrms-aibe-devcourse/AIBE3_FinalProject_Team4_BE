@@ -1,0 +1,35 @@
+name: be-deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout — 필수는 아니지만 기본으로 둠
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) SSH를 위해 키 설정
+      - name: Setup SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      # 3) EC2에 SSH 접속해서 배포 스크립트 실행
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_PUBLIC_IP }} "
+            cd /home/ec2-user/app && \
+            echo '🔄 Pulling latest image...' && \
+            docker pull ghcr.io/${{ secrets.GHCR_OWNER }}/aibe3-finalproject-team4-backend:latest && \
+            echo '🚀 Running deploy.sh...' && \
+            bash deploy.sh
+          "
+
+      # 4) 배포 완료 메시지
+      - name: Deployment completed
+        run: echo "🎉 Backend deployment finished successfully!"
