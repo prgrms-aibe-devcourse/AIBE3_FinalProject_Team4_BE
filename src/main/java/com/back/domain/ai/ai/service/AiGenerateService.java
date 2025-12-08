@@ -48,10 +48,9 @@ public class AiGenerateService {
     private static final String USER_TITLE_PROMPT = "[제목 추천]: 주어진 블로그의 본문을 분석하여, 독자의 클릭을 유도하는 매력적인 제목 3~5개를 " + JSON_RESULTS_FORMAT_INSTRUCTION;
     private static final String USER_HASHTAG_PROMPT = """
             [해시태그 추천]: 주어진 콘텐츠 유형의 본문을 분석하여, SNS 공유에 적합한 해시태그 10개를 %s
-                - '#' 기호는 붙이지 마세요.
+                - '#' 기호는 절대 붙이지 마세요.
                 - 한글, 영문, 숫자만 사용하세요.
-                - 두 단어 이상으로 이루어진 해시태그는 한글/영문 구분 없이 '_'로 연결하세요.
-                - '_' 기호 이외의 특수문자나 공백은 포함하지 마세요.
+                - 특수문자나 공백은 절대 포함하지 마세요.
             """.formatted(JSON_RESULTS_FORMAT_INSTRUCTION);
 
     private static final String KEYWORD_BASE_PROMPT = "[키워드 추출]: 주어진 콘텐츠 유형의 본문을 분석하여, ";
