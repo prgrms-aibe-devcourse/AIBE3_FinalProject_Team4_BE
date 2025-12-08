@@ -1,5 +1,7 @@
 package com.back.domain.notification.controller;
 
+import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.notification.dto.CommentLocationResponse;
 import com.back.domain.notification.dto.NotificationResponseDto;
 import com.back.domain.notification.service.NotificationService;
 import com.back.global.config.security.SecurityUser;
@@ -23,6 +25,7 @@ public class ApiV1NotificationController {
 
     private final NotificationService notificationService;
     private final SseEmitterRepository emitterRepository;
+    private final CommentsService commentsService;
 
     @GetMapping("/stream")
     @Operation(summary = "SSE 알림 스트림 연결")
@@ -106,5 +109,11 @@ public class ApiV1NotificationController {
     ) {
         notificationService.deleteAllNotifications(user.getId());
         return RsData.successOf(null);
+    }
+
+    @GetMapping("/comments/{id}/location")
+    public RsData<?> getCommentLocation(@PathVariable Long id) {
+        CommentLocationResponse dto = commentsService.getCommentLocation(id);
+        return RsData.successOf(dto);
     }
 }
