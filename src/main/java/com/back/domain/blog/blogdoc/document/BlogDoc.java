@@ -3,7 +3,6 @@ package com.back.domain.blog.blogdoc.document;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.entity.BlogStatus;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -18,7 +17,6 @@ import java.util.List;
 @Setting(settingPath = "/elasticsearch/settings.json")
 @Mapping(mappingPath = "/elasticsearch/blog-mappings.json")
 @Getter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class BlogDoc {
