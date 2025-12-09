@@ -167,6 +167,11 @@ public class UserService {
     public List<FullCreatorListResponseDto> getCreatorsFull(Long viewerIdOrNull) {
 
         List<User> allUsers = userRepository.findAll();
+        Set<Long> creatorIds = new HashSet<>(shorlogRepository.findDistinctUserIdsWithAnyPost());
+        allUsers = allUsers.stream()
+                .filter(user -> creatorIds.contains(user.getId()))
+                .toList();
+
         List<Long> allUserIds = allUsers.stream().map(User::getId).toList();
 
         // 로그인 여부 분기
