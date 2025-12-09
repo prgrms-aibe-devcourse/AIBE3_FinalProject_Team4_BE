@@ -17,7 +17,7 @@ public class SearchKeywordService {
 
     @Transactional(readOnly = true)
     public List<SearchKeywordResponseDto> getTop10TrendingKeywords() {
-        LocalDateTime from = LocalDateTime.now().minusHours(24);
+        LocalDateTime from = LocalDateTime.now().minusDays(14);
         List<SearchKeyword> trendingKeywords = searchKeywordRepository.findTop10ByModifiedAtGreaterThanEqualOrderBySearchCountDesc(from);
 
         if (trendingKeywords.isEmpty()) {
