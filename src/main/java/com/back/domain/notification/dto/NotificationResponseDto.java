@@ -23,7 +23,7 @@ public record NotificationResponseDto(
             String senderNickname,
             String senderProfileImage,
             String relativeTime,
-            String redirectUrl // ⬅ 여기서 redirectUrl도 받도록 변경
+            String redirectUrl
     ) {
         return new NotificationResponseDto(
                 n.getId(),
@@ -36,7 +36,7 @@ public record NotificationResponseDto(
                 n.isRead(),
                 relativeTime,
                 n.getCreatedAt(),
-                redirectUrl // ⬅ 여기가 중요!!!
+                redirectUrl
         );
     }
 }
