@@ -23,7 +23,7 @@ public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, Shorlo
 
     Optional<ShorlogLike> findByShorlogAndUser(Shorlog shorlog, User user);
 
-    long countAllByUserId(Long userId);
+    long countByShorlogUserId(Long userId);
 
     @EntityGraph(attributePaths = "shorlog")
     Page<ShorlogLike> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);

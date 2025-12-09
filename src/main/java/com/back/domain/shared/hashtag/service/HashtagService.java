@@ -23,9 +23,7 @@ public class HashtagService {
 
         return hashtagRepository.findByName(cleanName)
                 .orElseGet(() -> {
-                    Hashtag newHashtag = Hashtag.builder()
-                            .name(cleanName)
-                            .build();
+                    Hashtag newHashtag = new Hashtag(cleanName);
                     return hashtagRepository.save(newHashtag);
                 });
     }
