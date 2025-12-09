@@ -178,7 +178,8 @@ public class NotificationService {
                 n,
                 senderNickname,
                 profileImage,
-                relativeTime
+                relativeTime,
+                redirectUrl
         );
     }
 
