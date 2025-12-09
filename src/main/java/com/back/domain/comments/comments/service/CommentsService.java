@@ -136,7 +136,7 @@ public class CommentsService {
                         receiverId,
                         userId,
                         type,
-                        req.targetId(),          // target = postId
+                        comment.getId(),
                         user.getNickname()
                 );
             }
