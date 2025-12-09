@@ -121,6 +121,18 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
         """, nativeQuery = true)
     List<Object[]> findTopShorlogIdByUserIdsOrderByPopularity(@Param("userIds") List<Long> userIds);
 
+    // 쇼로그 또는 블로그 중 하나라도 작성한 유저 id
+    @Query(value = """
+    SELECT DISTINCT user_id
+    FROM (
+        SELECT s.user_id FROM shorlog s
+        UNION
+        SELECT b.user_id FROM blogs b
+    ) t
+    """, nativeQuery = true)
+    List<Long> findDistinctUserIdsWithAnyPost();
+
+
     @Query("""
     select distinct s from Shorlog s
     left join fetch s.user u
