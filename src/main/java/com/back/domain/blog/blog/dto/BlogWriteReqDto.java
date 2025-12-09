@@ -16,6 +16,6 @@ public record BlogWriteReqDto(
         @NotNull
         BlogStatus status,
         @Size(max = 5, message = "해시태그는 최대 5개까지 가능합니다.")
-        List<String> hashtagNames
+        List<@Size(max = 6, message = "해시태그는 6자 이내여야 합니다.") String> hashtagNames
 ) {
 }
