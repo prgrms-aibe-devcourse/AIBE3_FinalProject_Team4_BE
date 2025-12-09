@@ -1,8 +1,6 @@
 package com.back.domain.user.mail.limiter;
 
-import com.back.domain.user.mail.exception.RateLimitException;
 import com.back.global.exception.AuthException;
-import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
