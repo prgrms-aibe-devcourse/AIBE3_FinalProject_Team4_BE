@@ -1,21 +1,22 @@
 package com.back.domain.user.auth.service;
 
+import com.back.domain.blog.blog.dto.BlogIndexDeleteEvent;
+import com.back.domain.blog.blog.repository.BlogRepository;
 import com.back.domain.shared.image.service.ImageLifecycleService;
 import com.back.domain.shorlog.shorlog.event.ShorlogDeletedEvent;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
-import com.back.domain.user.mail.service.VerificationTokenService;
-import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.domain.user.auth.dto.OAuth2CompleteJoinRequestDto;
 import com.back.domain.user.auth.dto.PasswordResetRequestDto;
 import com.back.domain.user.auth.dto.UserJoinRequestDto;
 import com.back.domain.user.auth.dto.UserLoginRequestDto;
+import com.back.domain.user.mail.service.VerificationTokenService;
+import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.file.ProfileImageService;
 import com.back.domain.user.user.repository.UserDeletionJdbcRepository;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
-import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-
 import java.util.List;
 
 @Service
@@ -38,6 +38,7 @@ public class AuthService {
     private final UserDeletionJdbcRepository userDeletionJdbcRepository;
     private final ProfileImageService profileImageService;
     private final ShorlogRepository shorlogRepository;
+    private final BlogRepository blogRepository;
     private final ImageLifecycleService imageLifecycleService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -65,7 +66,7 @@ public class AuthService {
     @Transactional
     public User findOrCreateOAuth2User(String username, String profileImgUrl) {
         User user = userRepository.findByUsername(username).orElse(null);
-        if(user == null) {
+        if (user == null) {
             user = new User(username, profileImgUrl);
             return userRepository.save(user);
         }
@@ -75,7 +76,7 @@ public class AuthService {
     @Transactional
     public User toCompleteJoinOAuth2User(OAuth2CompleteJoinRequestDto dto) {
         String token = dto.temporaryToken();
-        if(!jwtTokenProvider.validateToken(token)) {
+        if (!jwtTokenProvider.validateToken(token)) {
             throw new AuthException("400-1", "임시토큰이 만료되었습니다. 처음부터 다시 시도해주세요.");
         }
 
@@ -178,6 +179,11 @@ public class AuthService {
         List<Long> shorlogIds = shorlogRepository.findAllIdsByUserId(userId);
         for (Long shorlogId : shorlogIds) {
             eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
+        }
+
+        List<Long> blogIds = blogRepository.findAllIdsByUserId(userId);
+        for (Long blogId : blogIds) {
+            eventPublisher.publishEvent(new BlogIndexDeleteEvent(blogId));
         }
 
         // MySQL 데이터 완전 삭제 (JDBC 일괄 처리)

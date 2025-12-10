@@ -47,110 +47,118 @@ public class UserDeletionJdbcRepository {
 
         // 3) 유저 작성 블로그 관련(자식/연결 테이블 → 본문)
         jdbcTemplate.update("""
-            DELETE FROM blog_files
-            WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                UPDATE images i
+                JOIN blog_files bf ON i.id = bf.image_id
+                JOIN blogs b ON bf.blog_id = b.id
+                SET i.reference_count = i.reference_count - 1
+                WHERE b.user_id = ? AND i.reference_count > 0
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM blog_hashtags
-            WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE FROM blog_files
+                WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
+
+        jdbcTemplate.update("""
+                DELETE FROM blog_hashtags
+                WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         // 블로그 글에 달린 타인의 좋아요/북마크까지 제거
         jdbcTemplate.update("""
-            DELETE FROM blog_like
-            WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE FROM blog_like
+                WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM blog_bookmarks
-            WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE FROM blog_bookmarks
+                WHERE blog_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         // 4) 유저 작성 쇼로그 관련(연결 테이블 → 본문)
         jdbcTemplate.update("""
-            DELETE FROM shorlog_blog_link
-            WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM shorlog_blog_link
+                WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM shorlog_hashtag
-            WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM shorlog_hashtag
+                WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM shorlog_images
-            WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM shorlog_images
+                WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM shorlog_like
-            WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM shorlog_like
+                WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM shorlog_bookmark
-            WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM shorlog_bookmark
+                WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         // 5) 댓글 삭제 (FK: parent_id, + liked 매핑)
         // 5-1) 유저가 작성한 댓글에 딸린 liked 매핑 삭제
         jdbcTemplate.update("""
-            DELETE cl FROM comments_liked_user_ids cl
-            JOIN comments c ON c.id = cl.comments_id
-            WHERE c.user_id = ?
-            """, userId);
+                DELETE cl FROM comments_liked_user_ids cl
+                JOIN comments c ON c.id = cl.comments_id
+                WHERE c.user_id = ?
+                """, userId);
 
         // 5-2) 유저가 작성한 댓글의 자식댓글 먼저 삭제 (parent FK)
         jdbcTemplate.update("""
-            DELETE c_child FROM comments c_child
-            JOIN comments c_parent ON c_child.parent_id = c_parent.id
-            WHERE c_parent.user_id = ?
-            """, userId);
+                DELETE c_child FROM comments c_child
+                JOIN comments c_parent ON c_child.parent_id = c_parent.id
+                WHERE c_parent.user_id = ?
+                """, userId);
 
         // 5-3) 유저가 작성한 댓글 삭제
         jdbcTemplate.update("DELETE FROM comments WHERE user_id = ?", userId);
 
         // 5-4) 유저 블로그/쇼로그에 달린 댓글까지 전부 삭제(“관련 데이터 전부” 정책)
         jdbcTemplate.update("""
-            DELETE cl FROM comments_liked_user_ids cl
-            JOIN comments c ON c.id = cl.comments_id
-            WHERE c.target_type='BLOG'
-              AND c.target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE cl FROM comments_liked_user_ids cl
+                JOIN comments c ON c.id = cl.comments_id
+                WHERE c.target_type='BLOG'
+                  AND c.target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE c_child FROM comments c_child
-            JOIN comments c_parent ON c_child.parent_id = c_parent.id
-            WHERE c_parent.target_type='BLOG'
-              AND c_parent.target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE c_child FROM comments c_child
+                JOIN comments c_parent ON c_child.parent_id = c_parent.id
+                WHERE c_parent.target_type='BLOG'
+                  AND c_parent.target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM comments
-            WHERE target_type='BLOG'
-              AND target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
-            """, userId);
+                DELETE FROM comments
+                WHERE target_type='BLOG'
+                  AND target_id IN (SELECT id FROM (SELECT id FROM blogs WHERE user_id = ?) b)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE cl FROM comments_liked_user_ids cl
-            JOIN comments c ON c.id = cl.comments_id
-            WHERE c.target_type='SHORLOG'
-              AND c.target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE cl FROM comments_liked_user_ids cl
+                JOIN comments c ON c.id = cl.comments_id
+                WHERE c.target_type='SHORLOG'
+                  AND c.target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE c_child FROM comments c_child
-            JOIN comments c_parent ON c_child.parent_id = c_parent.id
-            WHERE c_parent.target_type='SHORLOG'
-              AND c_parent.target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE c_child FROM comments c_child
+                JOIN comments c_parent ON c_child.parent_id = c_parent.id
+                WHERE c_parent.target_type='SHORLOG'
+                  AND c_parent.target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         jdbcTemplate.update("""
-            DELETE FROM comments
-            WHERE target_type='SHORLOG'
-              AND target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
-            """, userId);
+                DELETE FROM comments
+                WHERE target_type='SHORLOG'
+                  AND target_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
+                """, userId);
 
         // 6) 본문 삭제
         jdbcTemplate.update("DELETE FROM blogs WHERE user_id = ?", userId);
