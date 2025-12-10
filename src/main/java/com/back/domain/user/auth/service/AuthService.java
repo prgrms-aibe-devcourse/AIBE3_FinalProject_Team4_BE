@@ -10,16 +10,20 @@ import com.back.domain.user.auth.dto.PasswordResetRequestDto;
 import com.back.domain.user.auth.dto.UserJoinRequestDto;
 import com.back.domain.user.auth.dto.UserLoginRequestDto;
 import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.file.ProfileImageService;
 import com.back.domain.user.user.repository.UserDeletionJdbcRepository;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
+import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
 
 import java.util.List;
 
@@ -32,6 +36,7 @@ public class AuthService {
     private final VerificationTokenService verificationTokenService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDeletionJdbcRepository userDeletionJdbcRepository;
+    private final ProfileImageService profileImageService;
     private final ShorlogRepository shorlogRepository;
     private final ImageLifecycleService imageLifecycleService;
     private final ApplicationEventPublisher eventPublisher;
@@ -153,6 +158,12 @@ public class AuthService {
 
         // 1. RefreshToken 삭제 (Redis)
         refreshTokenService.deleteRefreshTokenByUserId(userId);
+
+        try {
+            profileImageService.updateFile(user.getProfileImgUrl(), null, true);
+        } catch (IOException e) {
+            throw new AuthException("500-1", "프로필 이미지 삭제 중 오류가 발생했습니다.");
+        }
 
         // 2. TTS 파일 삭제 (S3)
         List<String> ttsUrls = shorlogRepository.findTtsUrlsByUserId(userId);
