@@ -39,7 +39,7 @@ public class ShorlogBookmarkService {
     private final NotificationService notificationService;
     private final CommentsService commentsService;
 
-    private static final int BOOKMARK_PAGE_SIZE = 30; // 6열 격자형 피드 (30개씩)
+    private static final int BOOKMARK_PAGE_SIZE = 30;
 
     @Transactional
     public ShorlogBookmarkResponse addBookmark(Long shorlogId, Long userId) {
@@ -120,12 +120,11 @@ public class ShorlogBookmarkService {
                 .toList();
         var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
 
-        // ShorlogBookmark -> ShorlogFeedResponse 변환
         Page<ShorlogFeedResponse> responsePage = bookmarkPage.map(bookmark -> {
             Shorlog shorlog = bookmark.getShorlog();
             List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(shorlog.getId());
             long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
-            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();  // ⭐ 댓글 수
+            int commentCount = commentCountMap.getOrDefault(shorlog.getId(), 0L).intValue();
             return ShorlogFeedResponse.from(shorlog, hashtags, (int) likeCount, commentCount);
         });
 

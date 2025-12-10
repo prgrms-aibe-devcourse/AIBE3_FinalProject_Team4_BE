@@ -69,14 +69,12 @@ public class ImageUploadService {
 
         List<MultipartFile> finalFiles = (files == null) ? List.of() : files;
 
-        // 병렬 스트림으로 처리 (성능 개선: 순차 대비 약 6배 빠름)
         return sortedItems.stream()
                 .parallel()
                 .map(item -> processAndUploadSingleImage(item, finalFiles, user))
                 .toList();
     }
 
-     // 단일 이미지 처리 및 업로드 (병렬 처리용 분리 메서드)
     private UploadImageResponse processAndUploadSingleImage(
             UploadImageOrderRequest item,
             List<MultipartFile> files,
@@ -104,12 +102,10 @@ public class ImageUploadService {
             BufferedImage originalImage = ImageIO.read(file.getInputStream());
             BufferedImage resizedImage = resizeImageByAspectRatio(originalImage, aspectRatio);
 
-            // BufferedImage → byte[]
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(resizedImage, extension.equals("jpg") ? "jpeg" : extension, baos);
             byte[] imageBytes = baos.toByteArray();
 
-            // S3 업로드
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(imageBytes.length);
             metadata.setContentType(file.getContentType());
@@ -119,7 +115,6 @@ public class ImageUploadService {
 
             amazonS3.putObject(putObjectRequest);
 
-            // S3 URL 생성
             String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
             Image image = Image.create(
@@ -168,7 +163,6 @@ public class ImageUploadService {
         return UUID.randomUUID() + "." + extension;
     }
 
-    // 비율에 따라 이미지 리사이징
     private BufferedImage resizeImageByAspectRatio(BufferedImage originalImage, String aspectRatio) {
         if (aspectRatio == null || aspectRatio.equalsIgnoreCase("original")) {
             return resizeKeepingRatio(originalImage);
@@ -182,7 +176,6 @@ public class ImageUploadService {
         };
     }
 
-    // 비율 유지하며 리사이징 (original)
     private BufferedImage resizeKeepingRatio(BufferedImage originalImage) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -201,13 +194,10 @@ public class ImageUploadService {
         return createResizedImage(originalImage, newWidth, newHeight);
     }
 
-    // 정사각형으로 크롭 후 리사이징 (1:1)
     private BufferedImage resizeToSquare(BufferedImage originalImage) {
         return resizeToCrop(originalImage, MAX_WIDTH, MAX_WIDTH);
     }
 
-
-    // 특정 비율로 크롭 후 리사이징
     private BufferedImage resizeToCrop(BufferedImage originalImage, int targetWidth, int targetHeight) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -230,7 +220,6 @@ public class ImageUploadService {
         return createResizedImage(croppedImage, targetWidth, targetHeight);
     }
 
-    // 고품질 리사이징 수행
     private BufferedImage createResizedImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = resizedImage.createGraphics();

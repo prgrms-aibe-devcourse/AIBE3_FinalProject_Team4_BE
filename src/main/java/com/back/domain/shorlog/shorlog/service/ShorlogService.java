@@ -80,7 +80,6 @@ public class ShorlogService {
 
         Shorlog savedShorlog = shorlogRepository.save(shorlog);
 
-        // 이미지 연결 (중복 제거)
         if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
             List<Long> uniqueImageIds = request.getImageIds().stream()
                     .distinct()
@@ -101,7 +100,6 @@ public class ShorlogService {
 
         List<String> hashtagNames = saveHashtags(savedShorlog, request.getHashtags());
 
-        // 이미지 URL 직접 조회 (Lazy Loading 회피)
         List<String> thumbnailUrls = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(savedShorlog.getId())
                 .stream()
                 .map(Image::getS3Url)
@@ -117,20 +115,16 @@ public class ShorlogService {
         Shorlog shorlog = shorlogRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        // 조회수 증가 (Bulk Update - 영속성 컨텍스트를 거치지 않는 방식)
         shorlogRepository.incrementViewCount(id);
 
-        // Elasticsearch 동기화 (조회수)
         shorlogDocService.updateElasticsearchCounts(id);
 
         List<String> hashtags = shorlogHashtagRepository.findHashtagNamesByShorlogId(id);
 
-        // 좋아요/북마크 개수 조회
         long likeCount = shorlogLikeRepository.countByShorlog(shorlog);
         long bookmarkCount = shorlogBookmarkRepository.countByShorlog(shorlog);
         Long linkedBlogId = shorlogBlogLinkRepository.findBlogIdByShorlogId(id).orElse(null);
 
-        // 댓글 수 조회
         Long commentCountLong = commentsService.getCommentCounts(
                 List.of(id),
                 CommentsTargetType.SHORLOG
@@ -144,10 +138,8 @@ public class ShorlogService {
     public Page<ShorlogFeedResponse> getShorlogs(int page) {
         Pageable pageable = PageRequest.of(page, FEED_PAGE_SIZE);
 
-        // 최신순 정렬
         Page<Shorlog> shorlogs = shorlogRepository.findAllByOrderByCreatedAtDesc(pageable);
 
-        // 댓글 수 대량 조회
         List<Long> shorlogIds = shorlogs.stream()
                 .map(Shorlog::getId)
                 .toList();
@@ -161,14 +153,12 @@ public class ShorlogService {
         });
     }
 
-     // 전체 피드 조회 (랜덤 정렬)
     public Page<ShorlogFeedResponse> getRandomFeed(int pageNumber) {
-        // 랜덤 정렬 쿼리 (function_score 사용)
         Query randomQuery = Query.of(q -> q.functionScore(fs -> fs
                 .query(Query.of(mq -> mq.matchAll(ma -> ma)))
                 .functions(fn -> fn.randomScore(rs -> rs
                         .seed(String.valueOf(System.currentTimeMillis()))
-                        .field("_seq_no")  // Elasticsearch 7.0+ 필수
+                        .field("_seq_no")
                 ))
                 .boostMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode.Replace)
         ));
@@ -179,14 +169,13 @@ public class ShorlogService {
         return convertToPage(response, pageNumber, pageSize);
     }
 
-     // 추천 피드 조회 (AI 추천 알고리즘)
     public Page<ShorlogFeedResponse> getRecommendedFeed(String guestId, Long userId, int pageNumber) {
         List<Query> shouldQueries = recommendService.getRecommendQueries(guestId, userId, PostType.SHORLOG);
 
         Query finalQuery = Query.of(q -> q.bool(b -> {
             b.must(m -> m.matchAll(ma -> ma));
             b.should(shouldQueries);
-            b.minimumShouldMatch("0"); // should 안 걸려도 제외 X
+            b.minimumShouldMatch("0");
             return b;
         }));
 
@@ -225,24 +214,20 @@ public class ShorlogService {
 
         switch (sort.toLowerCase()) {
             case "popular" -> {
-                // 인기순으로 ID만 조회
                 List<Long> ids = shorlogRepository.findShorlogIdsByUserIdOrderByPopularity(userId, pageable);
 
                 if (ids.isEmpty()) {
                     return Page.empty(pageable);
                 }
 
-                // ID로 엔티티 FETCH JOIN
                 List<Shorlog> shorlogList = shorlogRepository.findByIdsWithFetch(ids);
 
-                // 원래 정렬 순서대로 재정렬
                 java.util.Map<Long, Integer> idIndexMap = new java.util.HashMap<>();
                 for (int i = 0; i < ids.size(); i++) {
                     idIndexMap.put(ids.get(i), i);
                 }
                 shorlogList.sort(java.util.Comparator.comparingInt(s -> idIndexMap.get(s.getId())));
 
-                // 전체 개수 조회
                 int totalCount = shorlogRepository.countAllByUserId(userId);
                 shorlogs = new PageImpl<>(shorlogList, pageable, totalCount);
             }
@@ -251,12 +236,10 @@ public class ShorlogService {
             default -> throw new IllegalArgumentException("정렬 기준은 'popular', 'oldest', 'latest' 중 하나여야 합니다.");
         }
 
-        // shorlog ID 목록 추출
         List<Long> shorlogIds = shorlogs.stream()
                 .map(Shorlog::getId)
                 .toList();
 
-        // 일괄 조회 (N+1 해결)
         var hashtagsMap = buildHashtagsMap(shorlogIds);
         var likeCountMap = buildLikeCountMap(shorlogIds);
         var commentCountMap = commentsService.getCommentCounts(shorlogIds, CommentsTargetType.SHORLOG);
@@ -274,7 +257,6 @@ public class ShorlogService {
             throw new NoSuchElementException("사용자를 찾을 수 없습니다.");
         }
 
-        // getMyShorlogs와 동일한 로직 재사용
         return getMyShorlogs(userId, sort, page);
     }
 
@@ -289,17 +271,14 @@ public class ShorlogService {
 
         shorlog.update(request.getContent());
 
-        // 이미지 업데이트
         if (request.getImageIds() != null) {
             List<Image> existingImages = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
             for (Image existingImage : existingImages) {
                 imageRepository.decrementReferenceCount(existingImage.getId());
             }
 
-            // shorlogId 전달하여 Lazy Loading 회피
             shorlogImagesRepository.deleteByShorlogId(shorlogId);
 
-            // 즉시 DB에 반영
             shorlogImagesRepository.flush();
 
             List<Long> uniqueImageIds = request.getImageIds().stream()
@@ -324,7 +303,6 @@ public class ShorlogService {
 
         List<String> hashtagNames = saveHashtags(shorlog, request.getHashtags());
 
-        // 이미지 URL 직접 조회 (Lazy Loading 회피)
         List<String> thumbnailUrls = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId)
                 .stream()
                 .map(Image::getS3Url)
@@ -390,11 +368,9 @@ public class ShorlogService {
             throw new IllegalArgumentException("검색어를 입력해주세요.");
         }
 
-        // 검색어에서 # 제거
         String processedQuery = query.trim().replace("#", "");
         Page<ShorlogDoc> searchResults = shorlogDocService.searchShorlogs(processedQuery, sort, page, SEARCH_PAGE_SIZE);
 
-        // MySQL에 존재하는 숏로그만 필터링
         List<ShorlogFeedResponse> filteredResults = searchResults.stream()
                 .map(doc -> {
                     Long shorlogId = Long.parseLong(doc.getId());
@@ -411,14 +387,13 @@ public class ShorlogService {
                             doc.getNickname(),
                             doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
                             doc.getLikeCount(),
-                            doc.getCommentCount(),
-                            ShorlogFeedResponse.extractFirstLine(doc.getContent())
+                        doc.getCommentCount(),
+                        ShorlogFeedResponse.extractFirstLine(doc.getContent())
                     );
                 })
-                .filter(response -> response != null) // null 제거
+                .filter(response -> response != null)
                 .toList();
 
-        // PageImpl로 반환
         return new org.springframework.data.domain.PageImpl<>(
                 filteredResults,
                 searchResults.getPageable(),
@@ -464,9 +439,6 @@ public class ShorlogService {
         return new PageImpl<>(content, pageable, totalHits);
     }
 
-    /**
-     * N+1 해결: 여러 숏로그의 해시태그를 한 번의 쿼리로 조회하여 Map으로 변환
-     */
     private java.util.Map<Long, List<String>> buildHashtagsMap(List<Long> shorlogIds) {
         if (shorlogIds.isEmpty()) {
             return java.util.Collections.emptyMap();
@@ -485,9 +457,6 @@ public class ShorlogService {
         return hashtagsMap;
     }
 
-    /**
-     * N+1 해결: 여러 숏로그의 좋아요 수를 한 번의 쿼리로 조회하여 Map으로 변환
-     */
     private java.util.Map<Long, Long> buildLikeCountMap(List<Long> shorlogIds) {
         if (shorlogIds.isEmpty()) {
             return java.util.Collections.emptyMap();
