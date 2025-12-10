@@ -1,5 +1,8 @@
 package com.back.domain.user.auth.service;
 
+import com.back.domain.shared.image.service.ImageLifecycleService;
+import com.back.domain.shorlog.shorlog.event.ShorlogDeletedEvent;
+import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.user.mail.service.VerificationTokenService;
 import com.back.domain.user.refreshToken.service.RefreshTokenService;
 import com.back.domain.user.auth.dto.OAuth2CompleteJoinRequestDto;
@@ -12,10 +15,13 @@ import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +32,9 @@ public class AuthService {
     private final VerificationTokenService verificationTokenService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDeletionJdbcRepository userDeletionJdbcRepository;
+    private final ShorlogRepository shorlogRepository;
+    private final ImageLifecycleService imageLifecycleService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
@@ -140,8 +149,26 @@ public class AuthService {
 
     @Transactional
     public void withdrawUserHardDelete(Long userId) {
+        User user = getUserById(userId);
+
+        // 1. RefreshToken 삭제 (Redis)
         refreshTokenService.deleteRefreshTokenByUserId(userId);
 
+        // 2. TTS 파일 삭제 (S3)
+        List<String> ttsUrls = shorlogRepository.findTtsUrlsByUserId(userId);
+        for (String ttsUrl : ttsUrls) {
+            if (ttsUrl != null && !ttsUrl.isBlank()) {
+                imageLifecycleService.deleteTtsFile(ttsUrl);
+            }
+        }
+
+        // 3. Elasticsearch 숏로그 인덱스 삭제 (이벤트 발행)
+        List<Long> shorlogIds = shorlogRepository.findAllIdsByUserId(userId);
+        for (Long shorlogId : shorlogIds) {
+            eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
+        }
+
+        // 4. MySQL 데이터 완전 삭제 (JDBC 일괄 처리)
         userDeletionJdbcRepository.deleteUserCompletely(userId);
     }
 }

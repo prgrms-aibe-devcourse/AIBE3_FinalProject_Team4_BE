@@ -3,6 +3,7 @@ package com.back.domain.user.user.repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,6 +14,7 @@ public class UserDeletionJdbcRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @Transactional
     public void deleteUserCompletely(Long userId) {
         // 0) 메시지까지 전부 삭제: 탈퇴 유저가 속한 thread 통째로 삭제
         List<Long> threadIds = jdbcTemplate.queryForList(
@@ -33,7 +35,7 @@ public class UserDeletionJdbcRepository {
 
         // 1) 팔로우
         jdbcTemplate.update("DELETE FROM follow WHERE from_user_id = ? OR to_user_id = ?", userId, userId);
-
+        jdbcTemplate.update("DELETE FROM notification WHERE receiver_id = ? OR sender_id = ?", userId, userId);
         // 2) 유저가 누른 좋아요/북마크/반응
         jdbcTemplate.update("DELETE FROM blog_like WHERE user_id = ?", userId);
         jdbcTemplate.update("DELETE FROM blog_bookmarks WHERE user_id = ?", userId);
