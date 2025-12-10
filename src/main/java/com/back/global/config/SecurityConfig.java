@@ -70,7 +70,6 @@ public class SecurityConfig {
             "/api/v1/blogs/{id}",
             "api/v1/blogs/search",
             "api/v1/blogs/{id:\\d+}/linked-shorlogs",
-            "/api/v1/blogs/{id:\\d+}/view",
 
             "/api/v1/comments/{targetType}/{targetId}",
 
@@ -89,6 +88,7 @@ public class SecurityConfig {
             "/api/v1/auth/send-code",
             "/api/v1/auth/verify-code",
             "/api/v1/auth/get-email",
+            "/api/v1/blogs/{id:\\d+}/view",
             "/message-threads/**",  // todo 추후 메시지에 인증 적용 시 제거
             "/tmp-for-complete-join-of-oauth2-user"    // todo 추후 프론트 페이지 개발 후 제거
     };
