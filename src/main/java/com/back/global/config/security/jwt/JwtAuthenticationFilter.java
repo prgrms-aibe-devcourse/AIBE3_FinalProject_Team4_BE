@@ -54,15 +54,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long userId = jwtProvider.getUserId(refreshToken);
             RefreshToken storedRefreshToken = refreshTokenService.getRefreshTokenByUserId(userId);
 
-            // 1. 리프레시 토큰이 유효하지 않은 경우
-            if (!storedRefreshToken.getToken().equals(refreshToken)) {
+            // 저장된 리프레시 토큰이 없는 경우
+            if (storedRefreshToken == null) {
                 SecurityContextHolder.clearContext();
-                handleCustomAuthError(res, "리프레시 토큰이 유효하지 않습니다. 다시 로그인 해주세요.");
+                handleCustomAuthError(res, "리프레시 토큰이 존재하지 않습니다. 다시 로그인 해주세요.");
+                logger.info("저장된 리프레시 토큰이 없음");
+                return;
+            }
+
+            // 리프레시 토큰이 유효하지 않은 경우
+            if (!storedRefreshToken.getToken().equals(refreshToken)) {
+                rq.deleteCookie("accessToken");
+                rq.deleteCookie("refreshToken");
+                SecurityContextHolder.clearContext();
+                handleCustomAuthError(res, "다른 기기에서 로그인이 감지되었습니다. 다시 로그인 해주세요.");
+                logger.info("리프레시 토큰 불일치");
+                logger.info("저장된 refreshToken: " + storedRefreshToken.getToken());
+                logger.info("요청 refreshToken: " + refreshToken);
                 return;
             }
             logger.info("리프레시 토큰 유효 확인 완료");
 
-            // 2. 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
+            // 리프레시 토큰이 유효한 경우 새로운 액세스 토큰 발급
             String newAccessToken = jwtProvider.generateAccessToken(userId, "USER");
             rq.setCookie("accessToken", newAccessToken);
             SecurityUser securityUser = jwtProvider.parseUserFromAccessToken(newAccessToken);
