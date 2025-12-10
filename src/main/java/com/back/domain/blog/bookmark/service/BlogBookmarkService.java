@@ -1,9 +1,9 @@
 package com.back.domain.blog.bookmark.service;
 
+import com.back.domain.blog.blog.dto.BlogIndexEvent;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
-import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.blog.bookmark.entity.BlogBookmark;
 import com.back.domain.blog.bookmark.repository.BlogBookmarkRepository;
 import com.back.domain.notification.entity.NotificationType;
@@ -12,6 +12,7 @@ import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,7 @@ public class BlogBookmarkService {
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final BlogDocIndexer blogDocIndexer;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public boolean bookmarkOn(Long userId, Long blogId) {
@@ -49,7 +50,7 @@ public class BlogBookmarkService {
         try {
             bookmarkRepository.save(bookmark);
             blogRepository.incrementBookmarkCount(blogId);
-            blogDocIndexer.index(blogId);
+            eventPublisher.publishEvent(new BlogIndexEvent(blogId));
             // 🔔 북마크 알림
             User sender = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -70,8 +71,9 @@ public class BlogBookmarkService {
 
     @Transactional
     public long bookmarkOff(Long userId, Long blogId) {
-        Blog blog = blogRepository.findById(blogId)
-                .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
+        if (blogRepository.findById(blogId).isEmpty()) {
+            throw new ServiceException(BlogErrorCase.BLOG_NOT_FOUND);
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.PERMISSION_DENIED));
         BlogBookmark bookmark = bookmarkRepository.findByBlogIdAndUserId(blogId, user.getId())
@@ -80,21 +82,23 @@ public class BlogBookmarkService {
         blogRepository.decrementBookmarkCount(blogId);
         bookmarkRepository.delete(bookmark);
 
-        blogDocIndexer.index(blogId);
-        return blog.getBookmarkCount();
+        eventPublisher.publishEvent(new BlogIndexEvent(blogId));
+        return blogRepository.getBookmarkCountById(blogId);
     }
 
     public boolean isBookmarked(Long blogId, Long userId) {
+        if (userId == null) return false;
         return bookmarkRepository.existsByBlogIdAndUserId(blogId, userId);
     }
 
     @Transactional
     public long getBookmarkCount(Long blogId) {
-        return blogRepository.getBookmarkCountById(blogId).orElse(0L);
+        return blogRepository.getBookmarkCountById(blogId);
     }
 
     public Set<Long> findBookmarkedBlogIds(Long userId, List<Long> blogIds) {
         if (userId == null) return Set.of();
+        if (blogIds == null || blogIds.isEmpty()) return Set.of();
         return bookmarkRepository.findBookmarkedBlogIdsByUserId(blogIds, userId);
     }
 }

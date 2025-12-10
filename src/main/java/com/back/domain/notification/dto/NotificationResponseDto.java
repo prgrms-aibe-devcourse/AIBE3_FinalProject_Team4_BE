@@ -15,13 +15,15 @@ public record NotificationResponseDto(
         String message,
         boolean isRead,
         String relativeTime,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String redirectUrl
 ) {
     public static NotificationResponseDto from(
             Notification n,
             String senderNickname,
             String senderProfileImage,
-            String relativeTime
+            String relativeTime,
+            String redirectUrl
     ) {
         return new NotificationResponseDto(
                 n.getId(),
@@ -33,7 +35,8 @@ public record NotificationResponseDto(
                 n.getMessage(),
                 n.isRead(),
                 relativeTime,
-                n.getCreatedAt()
+                n.getCreatedAt(),
+                redirectUrl
         );
     }
 }

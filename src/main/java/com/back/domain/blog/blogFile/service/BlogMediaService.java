@@ -3,6 +3,7 @@ package com.back.domain.blog.blogFile.service;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.back.domain.blog.blog.dto.BlogIndexEvent;
 import com.back.domain.blog.blog.entity.Blog;
 import com.back.domain.blog.blog.exception.BlogErrorCase;
 import com.back.domain.blog.blog.repository.BlogRepository;
@@ -13,7 +14,6 @@ import com.back.domain.blog.blogFile.repository.BlogFileRepository;
 import com.back.domain.blog.blogFile.util.ImageResizeUtil;
 import com.back.domain.blog.blogFile.util.MediaTypeDetector;
 import com.back.domain.blog.blogFile.util.VideoResizeUtil;
-import com.back.domain.blog.blogdoc.service.BlogDocIndexer;
 import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
@@ -25,6 +25,7 @@ import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,8 +54,8 @@ public class BlogMediaService {
     private final BlogFileRepository blogFileRepository;
     private final BlogRepository blogRepository;
     private final UserRepository userRepository;
-    private final BlogDocIndexer blogDocIndexer;
     private final ImageLifecycleService imageLifecycleService;
+    private final ApplicationEventPublisher eventPublisher;
     // Utils
     private final MediaTypeDetector mediaTypeDetector;
     private final ImageResizeUtil imageResizeUtil;
@@ -128,8 +129,7 @@ public class BlogMediaService {
             throw e;
         }
     }
-
-    @Transactional
+    
     protected BlogMediaUploadResponse saveImageMetadata(Long userId, Long blogId, ImageType type, MediaKind mediaKind, String originalFilename, String savedFilename, String s3Url, long size, String contentType
     ) {
         User user = userRepository.findById(userId)
@@ -144,8 +144,7 @@ public class BlogMediaService {
 
         if (type == ImageType.THUMBNAIL) {
             blog.changeThumbnailUrl(s3Url);
-            // ES 인덱싱은 commit 이후로 빼주면 더 좋음 (하지만 지금 구조에서는 일단 유지 가능)
-            blogDocIndexer.index(blogId);
+            eventPublisher.publishEvent(new BlogIndexEvent(blogId));
             return new BlogMediaUploadResponse(savedImage, mediaKind);
         }
 
@@ -233,6 +232,6 @@ public class BlogMediaService {
             bf.updateSortOrder(order++);
         }
         blogFileRepository.flush();
-        blogDocIndexer.index(blog.getId());
+        eventPublisher.publishEvent(new BlogIndexEvent(blogId));
     }
 }

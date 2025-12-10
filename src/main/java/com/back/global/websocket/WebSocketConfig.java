@@ -15,7 +15,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://localhost:3000") // 운영은 도메인 명시
+                .setAllowedOriginPatterns("http://localhost:3000", "https://www.textok.site")
                 .withSockJS(); // optional (개발/호환성)
     }
 

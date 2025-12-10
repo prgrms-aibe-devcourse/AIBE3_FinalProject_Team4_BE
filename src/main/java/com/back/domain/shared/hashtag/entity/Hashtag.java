@@ -4,7 +4,10 @@ import com.back.domain.blog.bloghashtag.entity.BlogHashtag;
 import com.back.domain.shorlog.shorloghashtag.entity.ShorlogHashtag;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +16,6 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 @Table(name = "hashtags")
 public class Hashtag extends BaseEntity {
     @OneToMany(mappedBy = "hashtag", orphanRemoval = true, cascade = CascadeType.ALL)
@@ -22,6 +24,6 @@ public class Hashtag extends BaseEntity {
     @OneToMany(mappedBy = "hashtag", orphanRemoval = true, cascade = CascadeType.ALL)
     private final List<ShorlogHashtag> shorlogHashtag = new ArrayList<>();
 
-    @Column(length = 255, nullable = false, unique = true)
+    @Column(length = 20, nullable = false, unique = true)
     private String name;
 }

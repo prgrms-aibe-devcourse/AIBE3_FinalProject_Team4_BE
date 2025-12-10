@@ -26,7 +26,7 @@ import static com.back.domain.recommend.recentview.constants.GuestConstants.GUES
 
 @RestController
 @Tag(name = "Blog API", description = "블로그 기본 API")
-@RequestMapping("api/v1/blogs")
+@RequestMapping("/api/v1/blogs")
 @RequiredArgsConstructor
 public class ApiV1BlogController {
     private final Rq rq;

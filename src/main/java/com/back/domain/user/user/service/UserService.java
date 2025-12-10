@@ -18,6 +18,7 @@ import com.back.domain.user.user.file.ProfileImageService;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -62,11 +64,15 @@ public class UserService {
 
         long followersCount = followService.countFollowers(userId);
         long followingCount = followService.countFollowings(userId);
-        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long bloglikesCount = blogLikeRepository.countByBlogUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countByShorlogUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
         int shorlogsCount = shorlogRepository.countAllByUserId(userId);
         int blogsCount = blogRepository.countAllByUserId(userId);
+
+        log.info("shorlogsLikeCount: {}", shorlogLikesCount);
+        log.info("blogLikesCount: {}", bloglikesCount);
+        log.info("totalLikesCount: {}", likesCount);
 
         return new ProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount);
     }
@@ -78,13 +84,17 @@ public class UserService {
 
         long followersCount = followService.countFollowers(userId);
         long followingCount = followService.countFollowings(userId);
-        long bloglikesCount = blogLikeRepository.countAllByUserId(userId);
-        long shorlogLikesCount = shorlogLikeRepository.countAllByUserId(userId);
+        long bloglikesCount = blogLikeRepository.countByBlogUserId(userId);
+        long shorlogLikesCount = shorlogLikeRepository.countByShorlogUserId(userId);
         long likesCount = bloglikesCount + shorlogLikesCount;
         int shorlogsCount = shorlogRepository.countAllByUserId(userId);
         int blogsCount = blogRepository.countAllByUserId(userId);
         int shorlogBookmarksCount = shorlogBookmarkRepository.countAllByUserId(userId);
         int blogBookmarksCount = blogBookmarkRepository.countAllByUserId(userId);
+
+        log.info("shorlogsLikeCount: {}", shorlogLikesCount);
+        log.info("blogLikesCount: {}", bloglikesCount);
+        log.info("totalLikesCount: {}", likesCount);
 
         return new MyProfileResponseDto(user, followersCount, followingCount, likesCount, shorlogsCount, blogsCount, shorlogBookmarksCount, blogBookmarksCount);
     }
@@ -157,6 +167,11 @@ public class UserService {
     public List<FullCreatorListResponseDto> getCreatorsFull(Long viewerIdOrNull) {
 
         List<User> allUsers = userRepository.findAll();
+        Set<Long> creatorIds = new HashSet<>(shorlogRepository.findDistinctUserIdsWithAnyPost());
+        allUsers = allUsers.stream()
+                .filter(user -> creatorIds.contains(user.getId()))
+                .toList();
+
         List<Long> allUserIds = allUsers.stream().map(User::getId).toList();
 
         // 로그인 여부 분기
