@@ -7,6 +7,7 @@ import com.back.domain.user.auth.dto.PasswordResetRequestDto;
 import com.back.domain.user.auth.dto.UserJoinRequestDto;
 import com.back.domain.user.auth.dto.UserLoginRequestDto;
 import com.back.domain.user.user.entity.User;
+import com.back.domain.user.user.repository.UserDeletionJdbcRepository;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.config.security.jwt.JwtTokenProvider;
 import com.back.global.exception.AuthException;
@@ -24,6 +25,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final VerificationTokenService verificationTokenService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserDeletionJdbcRepository userDeletionJdbcRepository;
 
     @Transactional
     public User join(UserJoinRequestDto dto) {
@@ -134,5 +136,12 @@ public class AuthService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new AuthException("401-1", "존재하지 않는 아이디입니다."))
                 .getEmail();
+    }
+
+    @Transactional
+    public void withdrawUserHardDelete(Long userId) {
+        refreshTokenService.deleteRefreshTokenByUserId(userId);
+
+        userDeletionJdbcRepository.deleteUserCompletely(userId);
     }
 }

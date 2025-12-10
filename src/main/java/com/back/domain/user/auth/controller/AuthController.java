@@ -131,4 +131,13 @@ public class AuthController {
                 new UserDto(user)
         );
     }
+
+    @DeleteMapping("/withdraw")
+    @Operation(summary = "회원 탈퇴(완전 삭제)")
+    public RsData<Void> withdrawUser(@AuthenticationPrincipal SecurityUser user) {
+        userService.withdrawUserHardDelete(user.getId());
+        rq.deleteCookie("accessToken");
+        rq.deleteCookie("refreshToken");
+        return RsData.of("200", "회원 탈퇴 성공", null);
+    }
 }
