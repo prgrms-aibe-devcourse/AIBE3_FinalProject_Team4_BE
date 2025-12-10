@@ -5,6 +5,9 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.history.history.entity.ContentViewHistory;
+import com.back.domain.history.history.repository.ContentViewHistoryRepository;
+import com.back.domain.main.entity.ContentType;
 import com.back.domain.recommend.recentview.service.RecentViewService;
 import com.back.domain.recommend.recommend.service.RecommendService;
 import com.back.domain.recommend.search.type.PostType;
@@ -32,6 +35,7 @@ import com.back.domain.shorlog.shorloglike.repository.ShorlogLikeRepository;
 import com.back.domain.user.follow.repository.FollowRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -41,6 +45,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -50,6 +55,9 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public class ShorlogService {
 
+    private static final int MAX_HASHTAGS = 10;
+    private static final int FEED_PAGE_SIZE = 30;
+    private static final int SEARCH_PAGE_SIZE = 30;
     private final ShorlogRepository shorlogRepository;
     private final ShorlogHashtagRepository shorlogHashtagRepository;
     private final ShorlogLikeRepository shorlogLikeRepository;
@@ -66,10 +74,7 @@ public class ShorlogService {
     private final RecommendService recommendService;
     private final ShorlogDocQueryRepository shorlogDocQueryRepository;
     private final RecentViewService recentViewService;
-
-    private static final int MAX_HASHTAGS = 10;
-    private static final int FEED_PAGE_SIZE = 30;
-    private static final int SEARCH_PAGE_SIZE = 30;
+    private final ContentViewHistoryRepository contentViewHistoryRepository;
 
     @Transactional
     public CreateShorlogResponse createShorlog(Long userId, CreateShorlogRequest request) {
@@ -387,8 +392,8 @@ public class ShorlogService {
                             doc.getNickname(),
                             doc.getHashtags() != null ? List.copyOf(doc.getHashtags()) : List.of(),
                             doc.getLikeCount(),
-                        doc.getCommentCount(),
-                        ShorlogFeedResponse.extractFirstLine(doc.getContent())
+                            doc.getCommentCount(),
+                            ShorlogFeedResponse.extractFirstLine(doc.getContent())
                     );
                 })
                 .filter(response -> response != null)
@@ -401,15 +406,30 @@ public class ShorlogService {
         );
     }
 
-    public void viewShorlog(String guestId, Long userId, Long id) {
-        shorlogRepository.findById(id)
+    @Transactional
+    public void viewShorlog(String guestId, Long userId, Long shorlogId, HttpServletRequest request) {
+        shorlogRepository.findById(shorlogId)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        recentViewService.addRecentViewPost(guestId, PostType.SHORLOG, id);
+        recentViewService.addRecentViewPost(guestId, PostType.SHORLOG, shorlogId);
 
         if (userId != null && userId > 0) {
             recentViewService.mergeGuestHistoryToUser(guestId, userId, PostType.SHORLOG);
         }
+        User viewer = null;
+        if (userId != null) {
+            viewer = userRepository.findById(userId).orElse(null);
+        }
+
+        ContentViewHistory history = new ContentViewHistory(
+                ContentType.SHORLOG,
+                shorlogId,
+                viewer,
+                LocalDateTime.now(),
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+        contentViewHistoryRepository.save(history);
     }
 
     private Page<ShorlogFeedResponse> convertToPage(SearchResponse<SearchShorlogResponseDto> response, int pageNumber, int pageSize) {
