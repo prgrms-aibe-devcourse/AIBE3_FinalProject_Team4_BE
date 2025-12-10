@@ -78,6 +78,15 @@ public class UserDeletionJdbcRepository {
             WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
             """, userId);
 
+        // 숏로그 이미지 참조 카운트 감소
+        jdbcTemplate.update("""
+            UPDATE images i
+            JOIN shorlog_images si ON i.id = si.image_id
+            JOIN shorlog s ON si.shorlog_id = s.id
+            SET i.reference_count = i.reference_count - 1
+            WHERE s.user_id = ? AND i.reference_count > 0
+            """, userId);
+
         jdbcTemplate.update("""
             DELETE FROM shorlog_images
             WHERE shorlog_id IN (SELECT id FROM (SELECT id FROM shorlog WHERE user_id = ?) s)
