@@ -2,7 +2,6 @@ package com.back.domain.ai.ai.controller;
 
 import com.back.domain.ai.ai.dto.AiChatRequest;
 import com.back.domain.ai.ai.dto.AiGenerateRequest;
-import com.back.domain.ai.ai.dto.AiIndexBlogRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
 import com.back.domain.ai.ai.service.AiIndexService;
@@ -117,24 +116,5 @@ public class ApiV1AiController {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(rs))
                 .doOnError(e -> log.error("AI 챗봇 에러: ", e));
-    }
-
-    // 추후 챗봇 API를 통합하고, 내부 로직에서 RAG 기반 여부에 따라 분기 처리할 예정입니다.
-    @PostMapping("/chat/rag")
-    @Operation(summary = "RAG 기반 챗봇")
-    public Mono<RsData<String>> chatWithRag(@RequestBody @Validated AiChatRequest req) {
-        return Mono.fromCallable(() -> aiChatService.chatWithRag(req.id(), req.message()))
-                .subscribeOn(Schedulers.boundedElastic())
-                .map(RsData::successOf)
-                .doOnError(e -> log.error("AI 챗봇 (RAG) 에러: ", e));
-    }
-
-    @PostMapping("/index")
-    @Operation(summary = "블로그 벡터 DB 등록")
-    public Mono<RsData<String>> indexBlog(@RequestBody AiIndexBlogRequest req) {
-        return Mono.fromRunnable(() -> aiIndexService.indexBlog(req.blogId(), req.title(), req.content()))
-                .subscribeOn(Schedulers.boundedElastic())
-                .then(Mono.just(RsData.successOf("블로그 벡터 등록이 완료되었습니다.")))
-                .doOnError(e -> log.error("AI 블로그 벡터 DB 에러: ", e));
     }
 }

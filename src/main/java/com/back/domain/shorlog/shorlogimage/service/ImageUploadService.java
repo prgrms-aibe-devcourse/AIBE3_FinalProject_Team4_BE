@@ -7,8 +7,8 @@ import com.back.domain.image.image.util.ImageUrlToMultipartFile;
 import com.back.domain.shared.image.entity.Image;
 import com.back.domain.shared.image.entity.ImageType;
 import com.back.domain.shared.image.repository.ImageRepository;
-import com.back.domain.shorlog.shorlogimage.dto.UploadImageOrderRequest;
 import com.back.domain.shorlog.shorlogimage.dto.ImageOrderItemType;
+import com.back.domain.shorlog.shorlogimage.dto.UploadImageOrderRequest;
 import com.back.domain.shorlog.shorlogimage.dto.UploadImageResponse;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
@@ -25,8 +25,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -61,19 +63,24 @@ public class ImageUploadService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        List<UploadImageResponse> responses = new ArrayList<>();
-
         List<UploadImageOrderRequest> sortedItems = orderItems.stream()
                 .sorted(Comparator.comparingInt(UploadImageOrderRequest::order))
                 .toList();
 
-        files = (files == null) ? List.of() : files;
+        List<MultipartFile> finalFiles = (files == null) ? List.of() : files;
 
-        for (int i = 0; i < sortedItems.size(); i++) {
-            log.info("{}번 이미지 업로드 작업 시작", i);
+        return sortedItems.stream()
+                .parallel()
+                .map(item -> processAndUploadSingleImage(item, finalFiles, user))
+                .toList();
+    }
 
-            UploadImageOrderRequest item = sortedItems.get(i);
+    private UploadImageResponse processAndUploadSingleImage(
+            UploadImageOrderRequest item,
+            List<MultipartFile> files,
+            User user) {
 
+        try {
             MultipartFile file;
             if (item.type() == ImageOrderItemType.URL) {
                 file = imageUrlToMultipartFile.convert(item.url(), "files");
@@ -92,51 +99,42 @@ public class ImageUploadService {
             String savedFilename = generateUniqueFilename(extension);
             String s3Key = S3_FOLDER + savedFilename;
 
-            try {
-                BufferedImage originalImage = ImageIO.read(file.getInputStream());
-                BufferedImage resizedImage = resizeImageByAspectRatio(originalImage, aspectRatio);
+            BufferedImage originalImage = ImageIO.read(file.getInputStream());
+            BufferedImage resizedImage = resizeImageByAspectRatio(originalImage, aspectRatio);
 
-                // BufferedImage → byte[]
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(resizedImage, extension.equals("jpg") ? "jpeg" : extension, baos);
-                byte[] imageBytes = baos.toByteArray();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(resizedImage, extension.equals("jpg") ? "jpeg" : extension, baos);
+            byte[] imageBytes = baos.toByteArray();
 
-                // S3 업로드
-                ObjectMetadata metadata = new ObjectMetadata();
-                metadata.setContentLength(imageBytes.length);
-                metadata.setContentType(file.getContentType());
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(imageBytes.length);
+            metadata.setContentType(file.getContentType());
 
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, s3Key, inputStream, metadata);
 
-                // ACL 없이 업로드 (버킷 정책으로 퍼블릭 액세스 관리)
-                PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, s3Key, inputStream, metadata);
+            amazonS3.putObject(putObjectRequest);
 
-                amazonS3.putObject(putObjectRequest);
+            String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-                // S3 URL 생성
-                String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
+            Image image = Image.create(
+                    user,
+                    ImageType.THUMBNAIL,
+                    originalFilename,
+                    savedFilename,
+                    s3Url,
+                    imageBytes.length,
+                    file.getContentType()
+            );
 
-                Image image = Image.create(
-                        user,
-                        ImageType.THUMBNAIL,
-                        originalFilename,
-                        savedFilename,
-                        s3Url,
-                        imageBytes.length,
-                        file.getContentType()
-                );
+            Image savedImage = imageRepository.save(image);
 
-                Image savedImage = imageRepository.save(image);
-                responses.add(UploadImageResponse.from(savedImage));
 
-                log.info("S3 업로드 성공: {} → {}", originalFilename, s3Url);
+            return UploadImageResponse.from(savedImage);
 
-            } catch (IOException e) {
-                throw new RuntimeException("파일 업로드 중 오류가 발생했습니다: " + originalFilename, e);
-            }
+        } catch (IOException e) {
+            throw new RuntimeException("파일 업로드 중 오류가 발생했습니다: " + item, e);
         }
-
-        return responses;
     }
 
     private void validateFile(MultipartFile file) {
@@ -165,7 +163,6 @@ public class ImageUploadService {
         return UUID.randomUUID() + "." + extension;
     }
 
-    // 비율에 따라 이미지 리사이징
     private BufferedImage resizeImageByAspectRatio(BufferedImage originalImage, String aspectRatio) {
         if (aspectRatio == null || aspectRatio.equalsIgnoreCase("original")) {
             return resizeKeepingRatio(originalImage);
@@ -179,7 +176,6 @@ public class ImageUploadService {
         };
     }
 
-    // 비율 유지하며 리사이징 (original)
     private BufferedImage resizeKeepingRatio(BufferedImage originalImage) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -198,13 +194,10 @@ public class ImageUploadService {
         return createResizedImage(originalImage, newWidth, newHeight);
     }
 
-    // 정사각형으로 크롭 후 리사이징 (1:1)
     private BufferedImage resizeToSquare(BufferedImage originalImage) {
         return resizeToCrop(originalImage, MAX_WIDTH, MAX_WIDTH);
     }
 
-
-    // 특정 비율로 크롭 후 리사이징
     private BufferedImage resizeToCrop(BufferedImage originalImage, int targetWidth, int targetHeight) {
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
@@ -227,7 +220,6 @@ public class ImageUploadService {
         return createResizedImage(croppedImage, targetWidth, targetHeight);
     }
 
-    // 고품질 리사이징 수행
     private BufferedImage createResizedImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = resizedImage.createGraphics();

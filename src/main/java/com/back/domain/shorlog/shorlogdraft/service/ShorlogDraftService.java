@@ -132,7 +132,6 @@ public class ShorlogDraftService {
         }
     }
 
-    // imageIds → thumbnailUrls 변환
     private List<String> convertImageIdsToUrls(List<Long> imageIds) {
         if (imageIds == null || imageIds.isEmpty()) {
             return new ArrayList<>();
