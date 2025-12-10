@@ -39,9 +39,8 @@ public class ShorlogTtsService {
     private String bucket;
 
     private static final String S3_TTS_FOLDER = "shorlog/tts/";
-    private static final int CHARS_PER_TOKEN = 400;  // 1토큰 = 400자
+    private static final int CHARS_PER_TOKEN = 400;
 
-    // TTS URL 조회
     public TtsResponse getTtsUrl(Long shorlogId, Long userId) {
         Shorlog shorlog = shorlogRepository.findById(shorlogId)
                 .orElseThrow(() -> new ServiceException(TtsErrorCase.SHORLOG_NOT_FOUND));
@@ -49,7 +48,6 @@ public class ShorlogTtsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(TtsErrorCase.USER_NOT_FOUND));
 
-        // TTS가 없으면 null 반환
         if (shorlog.getTtsUrl() == null) {
             return TtsResponse.of(null, user.getTtsToken());
         }
@@ -67,7 +65,6 @@ public class ShorlogTtsService {
 
         if (shorlog.getTtsUrl() != null) {
             if (shorlog.getTtsCreatorId() != null && shorlog.getTtsCreatorId().equals(userId)) {
-                log.info("생성자의 캐시된 TTS 반환 (무료): userId={}, shorlogId={}", userId, shorlogId);
                 return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
             } else {
                 int contentLength = shorlog.getContent().length();
@@ -78,8 +75,6 @@ public class ShorlogTtsService {
                 }
 
                 user.useTtsToken(requiredTokens);
-                log.info("다른 사용자의 TTS 재사용 - 토큰 차감: userId={}, shorlogId={}, tokens={}",
-                        userId, shorlogId, requiredTokens);
 
                 return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
             }
@@ -113,7 +108,6 @@ public class ShorlogTtsService {
         }
     }
 
-    // Google Cloud Text-to-Speech API 호출
     private byte[] synthesizeSpeech(String text) throws IOException {
         String credentialsPath = System.getProperty("GOOGLE_APPLICATION_CREDENTIALS");
 
@@ -122,7 +116,6 @@ public class ShorlogTtsService {
         }
 
         try {
-            // 명시적으로 인증 정보를 사용하여 클라이언트 생성
             GoogleCredentials credentials = ServiceAccountCredentials.fromStream(
                 new java.io.FileInputStream(credentialsPath)
             ).createScoped("https://www.googleapis.com/auth/cloud-platform");
@@ -137,17 +130,16 @@ public class ShorlogTtsService {
                         .setText(text)
                         .build();
 
-                // 음성 설정
                 VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                         .setLanguageCode("ko-KR")
-                        .setName("ko-KR-Standard-A")  // Standard 음성 (무료)
+                        .setName("ko-KR-Standard-A")
                         .setSsmlGender(SsmlVoiceGender.FEMALE)
                         .build();
 
                 AudioConfig audioConfig = AudioConfig.newBuilder()
                         .setAudioEncoding(AudioEncoding.MP3)
-                        .setSpeakingRate(1.0)  // 속도 (1.0 = 기본)
-                        .setPitch(0.0)  // 음높이 (0.0 = 기본)
+                        .setSpeakingRate(1.0)
+                        .setPitch(0.0)
                         .build();
 
                 SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(
@@ -179,7 +171,6 @@ public class ShorlogTtsService {
 
         String s3Url = amazonS3.getUrl(bucket, s3Key).toString();
 
-        log.info("S3 TTS 업로드 성공: {}", s3Url);
 
         return s3Url;
     }

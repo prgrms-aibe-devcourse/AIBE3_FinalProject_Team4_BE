@@ -38,7 +38,6 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
     Page<Shorlog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
      // 팔로잉 피드 조회
-     // TODO: Follow 기능 구현 후 수정 (1번 주권영)
     @Query(value = "SELECT DISTINCT s FROM Shorlog s " +
            "JOIN FETCH s.user " +
            "LEFT JOIN FETCH s.images si " +
@@ -145,4 +144,11 @@ public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
 
     @Query("SELECT s.viewCount FROM Shorlog s WHERE s.id = :id")
     long findViewCount(@Param("id") Long id);
+
+    @Query("SELECT s.id FROM Shorlog s WHERE s.user.id = :userId")
+    List<Long> findAllIdsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT s.ttsUrl FROM Shorlog s WHERE s.user.id = :userId AND s.ttsUrl IS NOT NULL")
+    List<String> findTtsUrlsByUserId(@Param("userId") Long userId);
 }
+

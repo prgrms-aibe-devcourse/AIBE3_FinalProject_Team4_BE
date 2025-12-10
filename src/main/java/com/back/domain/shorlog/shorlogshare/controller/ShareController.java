@@ -23,7 +23,6 @@ public class ShareController {
     @GetMapping("/share/shorlog/{id}")
     @Operation(summary = "숏로그 공유 미리보기 (Open Graph 메타태그 포함)")
     public String sharePreview(@PathVariable Long id, Model model) {
-        // Service 계층에서 Lazy Loading 처리
         SharePreviewDto previewData = shareService.getSharePreviewData(id);
 
         model.addAttribute("id", previewData.getId());
@@ -36,7 +35,6 @@ public class ShareController {
         return "share-preview";
     }
 
-    // 404 페이지
     @ExceptionHandler({NoSuchElementException.class, IllegalStateException.class})
     public String handleNotFound() {
         return "error-404";

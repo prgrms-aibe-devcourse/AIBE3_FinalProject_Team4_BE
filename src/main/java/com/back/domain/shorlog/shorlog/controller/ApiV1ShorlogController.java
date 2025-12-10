@@ -123,11 +123,11 @@ public class ApiV1ShorlogController {
     }
 
     @PostMapping("/images/batch")
-    @Operation(summary = "이미지 일괄 업로드")
+    @Operation(summary = "이미지 일괄 업로드 (병렬 처리 최적화)")
     public RsData<List<UploadImageResponse>> uploadImages(
             @AuthenticationPrincipal SecurityUser securityUser,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
-            @RequestParam("orders") String imageOrderItemsJson
+            @RequestParam("orderItems") String imageOrderItemsJson
     ) throws JsonProcessingException {
         List<UploadImageOrderRequest> orderItems =
                 new ObjectMapper().readValue(imageOrderItemsJson,

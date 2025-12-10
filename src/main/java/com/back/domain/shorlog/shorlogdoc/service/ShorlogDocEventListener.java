@@ -28,28 +28,24 @@ public class ShorlogDocEventListener {
     private final ShorlogRepository shorlogRepository;
     private final ShorlogImagesRepository shorlogImagesRepository;
 
-     // 숏로그 생성 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleShorlogCreated(ShorlogCreatedEvent event) {
         reindexShorlog(event.getShorlogId());
     }
 
-     // 숏로그 수정 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleShorlogUpdated(ShorlogUpdatedEvent event) {
         reindexShorlog(event.getShorlogId());
     }
 
-     // 숏로그 삭제 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleShorlogDeleted(ShorlogDeletedEvent event) {
         shorlogDocService.deleteShorlog(event.getShorlogId());
     }
 
-     // 댓글 생성 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCommentCreated(CommentCreatedEvent event) {
@@ -58,7 +54,6 @@ public class ShorlogDocEventListener {
         }
     }
 
-     // 댓글 삭제 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCommentDeleted(CommentDeletedEvent event) {
@@ -67,21 +62,18 @@ public class ShorlogDocEventListener {
         }
     }
 
-     // 좋아요 생성 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleLikeCreated(ShorlogLikeCreatedEvent event) {
         shorlogDocService.updateElasticsearchCounts(event.getShorlogId());
     }
 
-     // 좋아요 삭제 이벤트
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleLikeDeleted(ShorlogLikeDeletedEvent event) {
         shorlogDocService.updateElasticsearchCounts(event.getShorlogId());
     }
 
-     // 숏로그 재인덱싱 (생성/수정 공통 로직)
     private void reindexShorlog(Long shorlogId) {
         shorlogRepository.findByIdWithUser(shorlogId).ifPresent(shorlog -> {
             List<Image> images = shorlogImagesRepository.findAllImagesByShorlogIdOrderBySort(shorlogId);
