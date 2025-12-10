@@ -60,6 +60,14 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
         return new BlogSearchResult(docs, hasNext, nextCursor);
     }
 
+    private String normalizeHashtagKeyword(String keyword) {
+        String k = keyword.trim();
+        if (k.startsWith("#")) {
+            k = k.substring(1);
+        }
+        return k;
+    }
+    
     private Query buildQuery(BlogSearchCondition condition, @Nullable List<Long> authorIds, @Nullable List<Query> recommendQueries) {
         String keyword = condition.keyword();
         return Query.of(q -> q
@@ -71,10 +79,23 @@ public class BlogDocQueryRepositoryImpl implements BlogDocQueryRepository {
                     }
                     //키워드 검색
                     if (keyword != null && !keyword.isBlank()) {
-                        b.must(m -> m.multiMatch(mm -> mm
+
+                        String normalizedKeyword = normalizeHashtagKeyword(keyword);
+
+                        // 제목/내용 검색
+                        b.should(s -> s.multiMatch(mm -> mm
                                 .fields("title", "content")
                                 .query(keyword)
                         ));
+
+                        // 해시태그 정확 매치
+                        b.should(s -> s.terms(t -> t
+                                .field("hashtagName")
+                                .terms(tv -> tv.value(List.of(FieldValue.of(normalizedKeyword))))
+                        ));
+
+                        // ▶ 제목/내용 또는 해시태그 둘 중 하나는 매치해야 함
+                        b.minimumShouldMatch("1");
                     } else {
                         b.must(m -> m.matchAll(ma -> ma));
                     }
