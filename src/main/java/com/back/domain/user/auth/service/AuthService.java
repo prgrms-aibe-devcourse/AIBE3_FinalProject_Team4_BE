@@ -156,16 +156,17 @@ public class AuthService {
     public void withdrawUserHardDelete(Long userId) {
         User user = getUserById(userId);
 
-        // 1. RefreshToken 삭제 (Redis)
+        // RefreshToken 삭제 (Redis)
         refreshTokenService.deleteRefreshTokenByUserId(userId);
 
+        // 프로필 이미지 삭제 (S3)
         try {
             profileImageService.updateFile(user.getProfileImgUrl(), null, true);
         } catch (IOException e) {
             throw new AuthException("500-1", "프로필 이미지 삭제 중 오류가 발생했습니다.");
         }
 
-        // 2. TTS 파일 삭제 (S3)
+        // TTS 파일 삭제 (S3)
         List<String> ttsUrls = shorlogRepository.findTtsUrlsByUserId(userId);
         for (String ttsUrl : ttsUrls) {
             if (ttsUrl != null && !ttsUrl.isBlank()) {
@@ -173,13 +174,13 @@ public class AuthService {
             }
         }
 
-        // 3. Elasticsearch 숏로그 인덱스 삭제 (이벤트 발행)
+        // Elasticsearch 숏로그 인덱스 삭제 (이벤트 발행)
         List<Long> shorlogIds = shorlogRepository.findAllIdsByUserId(userId);
         for (Long shorlogId : shorlogIds) {
             eventPublisher.publishEvent(new ShorlogDeletedEvent(shorlogId));
         }
 
-        // 4. MySQL 데이터 완전 삭제 (JDBC 일괄 처리)
+        // MySQL 데이터 완전 삭제 (JDBC 일괄 처리)
         userDeletionJdbcRepository.deleteUserCompletely(userId);
     }
 }
