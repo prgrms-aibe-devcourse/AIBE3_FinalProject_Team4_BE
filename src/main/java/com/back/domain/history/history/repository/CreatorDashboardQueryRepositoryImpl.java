@@ -5,7 +5,8 @@ import com.back.domain.blog.bookmark.entity.QBlogBookmark;
 import com.back.domain.blog.like.entity.QBlogLike;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.entity.QComments;
-import com.back.domain.history.history.dto.CreatorOverviewDto;
+import com.back.domain.history.history.dto.CreatorPeriodStats;
+import com.back.domain.history.history.dto.CreatorTotalStats;
 import com.back.domain.history.history.entity.QContentViewHistory;
 import com.back.domain.main.entity.ContentType;
 import com.back.domain.shorlog.shorlog.entity.QShorlog;
@@ -26,7 +27,7 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public CreatorOverviewDto getOverview(Long creatorId, LocalDateTime since) {
+    public CreatorTotalStats getTotalStats(Long creatorId) {
         QContentViewHistory h = QContentViewHistory.contentViewHistory;
         QBlog blog = QBlog.blog;
         QShorlog shorlog = QShorlog.shorlog;
@@ -35,7 +36,6 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
         QBlogBookmark blogBookmark = QBlogBookmark.blogBookmark;
         QShorlogBookmark shorlogBookmark = QShorlogBookmark.shorlogBookmark;
         QFollow follow = QFollow.follow;
-        QComments comments = QComments.comments;
 
         // 1) 전체 조회수 (블로그 + 숏로그)
         Long blogViews = queryFactory
@@ -97,55 +97,104 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
                 .where(follow.toUser.id.eq(creatorId))
                 .fetchOne();
 
-        // 5) 최근 N일 좋아요
-        Long recentBlogLikes = queryFactory
+        return new CreatorTotalStats(
+                totalViews,
+                totalLikes,
+                totalBookmarks,
+                n(followerCount)
+        );
+    }
+
+    @Override
+    public CreatorPeriodStats getPeriodStats(Long creatorId, LocalDateTime from, LocalDateTime to) {
+        QContentViewHistory h = QContentViewHistory.contentViewHistory;
+        QBlog blog = QBlog.blog;
+        QShorlog shorlog = QShorlog.shorlog;
+        QBlogLike blogLike = QBlogLike.blogLike;
+        QShorlogLike shorlogLike = QShorlogLike.shorlogLike;
+        QBlogBookmark blogBookmark = QBlogBookmark.blogBookmark;
+        QShorlogBookmark shorlogBookmark = QShorlogBookmark.shorlogBookmark;
+        QFollow follow = QFollow.follow;
+        QComments comments = QComments.comments;
+
+        // 1) 기간 조회수
+        Long periodBlogViews = queryFactory
+                .select(h.count())
+                .from(h)
+                .join(blog).on(
+                        h.contentType.eq(ContentType.BLOG)
+                                .and(h.contentId.eq(blog.id))
+                )
+                .where(
+                        blog.user.id.eq(creatorId),
+                        h.createdAt.between(from, to)
+                )
+                .fetchOne();
+
+        Long periodShorlogViews = queryFactory
+                .select(h.count())
+                .from(h)
+                .join(shorlog).on(
+                        h.contentType.eq(ContentType.SHORLOG)
+                                .and(h.contentId.eq(shorlog.id))
+                )
+                .where(
+                        shorlog.user.id.eq(creatorId),
+                        h.createdAt.between(from, to)
+                )
+                .fetchOne();
+
+        long periodViews = n(periodBlogViews) + n(periodShorlogViews);
+
+        // 2) 기간 좋아요
+        Long periodBlogLikes = queryFactory
                 .select(blogLike.count())
                 .from(blogLike)
                 .where(
                         blogLike.blog.user.id.eq(creatorId),
-                        blogLike.likedAt.after(since)
+                        blogLike.likedAt.between(from, to)
                 )
                 .fetchOne();
 
-        Long recentShorlogLikes = queryFactory
+        Long periodShorlogLikes = queryFactory
                 .select(shorlogLike.count())
                 .from(shorlogLike)
                 .where(
                         shorlogLike.shorlog.user.id.eq(creatorId),
-                        shorlogLike.createdAt.after(since)
+                        shorlogLike.createdAt.between(from, to)
                 )
                 .fetchOne();
 
-        long recentLikes = n(recentBlogLikes) + n(recentShorlogLikes);
+        long periodLikes = n(periodBlogLikes) + n(periodShorlogLikes);
 
-        // 6) 최근 N일 북마크
-        Long recentBlogBookmarks = queryFactory
+        // 3) 기간 북마크
+        Long periodBlogBookmarks = queryFactory
                 .select(blogBookmark.count())
                 .from(blogBookmark)
                 .where(
                         blogBookmark.blog.user.id.eq(creatorId),
-                        blogBookmark.bookmarkedAt.after(since)
+                        blogBookmark.bookmarkedAt.between(from, to)
                 )
                 .fetchOne();
 
-        Long recentShorlogBookmarks = queryFactory
+        Long periodShorlogBookmarks = queryFactory
                 .select(shorlogBookmark.count())
                 .from(shorlogBookmark)
                 .where(
                         shorlogBookmark.shorlog.user.id.eq(creatorId),
-                        shorlogBookmark.createdAt.after(since)
+                        shorlogBookmark.createdAt.between(from, to)
                 )
                 .fetchOne();
 
-        long recentBookmarks = n(recentBlogBookmarks) + n(recentShorlogBookmarks);
+        long periodBookmarks = n(periodBlogBookmarks) + n(periodShorlogBookmarks);
 
-        // 7) 최근 N일 댓글 수 (블로그 + 숏로그)
-        Long recentBlogComments = queryFactory
+        // 4) 기간 댓글 수
+        Long periodBlogComments = queryFactory
                 .select(comments.count())
                 .from(comments)
                 .where(
                         comments.targetType.eq(CommentsTargetType.BLOG),
-                        comments.createdAt.after(since),
+                        comments.createdAt.between(from, to),
                         comments.targetId.in(
                                 JPAExpressions
                                         .select(blog.id)
@@ -155,12 +204,12 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
                 )
                 .fetchOne();
 
-        Long recentShorlogComments = queryFactory
+        Long periodShorlogComments = queryFactory
                 .select(comments.count())
                 .from(comments)
                 .where(
                         comments.targetType.eq(CommentsTargetType.SHORLOG),
-                        comments.createdAt.after(since),
+                        comments.createdAt.between(from, to),
                         comments.targetId.in(
                                 JPAExpressions
                                         .select(shorlog.id)
@@ -170,27 +219,24 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
                 )
                 .fetchOne();
 
-        long recentComments = n(recentBlogComments) + n(recentShorlogComments);
+        long periodComments = n(periodBlogComments) + n(periodShorlogComments);
 
-        // 8) 최근 N일 팔로워 증가
-        Long recentFollowers = queryFactory
+        // 5) 기간 팔로워 증가
+        Long periodFollowers = queryFactory
                 .select(follow.count())
                 .from(follow)
                 .where(
                         follow.toUser.id.eq(creatorId),
-                        follow.createdAt.after(since)
+                        follow.createdAt.between(from, to)
                 )
                 .fetchOne();
 
-        return new CreatorOverviewDto(
-                totalViews,
-                totalLikes,
-                totalBookmarks,
-                n(followerCount),
-                recentLikes,
-                recentBookmarks,
-                recentComments,
-                n(recentFollowers)
+        return new CreatorPeriodStats(
+                periodViews,
+                periodLikes,
+                periodBookmarks,
+                periodComments,
+                n(periodFollowers)
         );
     }
 
