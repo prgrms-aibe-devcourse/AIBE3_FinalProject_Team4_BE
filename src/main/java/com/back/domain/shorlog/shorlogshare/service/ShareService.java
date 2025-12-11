@@ -22,9 +22,7 @@ public class ShareService {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
-     // 숏로그 공유 미리보기 데이터 조회
     public SharePreviewDto getSharePreviewData(Long shorlogId) {
-        // N+1 문제 해결
         Shorlog shorlog = shorlogRepository.findByIdWithUser(shorlogId)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
@@ -47,7 +45,6 @@ public class ShareService {
                 .build();
     }
 
-     // 숏로그 제목 추출 (첫 줄, 최대 50자)
     private String extractTitle(Shorlog shorlog) {
         String content = shorlog.getContent();
         if (content == null || content.isBlank()) {
@@ -61,7 +58,6 @@ public class ShareService {
         return firstLine;
     }
 
-     // 숏로그 설명 추출 (전체 내용, 최대 100자)
     private String extractDescription(Shorlog shorlog) {
         String content = shorlog.getContent();
         if (content == null || content.isBlank()) {
@@ -76,7 +72,6 @@ public class ShareService {
         return description;
     }
 
-     // 썸네일 이미지 URL 추출 (첫 번째 이미지)
     private String extractImageUrl(Shorlog shorlog) {
         List<String> thumbnailUrls = shorlog.getThumbnailUrlList();
 

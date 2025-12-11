@@ -55,7 +55,20 @@ public class ImageLifecycleService {
         }
     }
 
-    //       private helper methods
+    @Transactional
+    public void deleteTtsFile(String ttsUrl) {
+        if (ttsUrl == null || ttsUrl.isBlank()) {
+            return;
+        }
+
+        String key = extractKeyFromS3Url(ttsUrl);
+
+        try {
+            amazonS3.deleteObject(new DeleteObjectRequest(bucket, key));
+        } catch (Exception e) {
+        }
+    }
+
     private Image findByUrl(String imageUrl) {
         String filename = extractFilename(imageUrl);
 
@@ -70,9 +83,7 @@ public class ImageLifecycleService {
 
         try {
             amazonS3.deleteObject(new DeleteObjectRequest(bucket, key));
-            log.info("S3 파일 삭제 완료: {}", key);
         } catch (Exception e) {
-            log.error("S3 삭제 실패: {}", key, e);
             throw new RuntimeException("S3 삭제 실패: " + key, e);
         }
     }
