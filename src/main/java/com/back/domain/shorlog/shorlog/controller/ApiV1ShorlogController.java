@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -171,7 +172,8 @@ public class ApiV1ShorlogController {
     @Operation(summary = "최근 본 숏로그 추가")
     public RsData<Void> viewShorlog(@CookieValue(value = GUEST_COOKIE_NAME, required = false) String guestId,
                                     @AuthenticationPrincipal SecurityUser securityUser,
-                                    @PathVariable Long id) {
+                                    @PathVariable Long id,
+                                    HttpServletRequest request) {
         if (id < 1) {
             throw new IllegalArgumentException("ID가 유효하지 않습니다.");
         }
@@ -182,7 +184,7 @@ public class ApiV1ShorlogController {
         }
 
         Long userId = (securityUser == null) ? null : securityUser.getId();
-        shorlogService.viewShorlog(guestId, userId, id);
+        shorlogService.viewShorlog(guestId, userId, id, request);
 
         return RsData.successOf(null);
     }

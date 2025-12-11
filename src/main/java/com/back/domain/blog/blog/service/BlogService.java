@@ -12,6 +12,9 @@ import com.back.domain.blog.like.service.BlogLikeService;
 import com.back.domain.comments.comments.dto.CommentResponseDto;
 import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.service.CommentsService;
+import com.back.domain.history.history.entity.ContentViewHistory;
+import com.back.domain.history.history.repository.ContentViewHistoryRepository;
+import com.back.domain.main.entity.ContentType;
 import com.back.domain.recommend.recentview.service.RecentViewService;
 import com.back.domain.recommend.search.type.PostType;
 import com.back.domain.shared.hashtag.entity.Hashtag;
@@ -21,6 +24,7 @@ import com.back.domain.shared.link.repository.ShorlogBlogLinkRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -28,6 +32,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +48,7 @@ public class BlogService {
     private final BlogBookmarkQueryRepository blogBookmarkQueryRepository;
     private final CommentsService commentsService;
     private final HashtagService hashtagService;
+    private final ContentViewHistoryRepository contentViewHistoryRepository;
     private final ImageLifecycleService imageLifecycleService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -98,12 +104,24 @@ public class BlogService {
     }
 
     @Transactional
-    public long increaseView(Long blogId) {
+    public long increaseView(Long blogId, Long viewerId, HttpServletRequest request) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new ServiceException(BlogErrorCase.BLOG_NOT_FOUND));
-
+        User viewer = null;
+        if (viewerId != null) {
+            viewer = userRepository.findById(viewerId).orElse(null);
+        }
         blog.increaseViewCount();
-        eventPublisher.publishEvent(new BlogIndexEvent(blog.getId()));
+        ContentViewHistory history = new ContentViewHistory(
+                ContentType.BLOG,
+                blogId,
+                viewer,
+                LocalDateTime.now(),
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+        contentViewHistoryRepository.save(history);
+        eventPublisher.publishEvent(new BlogIndexEvent(blogId));
         return blog.getViewCount();
     }
 
