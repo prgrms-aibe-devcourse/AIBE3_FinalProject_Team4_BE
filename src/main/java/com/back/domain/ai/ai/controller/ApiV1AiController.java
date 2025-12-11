@@ -4,7 +4,6 @@ import com.back.domain.ai.ai.dto.AiChatRequest;
 import com.back.domain.ai.ai.dto.AiGenerateRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
-import com.back.domain.ai.ai.service.AiIndexService;
 import com.back.domain.ai.ai.util.AiChatHttpUtil;
 import com.back.domain.ai.model.exception.ModelUsageExceededException;
 import com.back.domain.ai.model.service.ModelUsageService;
@@ -34,7 +33,6 @@ import reactor.core.scheduler.Schedulers;
 @Tag(name = "AI API", description = "AI 관련 API")
 public class ApiV1AiController {
     private final AiGenerateService aiGenerateService;
-    private final AiIndexService aiIndexService;
     private final AiChatService aiChatService;
     private final ModelUsageService modelUsageService;
 
