@@ -2,12 +2,17 @@ package com.back.domain.home.home.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpSession;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.InetAddress;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.net.InetAddress.getLocalHost;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
@@ -24,7 +29,7 @@ public class HomeController {
         InetAddress localHost = getLocalHost();
 
         return """
-                <h1>TEXTOK API 서버</h1>
+                <h1>API 서버</h1>
                 <p>Host Name: %s</p>
                 <p>Host Address: %s</p>
                 <div>
