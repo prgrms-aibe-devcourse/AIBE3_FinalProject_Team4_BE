@@ -91,6 +91,9 @@ dependencies {
     // Spring AI
     implementation(platform("org.springframework.ai:spring-ai-bom:1.1.0"))
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
+    implementation("org.springframework.ai:spring-ai-starter-model-huggingface")
+    // Vector DB
+    implementation("org.springframework.ai:spring-ai-starter-vector-store-pinecone")
     // Spring WebFlux (WebClient)
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     // QueryDSL
