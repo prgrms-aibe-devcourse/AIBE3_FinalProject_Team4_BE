@@ -105,4 +105,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, BlogRepositor
     @Modifying
     @Query("UPDATE Blog b SET b.bookmarkCount = GREATEST(b.bookmarkCount - 1, 0) WHERE b.id = :id")
     void decrementBookmarkCount(@Param("id") Long id);
+
+    @Query("SELECT b.id FROM Blog b WHERE b.user.id = :userId")
+    List<Long> findAllIdsByUserId(Long userId);
 }

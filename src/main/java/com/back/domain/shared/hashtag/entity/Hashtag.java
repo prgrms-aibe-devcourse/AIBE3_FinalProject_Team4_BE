@@ -24,6 +24,6 @@ public class Hashtag extends BaseEntity {
     @OneToMany(mappedBy = "hashtag", orphanRemoval = true, cascade = CascadeType.ALL)
     private final List<ShorlogHashtag> shorlogHashtag = new ArrayList<>();
 
-    @Column(length = 20, nullable = false, unique = true)
+    @Column(length = 50, nullable = false, unique = true)
     private String name;
 }
