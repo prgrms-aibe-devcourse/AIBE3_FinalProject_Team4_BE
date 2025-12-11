@@ -8,24 +8,17 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AiChatService {
     private final ChatClient openAiChatClient;
-    private final VectorStore vectorStore;
 
     private static final String SYSTEM_DETAIL_PROMPT = """
             * 전문적이면서도 친근한 톤을 유지합니다.
@@ -113,60 +106,5 @@ public class AiChatService {
         }
 
         return optionBuilder.build();
-    }
-
-    /**
-     * RAG 기반으로 사용자 질문에 답변합니다.
-     */
-    public String chatWithRag(Integer id, String message) {
-        List<Document> similarDocuments = searchRelevantDocuments(id, message);
-
-        String context = similarDocuments.stream()
-                .map(Document::getText)
-                .collect(Collectors.joining("\n---\n"));
-
-        SystemMessage systemMessage = SystemMessage.builder()
-                .text(AiGenerateService.SYSTEM_BASE_PROMPT)
-                .text(SYSTEM_DETAIL_PROMPT)
-                .build();
-
-        PromptTemplate promptTemplate = PromptTemplate.builder()
-                .template("""
-                        [Context]를 바탕으로 [질문]에 답변하세요.
-                        
-                        [질문]
-                        {message}
-                        
-                        [Context]
-                        {context}
-                        """)
-                .build();
-
-        UserMessage userMessage = UserMessage.builder()
-                .text(
-                        promptTemplate.render(Map.of(
-                                "message", message,
-                                "context", context
-                        ))
-                )
-                .build();
-
-        return openAiChatClient.prompt()
-                .messages(
-                        systemMessage,
-                        userMessage
-                )
-                .call()
-                .content();
-    }
-
-    private List<Document> searchRelevantDocuments(Integer blogId, String query) {
-        SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(3)
-                .filterExpression("blogId == %d".formatted(blogId))
-                .build();
-
-        return vectorStore.similaritySearch(searchRequest);
     }
 }
