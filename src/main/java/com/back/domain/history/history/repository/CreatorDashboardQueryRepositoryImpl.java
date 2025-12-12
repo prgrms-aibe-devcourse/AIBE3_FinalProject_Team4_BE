@@ -7,18 +7,22 @@ import com.back.domain.comments.comments.entity.CommentsTargetType;
 import com.back.domain.comments.comments.entity.QComments;
 import com.back.domain.history.history.dto.CreatorPeriodStats;
 import com.back.domain.history.history.dto.CreatorTotalStats;
+import com.back.domain.history.history.dto.DailyContentViewsDto;
 import com.back.domain.history.history.entity.QContentViewHistory;
 import com.back.domain.main.entity.ContentType;
 import com.back.domain.shorlog.shorlog.entity.QShorlog;
 import com.back.domain.shorlog.shorlogbookmark.entity.QShorlogBookmark;
 import com.back.domain.shorlog.shorloglike.entity.QShorlogLike;
 import com.back.domain.user.follow.entity.QFollow;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -239,6 +243,84 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
                 n(periodFollowers)
         );
     }
+    @Override
+    public List<DailyContentViewsDto> getDailyViews30d(
+            Long creatorId,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        QContentViewHistory h = QContentViewHistory.contentViewHistory;
+        QBlog blog = QBlog.blog;
+        QShorlog shorlog = QShorlog.shorlog;
+
+        // ✅ 반드시 java.sql.Date
+        var dayExpr = Expressions.dateTemplate(
+                java.sql.Date.class,
+                "date({0})",
+                h.createdAt
+        );
+
+        // 1) 블로그 일별 조회수
+        var blogRows = queryFactory
+                .select(dayExpr, h.count())
+                .from(h)
+                .join(blog).on(
+                        h.contentType.eq(ContentType.BLOG)
+                                .and(h.contentId.eq(blog.id))
+                )
+                .where(
+                        blog.user.id.eq(creatorId),
+                        h.createdAt.goe(from),
+                        h.createdAt.lt(to)
+                )
+                .groupBy(dayExpr)
+                .fetch();
+
+        // 2) 쇼로그 일별 조회수
+        var shorlogRows = queryFactory
+                .select(dayExpr, h.count())
+                .from(h)
+                .join(shorlog).on(
+                        h.contentType.eq(ContentType.SHORLOG)
+                                .and(h.contentId.eq(shorlog.id))
+                )
+                .where(
+                        shorlog.user.id.eq(creatorId),
+                        h.createdAt.goe(from),
+                        h.createdAt.lt(to)
+                )
+                .groupBy(dayExpr)
+                .fetch();
+
+        Map<LocalDate, Long> blogMap = new HashMap<>();
+        for (var t : blogRows) {
+            java.sql.Date sqlDate = t.get(dayExpr);
+            LocalDate day = sqlDate.toLocalDate(); // ✅ 여기서 변환
+            blogMap.put(day, t.get(h.count()));
+        }
+
+        Map<LocalDate, Long> shorlogMap = new HashMap<>();
+        for (var t : shorlogRows) {
+            java.sql.Date sqlDate = t.get(dayExpr);
+            LocalDate day = sqlDate.toLocalDate(); // ✅ 여기서 변환
+            shorlogMap.put(day, t.get(h.count()));
+        }
+
+        // 날짜 union
+        Set<LocalDate> days = new HashSet<>();
+        days.addAll(blogMap.keySet());
+        days.addAll(shorlogMap.keySet());
+
+        return days.stream()
+                .sorted()
+                .map(d -> new DailyContentViewsDto(
+                        d,
+                        blogMap.getOrDefault(d, 0L),
+                        shorlogMap.getOrDefault(d, 0L)
+                ))
+                .toList();
+    }
+
 
     private long n(Long v) {
         return v == null ? 0L : v;

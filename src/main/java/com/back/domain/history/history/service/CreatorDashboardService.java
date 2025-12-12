@@ -3,12 +3,18 @@ package com.back.domain.history.history.service;
 import com.back.domain.history.history.dto.CreatorOverviewDto;
 import com.back.domain.history.history.dto.CreatorPeriodStats;
 import com.back.domain.history.history.dto.CreatorTotalStats;
+import com.back.domain.history.history.dto.DailyContentViewsDto;
 import com.back.domain.history.history.repository.CreatorDashboardQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +39,31 @@ public class CreatorDashboardService {
         double viewsPerFollower = total.followerCount() == 0
                 ? 0.0
                 : (double) current.views() / total.followerCount();
+
+
+        // 최근 30일 일별 콘텐츠 조회수
+        LocalDate startDate = LocalDate.now().minusDays(29);
+        LocalDateTime dailyFrom = startDate.atStartOfDay();
+        LocalDateTime dailyTo = LocalDate.now().plusDays(1).atStartOfDay();
+
+        List<DailyContentViewsDto> raw =
+                creatorDashboardQueryRepository.getDailyViews30d(
+                        creatorId, dailyFrom, dailyTo
+                );
+
+        Map<LocalDate, DailyContentViewsDto> map = raw.stream()
+                .collect(Collectors.toMap(DailyContentViewsDto::date, v -> v));
+
+        List<DailyContentViewsDto> dailyViews30d = new ArrayList<>();
+        LocalDate d = startDate;
+        while (!d.isAfter(LocalDate.now())) {
+            DailyContentViewsDto v = map.getOrDefault(
+                    d,
+                    new DailyContentViewsDto(d, 0L, 0L)
+            );
+            dailyViews30d.add(v);
+            d = d.plusDays(1);
+        }
 
         return new CreatorOverviewDto(
                 days,
@@ -59,7 +90,8 @@ public class CreatorDashboardService {
                 calcChangeRate(previous.views(), current.views()),
                 calcChangeRate(previous.likes(), current.likes()),
                 calcChangeRate(previous.bookmarks(), current.bookmarks()),
-                calcChangeRate(previous.followers(), current.followers())
+                calcChangeRate(previous.followers(), current.followers()),
+                dailyViews30d
         );
     }
 
