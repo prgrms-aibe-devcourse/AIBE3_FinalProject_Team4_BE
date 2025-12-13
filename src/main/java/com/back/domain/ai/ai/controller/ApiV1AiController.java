@@ -61,6 +61,7 @@ public class ApiV1AiController {
         // AI 응답 스트림
         Flux<ServerSentEvent<RsData<?>>> contentStream =
                 aiChatService.chatStream(req)
+                        .timeout(Duration.ofSeconds(90)) // 90초 동안 아무 chunk도 안 오면 timeout
                         .map(chunk ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("chunk")
@@ -69,8 +70,6 @@ public class ApiV1AiController {
                         );
 
         // 하트비트(keepalive) - content가 뜸해도 연결 유지
-        // (서버 타임아웃뿐 아니라 프록시/로드밸런서/브라우저가 ‘한동안 데이터가 안 오면’
-        // 연결을 끊는 케이스도 흔함 (특히 AI가 잠깐 생각하느라 chunk가 늦게 오는 순간))
         Flux<ServerSentEvent<RsData<?>>> heartbeat =
                 Flux.interval(Duration.ofSeconds(15))
                         .map(i -> ServerSentEvent.<RsData<?>>builder()
