@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,18 +35,7 @@ public class ModelUsageService {
                 .findByUserIdAndModelId(userId, model.getId())
                 .orElse(null);
 
-        return getModelAvailability(model, modelUsage);
-    }
-
-    private ModelAvailabilityDto getModelAvailability(Model model, ModelUsage modelUsage) {
-        int usedCount = 0;
-        if (modelUsage != null && isToday(modelUsage.getModifiedAt())) {
-            usedCount = modelUsage.getCount();
-        }
-
-        boolean availability = usedCount < model.getLimitCount();
-
-        return new ModelAvailabilityDto(model.getId(), model.getName(), availability);
+        return toAvailabilityDto(model, modelUsage);
     }
 
     @Transactional(readOnly = true)
@@ -53,21 +43,10 @@ public class ModelUsageService {
 
         List<Object[]> rows = modelRepository.findModelsWithUsage(userId);
 
-        return rows.stream().map(row -> getModelAvailability(
+        return rows.stream().map(row -> toAvailabilityDto(
                 (Model) row[0],
                 (ModelUsage) row[1]
         )).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public Mono<Void> checkModelAvailability(Long userId, String modelName) {
-        ModelAvailabilityDto availabilityDto = getModelAvailability(userId, modelName);
-
-        if (!availabilityDto.available()) {
-            return Mono.error(new ModelUsageExceededException("MODEL_USAGE_LIMIT_EXCEEDED"));
-        }
-
-        return Mono.empty();
     }
 
     @Transactional
@@ -89,6 +68,39 @@ public class ModelUsageService {
         modelUsageRepository.save(usage);
 
         return new ModelAvailabilityDto(model.getId(), model.getName(), newUsedCount < model.getLimitCount());
+    }
+
+    /**
+     * (리액티브) 사용 가능 체크 - JPA 블로킹을 boundedElastic로
+     */
+    public Mono<Void> checkModelAvailability(Long userId, String modelName) {
+        return Mono.fromCallable(() -> getModelAvailability(userId, modelName))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(availabilityDto -> {
+                    if (!availabilityDto.available()) {
+                        return Mono.error(new ModelUsageExceededException("MODEL_USAGE_LIMIT_EXCEEDED"));
+                    }
+                    return Mono.empty();
+                });
+    }
+
+    /**
+     * (리액티브) 사용 횟수 증가 - JPA 블로킹을 boundedElastic로
+     */
+    public Mono<ModelAvailabilityDto> increaseCountAsync(Long userId, String model) {
+        return Mono.fromCallable(() -> increaseCount(userId, model))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private ModelAvailabilityDto toAvailabilityDto(Model model, ModelUsage modelUsage) {
+        int usedCount = 0;
+        if (modelUsage != null && isToday(modelUsage.getModifiedAt())) {
+            usedCount = modelUsage.getCount();
+        }
+
+        boolean availability = usedCount < model.getLimitCount();
+
+        return new ModelAvailabilityDto(model.getId(), model.getName(), availability);
     }
 
     private ModelUsage createModelUsage(Long userId, Long modelId) {

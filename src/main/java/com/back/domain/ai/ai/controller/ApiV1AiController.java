@@ -65,7 +65,7 @@ public class ApiV1AiController {
 
         // 사용 횟수 증가
         Mono<ServerSentEvent<RsData<?>>> metaEvent =
-                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, model))
+                Mono.fromCallable(() -> modelUsageService.increaseCountAsync(userId, model))
                         .map(meta ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("meta")
