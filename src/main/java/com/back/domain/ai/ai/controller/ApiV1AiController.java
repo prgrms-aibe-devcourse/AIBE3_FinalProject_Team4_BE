@@ -50,9 +50,12 @@ public class ApiV1AiController {
     @Operation(summary = "챗봇 (스트리밍 응답)")
     public Flux<ServerSentEvent<RsData<?>>> chat(@AuthenticationPrincipal SecurityUser userDetails,
                                                  @RequestBody @Validated AiChatRequest req) {
-        // 모델 사용량 체크
         Long userId = userDetails.getId();
         String model = req.model().getValue();
+
+        log.info("CHAT HIT userId={}, model={}, contentLen={}", userId, model, req.content().length());
+
+        // 모델 사용량 체크
         Mono<Void> check = modelUsageService.checkModelAvailability(userId, model);
 
         // AI 응답 스트림
