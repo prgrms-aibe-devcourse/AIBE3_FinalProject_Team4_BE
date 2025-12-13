@@ -70,6 +70,10 @@ public class Shorlog extends BaseEntity {
         this.ttsCreatorId = ttsCreatorId;
     }
 
+    public void increaseViewCount() {
+        this.viewCount += 1;
+    }
+
     public List<String> getThumbnailUrlList() {
         return images.stream()
                 .map(si -> si.getImage().getS3Url())

@@ -4,7 +4,6 @@ import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,10 +14,6 @@ import java.util.Optional;
 
 @Repository
 public interface ShorlogRepository extends JpaRepository<Shorlog, Long> {
-
-    @Modifying(clearAutomatically = true)
-    @Query("UPDATE Shorlog s SET s.viewCount = s.viewCount + 1 WHERE s.id = :id")
-    void incrementViewCount(@Param("id") Long id);
 
     // Fetch Join 사용
     @Query("SELECT DISTINCT s FROM Shorlog s " +

@@ -120,7 +120,7 @@ public class ShorlogService {
         Shorlog shorlog = shorlogRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new NoSuchElementException("숏로그를 찾을 수 없습니다."));
 
-        shorlogRepository.incrementViewCount(id);
+        shorlog.increaseViewCount();
 
         shorlogDocService.updateElasticsearchCounts(id);
 
@@ -136,7 +136,7 @@ public class ShorlogService {
         ).getOrDefault(id, 0L);
         int commentCount = commentCountLong.intValue();
 
-        return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount() + 1,
+        return ShorlogDetailResponse.from(shorlog, hashtags, shorlog.getViewCount(),
                 (int) likeCount, (int) bookmarkCount, commentCount, linkedBlogId);
     }
 
