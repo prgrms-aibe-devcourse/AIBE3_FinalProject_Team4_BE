@@ -1,6 +1,7 @@
 package com.back.global.exception;
 
 import com.back.global.rsData.RsData;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,8 +11,8 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
-import java.time.DateTimeException;
 import java.time.format.DateTimeParseException;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -63,8 +64,16 @@ public class GlobalExceptionHandler {
      * ✅ 알 수 없는 서버 예외 처리
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<RsData<?>> handleUnexpectedException(Exception ex) {
+    public ResponseEntity<RsData<?>> handleUnexpectedException(Exception ex, HttpServletRequest req) {
         log.error("[UnexpectedException] {}", ex.getMessage(), ex);
+
+        if (isSseRequest(req)) {
+            // 여기서 RsData 쓰면 바로 No converter ... text/event-stream 터짐
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+
         RsData<?> response = RsData.failOf("500-1", "서버 내부 오류가 발생했습니다.");
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -77,7 +86,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(rsData.statusCode()).body(rsData);
     }
 
-     // IllegalArgumentException 처리 (해시태그 검증 등)
+    // IllegalArgumentException 처리 (해시태그 검증 등)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RsData<?>> handleIllegalArgumentException(IllegalArgumentException e) {
         RsData<?> response = RsData.failOf("400-1", e.getMessage());
@@ -98,5 +107,23 @@ public class GlobalExceptionHandler {
         // 400-JSON: 그 외 JSON 구문 오류나 타입 미스매치
         RsData<?> response = RsData.failOf("400-JSON", "요청 본문(JSON) 형식이 잘못되었습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<?> handleAsyncTimeout(AsyncRequestTimeoutException ex, HttpServletRequest req) {
+        if (isSseRequest(req)) {
+            // SSE는 바디 쓰면 안 됨 (이미 커밋됐을 가능성 높음)
+            log.warn("[SSE Timeout] path={}", req.getRequestURI());
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.REQUEST_TIMEOUT)
+                .body(RsData.failOf("408-1", "요청 시간이 초과되었습니다."));
+    }
+
+    private boolean isSseRequest(HttpServletRequest req) {
+        String accept = req.getHeader("Accept");
+        return accept != null && accept.contains("text/event-stream");
     }
 }
