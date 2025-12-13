@@ -8,6 +8,7 @@ public record CreatorOverviewDto(
         long totalViews,
         long totalLikes,
         long totalBookmarks,
+        long totalComments,
         long followerCount,
         // 최근 N일 간
         long periodViews,

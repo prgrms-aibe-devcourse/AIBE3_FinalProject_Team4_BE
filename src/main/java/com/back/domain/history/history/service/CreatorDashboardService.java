@@ -72,6 +72,7 @@ public class CreatorDashboardService {
                 total.views(),
                 total.likes(),
                 total.bookmarks(),
+                total.comments(),
                 total.followerCount(),
 
                 // 기간 활동

@@ -40,6 +40,8 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
         QBlogBookmark blogBookmark = QBlogBookmark.blogBookmark;
         QShorlogBookmark shorlogBookmark = QShorlogBookmark.shorlogBookmark;
         QFollow follow = QFollow.follow;
+        QComments comments = QComments.comments;
+
 
         // 1) 전체 조회수 (블로그 + 숏로그)
         Long blogViews = queryFactory
@@ -94,7 +96,38 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
 
         long totalBookmarks = n(blogBookmarks) + n(shorlogBookmarks);
 
-        // 4) 전체 팔로워 수
+        // 4) 전체 댓글 수
+        Long totalBlogComments = queryFactory
+                .select(comments.count())
+                .from(comments)
+                .where(
+                        comments.targetType.eq(CommentsTargetType.BLOG),
+                        comments.targetId.in(
+                                JPAExpressions
+                                        .select(blog.id)
+                                        .from(blog)
+                                        .where(blog.user.id.eq(creatorId))
+                        )
+                )
+                .fetchOne();
+
+        Long totalShorlogComments = queryFactory
+                .select(comments.count())
+                .from(comments)
+                .where(
+                        comments.targetType.eq(CommentsTargetType.SHORLOG),
+                        comments.targetId.in(
+                                JPAExpressions
+                                        .select(shorlog.id)
+                                        .from(shorlog)
+                                        .where(shorlog.user.id.eq(creatorId))
+                        )
+                )
+                .fetchOne();
+
+        long totalComments = n(totalBlogComments) + n(totalShorlogComments);
+
+        // 5) 전체 팔로워 수
         Long followerCount = queryFactory
                 .select(follow.count())
                 .from(follow)
@@ -105,6 +138,7 @@ public class CreatorDashboardQueryRepositoryImpl implements CreatorDashboardQuer
                 totalViews,
                 totalLikes,
                 totalBookmarks,
+                totalComments,
                 n(followerCount)
         );
     }
