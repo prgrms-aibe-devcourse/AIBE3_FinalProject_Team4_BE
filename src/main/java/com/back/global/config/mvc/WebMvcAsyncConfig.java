@@ -12,12 +12,11 @@ public class WebMvcAsyncConfig implements WebMvcConfigurer {
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("mvc-async-");
-        executor.setCorePoolSize(20);
-        executor.setMaxPoolSize(200);
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(200); // 동시 SSE 접속자 수에 따라 조절하기
         executor.setQueueCapacity(1000);
         executor.initialize();
 
         configurer.setTaskExecutor(executor);
-        configurer.setDefaultTimeout(0); // 무제한(또는 원하는 값 ms)
     }
 }

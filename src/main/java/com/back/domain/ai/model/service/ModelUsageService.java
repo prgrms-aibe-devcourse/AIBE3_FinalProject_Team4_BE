@@ -19,9 +19,7 @@ public class ModelUsageService {
         return modelUsageTxService.getAllModelAvailabilities(userId);
     }
 
-    /**
-     * (리액티브) 사용 가능 체크 - JPA 블로킹을 boundedElastic로
-     */
+    // (리액티브) 사용 가능 체크 - JPA 블로킹을 boundedElastic로
     public Mono<Void> checkModelAvailability(Long userId, String modelName) {
         return Mono.fromCallable(() -> modelUsageTxService.getModelAvailability(userId, modelName))
                 .subscribeOn(Schedulers.boundedElastic())
@@ -33,9 +31,7 @@ public class ModelUsageService {
                 });
     }
 
-    /**
-     * (리액티브) 사용 횟수 증가 - JPA 블로킹을 boundedElastic로
-     */
+    // (리액티브) 사용 횟수 증가 - JPA 블로킹을 boundedElastic로
     public Mono<ModelAvailabilityDto> increaseCountAsync(Long userId, String model) {
         return Mono.fromCallable(() -> modelUsageTxService.increaseCount(userId, model))
                 .subscribeOn(Schedulers.boundedElastic());

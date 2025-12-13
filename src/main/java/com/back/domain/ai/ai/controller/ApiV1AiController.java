@@ -4,7 +4,6 @@ import com.back.domain.ai.ai.dto.AiChatRequest;
 import com.back.domain.ai.ai.dto.AiGenerateRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
-import com.back.domain.ai.ai.util.AiChatHttpUtil;
 import com.back.domain.ai.model.exception.ModelUsageExceededException;
 import com.back.domain.ai.model.service.ModelUsageService;
 import com.back.global.config.security.SecurityUser;
@@ -69,16 +68,8 @@ public class ApiV1AiController {
                                         .build()
                         );
 
-        // 하트비트(keepalive) - content가 뜸해도 연결 유지
-        Flux<ServerSentEvent<RsData<?>>> heartbeat =
-                Flux.interval(Duration.ofSeconds(15))
-                        .map(i -> ServerSentEvent.<RsData<?>>builder()
-                                .comment("keepalive")
-                                .build());
-
         // 사용 횟수 증가
-        Mono<ServerSentEvent<RsData<?>>> metaEvent =
-                Mono.fromCallable(() -> modelUsageService.increaseCountAsync(userId, model))
+        Mono<ServerSentEvent<RsData<?>>> metaEvent = modelUsageService.increaseCountAsync(userId, model)
                         .map(meta ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("meta")
@@ -86,14 +77,9 @@ public class ApiV1AiController {
                                         .build()
                         );
 
-        return check.thenMany(Flux.merge(contentStream, heartbeat))
+        return check.thenMany(contentStream)
                 .concatWith(metaEvent)
                 .onErrorResume(ex -> {
-                    // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
-                    if (AiChatHttpUtil.isClientDisconnect(ex)) {
-                        log.info("사용자가 응답 생성 중지: {}", ex.toString());
-                        return Flux.empty();
-                    }
                     // 사용량 초과
                     if (ex instanceof ModelUsageExceededException usageEx) {
                         return Flux.just(
@@ -112,7 +98,7 @@ public class ApiV1AiController {
                                     .build()
                     );
                 })
-                .doOnCancel(() -> log.info("client cancel"))
+                .doOnCancel(() -> log.info("AI chat 클라이언트가 연결 끊음"))
                 .doFinally(sig -> log.debug("AI 스트리밍 응답 끝: {}", sig));
     }
 
