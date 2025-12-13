@@ -26,6 +26,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
+
 @RestController
 @RequestMapping("/api/v1/ais")
 @RequiredArgsConstructor
@@ -63,6 +65,15 @@ public class ApiV1AiController {
                                         .build()
                         );
 
+        // 하트비트(keepalive) - content가 뜸해도 연결 유지
+        // (서버 타임아웃뿐 아니라 프록시/로드밸런서/브라우저가 ‘한동안 데이터가 안 오면’
+        // 연결을 끊는 케이스도 흔함 (특히 AI가 잠깐 생각하느라 chunk가 늦게 오는 순간))
+        Flux<ServerSentEvent<RsData<?>>> heartbeat =
+                Flux.interval(Duration.ofSeconds(15))
+                        .map(i -> ServerSentEvent.<RsData<?>>builder()
+                                .comment("keepalive")
+                                .build());
+
         // 사용 횟수 증가
         Mono<ServerSentEvent<RsData<?>>> metaEvent =
                 Mono.fromCallable(() -> modelUsageService.increaseCountAsync(userId, model))
@@ -73,7 +84,7 @@ public class ApiV1AiController {
                                         .build()
                         );
 
-        return check.thenMany(contentStream)
+        return check.thenMany(Flux.merge(contentStream, heartbeat))
                 .concatWith(metaEvent)
                 .onErrorResume(ex -> {
                     // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
