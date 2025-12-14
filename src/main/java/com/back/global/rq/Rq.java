@@ -18,7 +18,7 @@ public class Rq {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
-//                .domain(".textok.site")
+                .domain(".textok.site")
                 .path("/")
                 .maxAge(value.isBlank() ? 0 : -1)
                 .build();
