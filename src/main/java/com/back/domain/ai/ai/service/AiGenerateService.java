@@ -1,13 +1,18 @@
 package com.back.domain.ai.ai.service;
 
-import com.back.domain.ai.ai.dto.*;
+import com.back.domain.ai.ai.dto.AiGenerateMultiResultsResponse;
+import com.back.domain.ai.ai.dto.AiGenerateRequest;
+import com.back.domain.ai.ai.dto.AiGenerateSingleResultResponse;
+import com.back.domain.ai.ai.util.ContentExtractor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AiGenerateService {
     private final ChatClient openAiChatClient;
     private final OpenAiChatOptions modelOption = OpenAiChatOptions.builder()
@@ -108,10 +113,14 @@ public class AiGenerateService {
         userPrompt.append(modePrompt).append("\n")
                 .append("[콘텐츠 유형]: ").append(req.contentType()).append("\n");
 
-        if (req.message() != null && !req.message().isBlank()) {
+        String message = req.message();
+        String[] previousResults = req.previousResults();
+        String content = ContentExtractor.extractContent(req.content());
+
+        if (message != null && !message.isBlank()) {
             userPrompt.append("[질문]: \n");
 
-            if (req.previousResults() != null && req.previousResults().length > 0) {
+            if (previousResults != null && previousResults.length > 0) {
                 userPrompt.append("""
                         (새 요청)을 보고,
                         A: (이전 결과)는 아예 무시하고, 새로운 결과를 생성하라는 건지
@@ -132,16 +141,16 @@ public class AiGenerateService {
                         다음은 (이전 결과)와 (새 요청)이다.
                         """);
                 userPrompt.append("(이전 결과): \n");
-                for (String previousResult : req.previousResults()) {
+                for (String previousResult : previousResults) {
                     userPrompt.append(previousResult).append("\n");
                 }
                 userPrompt.append("\n(새 요청): ");
             }
 
-            userPrompt.append(req.message()).append("\n");
+            userPrompt.append(message).append("\n");
         }
 
-        userPrompt.append("[본문]: \n").append(req.content());
+        userPrompt.append("[본문]: \n").append(content);
 
         return userPrompt.toString();
     }

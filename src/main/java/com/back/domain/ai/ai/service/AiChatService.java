@@ -43,7 +43,7 @@ public class AiChatService {
             
               - '인사' 문장에는 자연스럽게 이모지 0~1개를 포함해도 됩니다.
             
-               - 제안은 '다음에 해볼만한 작업 1개'만 말합니다.
+               - 제안은 '다음에 해볼 만한 작업 1개'만 말합니다.
                - 제안은 본문에서 바로 손볼 수 있는 “구체적 다음 작업 1개”로 말합니다. (예: 문단 추가, 예시 보강, 구조 정리)
                - 제안 문장은 딱딱한 설명체가 아니라 친근한 추천/코칭 톤으로 씁니다. (“~해보면 좋아요/추천해요/어때요?”)
                - 본문 요약/확장/설명은 금지합니다.
@@ -58,6 +58,8 @@ public class AiChatService {
                 2) 곧바로 [블로그 본문]에 사용자 요청을 적용한 결과를 출력합니다.
             
             """;
+
+    private static final int MAX_CONTENT_CHARS = 20_000;
 
     public Flux<String> chatStream(AiChatRequest req) {
         return openAiChatClient.prompt(buildPrompt(req))
@@ -74,6 +76,8 @@ public class AiChatService {
     private Prompt buildPrompt(AiChatRequest req) {
 
         OpenAiChatOptions modelOption = buildOptions(req.model());
+        String message = req.message();
+        String content = normalizeContent(req.content());
 
         SystemMessage systemMessage = SystemMessage.builder()
                 .text(AiGenerateService.SYSTEM_BASE_PROMPT)
@@ -82,11 +86,11 @@ public class AiChatService {
 
         UserMessage userMessage1 =
                 UserMessage.builder()
-                        .text("[질문]\n" + req.message() + "\n\n")
+                        .text("[질문]\n" + message + "\n\n")
                         .build();
         UserMessage userMessage2 =
                 UserMessage.builder()
-                        .text("---\n\n[블로그 본문] (필요할 때만 참고)\n" + req.content())
+                        .text("---\n\n[블로그 본문] (필요할 때만 참고)\n" + content)
                         .build();
 
         return Prompt.builder()
@@ -96,9 +100,10 @@ public class AiChatService {
     }
 
     private OpenAiChatOptions buildOptions(AiModel model) {
+        String modelName = model == null ? AiModel.GPT_4O_MINI.getValue() : model.getValue();
 
         OpenAiChatOptions.Builder optionBuilder = OpenAiChatOptions.builder()
-                .model(model.getValue());
+                .model(modelName);
 
         // gpt-5-mini는 temperature 커스텀을 못 받고 1.0만 허용
         if (model == AiModel.GPT_5_MINI) {
@@ -106,5 +111,18 @@ public class AiChatService {
         }
 
         return optionBuilder.build();
+    }
+
+    private String normalizeContent(String content) {
+        if (content == null) {
+            return "";
+        }
+
+        if (content.length() <= MAX_CONTENT_CHARS) {
+            return content;
+        }
+
+        String truncated = content.substring(0, MAX_CONTENT_CHARS);
+        return truncated + "...";
     }
 }
