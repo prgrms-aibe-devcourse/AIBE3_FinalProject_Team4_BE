@@ -4,7 +4,6 @@ import com.back.domain.ai.ai.dto.AiChatRequest;
 import com.back.domain.ai.ai.dto.AiGenerateRequest;
 import com.back.domain.ai.ai.service.AiChatService;
 import com.back.domain.ai.ai.service.AiGenerateService;
-import com.back.domain.ai.ai.util.AiChatHttpUtil;
 import com.back.domain.ai.model.exception.ModelUsageExceededException;
 import com.back.domain.ai.model.service.ModelUsageService;
 import com.back.global.config.security.SecurityUser;
@@ -25,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/v1/ais")
@@ -48,14 +49,18 @@ public class ApiV1AiController {
     @Operation(summary = "챗봇 (스트리밍 응답)")
     public Flux<ServerSentEvent<RsData<?>>> chat(@AuthenticationPrincipal SecurityUser userDetails,
                                                  @RequestBody @Validated AiChatRequest req) {
-        // 모델 사용량 체크
         Long userId = userDetails.getId();
         String model = req.model().getValue();
+
+        log.info("CHAT HIT userId={}, model={}, contentLen={}", userId, model, req.content().length());
+
+        // 모델 사용량 체크
         Mono<Void> check = modelUsageService.checkModelAvailability(userId, model);
 
         // AI 응답 스트림
         Flux<ServerSentEvent<RsData<?>>> contentStream =
                 aiChatService.chatStream(req)
+                        .timeout(Duration.ofSeconds(90)) // 90초 동안 아무 chunk도 안 오면 timeout
                         .map(chunk ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("chunk")
@@ -64,8 +69,7 @@ public class ApiV1AiController {
                         );
 
         // 사용 횟수 증가
-        Mono<ServerSentEvent<RsData<?>>> metaEvent =
-                Mono.fromCallable(() -> modelUsageService.increaseCount(userId, model))
+        Mono<ServerSentEvent<RsData<?>>> metaEvent = modelUsageService.increaseCountAsync(userId, model)
                         .map(meta ->
                                 ServerSentEvent.<RsData<?>>builder()
                                         .event("meta")
@@ -76,11 +80,6 @@ public class ApiV1AiController {
         return check.thenMany(contentStream)
                 .concatWith(metaEvent)
                 .onErrorResume(ex -> {
-                    // 클라이언트가 중간에 끊은 경우는 조용히 종료 (500 방지)
-                    if (AiChatHttpUtil.isClientDisconnect(ex)) {
-                        log.info("사용자가 응답 생성 중지: {}", ex.toString());
-                        return Flux.empty();
-                    }
                     // 사용량 초과
                     if (ex instanceof ModelUsageExceededException usageEx) {
                         return Flux.just(
@@ -99,7 +98,7 @@ public class ApiV1AiController {
                                     .build()
                     );
                 })
-                .doOnCancel(() -> log.info("client cancel"))
+                .doOnCancel(() -> log.info("AI chat 클라이언트가 연결 끊음"))
                 .doFinally(sig -> log.debug("AI 스트리밍 응답 끝: {}", sig));
     }
 
