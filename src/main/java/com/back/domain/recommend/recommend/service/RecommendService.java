@@ -26,7 +26,7 @@ public class RecommendService {
 
         List<Query> recommendQueries = new ArrayList<>();
 
-        // 트렌딩
+        // 트렌딩 (블로그는 인기)
         Query trendingQuery = queryBuilder.buildTrendingMLTQuery(postType);
         recommendQueries.add(trendingQuery);
 
