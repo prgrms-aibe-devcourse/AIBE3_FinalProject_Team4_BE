@@ -37,25 +37,31 @@ public class RecommendQueryBuilder {
                                                 double hours = (params.now - created) / 3600000.0;
                                                 
                                                 double engagement =
-                                                    Math.log1p(views) * 0.30 +
-                                                    Math.sqrt(likes) * 0.25 +
-                                                    comments * 0.10;
+                                                    Math.log1p(views) * 0.2 +
+                                                    Math.sqrt(likes) * 0.6 +
+                                                    Math.log1p(comments) * 0.8;
                                                 
-                                                double trending = engagement / Math.pow(hours + 2, 1.5);
+                                                double halfLife = params.half_life_hours;
+                                                double decay = Math.exp(-Math.log(2) * (hours / halfLife));
                                                 
-                                                return trending;
+                                                double trending = engagement * decay;
+                                                return trending * 0.6;
                                                 """)
-                                        .params(Map.of("now", JsonData.of(now)));
+                                        .params(Map.of(
+                                                "now", JsonData.of(now),
+                                                "half_life_hours", JsonData.of(24.0)
+                                        ));
                             }
                             return sc.source("""
                                             double views = doc['viewCount'].size()==0 ? 0 : doc['viewCount'].value;
                                             double likes = doc['likeCount'].size()==0 ? 0 : doc['likeCount'].value;
                                             double bookmarks = doc['bookmarkCount'].size()==0 ? 0 : doc['bookmarkCount'].value;
                                             
-                                            return
+                                            return (
                                                 Math.log1p(views) * 0.30 +
                                                 Math.sqrt(likes) * 0.25 +
-                                                Math.sqrt(bookmarks) * 0.28;
+                                                Math.sqrt(bookmarks) * 0.28
+                                            ) * 0.4;
                                             """);
                         }
                 )
@@ -69,16 +75,16 @@ public class RecommendQueryBuilder {
                 .mapToObj(i -> {
                     // 순서에 따른 weight 적용
                     float weight = switch (i) {
-                        case 0 -> 1.0f;
-                        case 1 -> 0.7f;
-                        case 2 -> 0.5f;
+                        case 0 -> 6.0f;
+                        case 1 -> 4.0f;
+                        case 2 -> 2.0f;
                         default -> 0.1f;
                     };
 
                     // 최근 본 게시물 유사도
                     Query mltQuery = buildMLTQuery(postType, recentViewPostIds.get(i), weight);
 
-                    return buildFunctionScoreQuery(mltQuery, recentViewPostIds, 0.0); // 최근 본 게시물은 패널티
+                    return buildFunctionScoreQuery(mltQuery, recentViewPostIds, 0.5); // 최근 본 게시물은 패널티
                 })
                 .collect(Collectors.toList());
     }
@@ -101,7 +107,7 @@ public class RecommendQueryBuilder {
                     buildFunctionScoreQuery(
                             buildMLTQuery(postType, u.postId(), weight),
                             likedPosts.stream().map(UserActivityDto::postId).toList(),
-                            0.0
+                            0.5
                     )
             );
         }
@@ -113,7 +119,7 @@ public class RecommendQueryBuilder {
                     buildFunctionScoreQuery(
                             buildMLTQuery(postType, u.postId(), weight),
                             bookmarkedPosts.stream().map(UserActivityDto::postId).toList(),
-                            0.0
+                            0.5
                     )
             );
         }
@@ -126,7 +132,7 @@ public class RecommendQueryBuilder {
                     buildFunctionScoreQuery(
                             buildMLTQuery(postType, u.postId(), weight),
                             commentedPosts.stream().map(UserCommentActivityDto::postId).toList(),
-                            0.0
+                            0.5
                     )
             );
         }
