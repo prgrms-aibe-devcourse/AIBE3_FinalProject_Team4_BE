@@ -110,7 +110,7 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-exp: 3600000
+  access-exp: 300000
   refresh-exp: 604800000
 
 file:
