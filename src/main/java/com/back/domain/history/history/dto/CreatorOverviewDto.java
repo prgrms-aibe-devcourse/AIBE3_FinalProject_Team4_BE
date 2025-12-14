@@ -1,11 +1,14 @@
 package com.back.domain.history.history.dto;
 
+import java.util.List;
+
 public record CreatorOverviewDto(
         int periodDays,
         // 전체 누적
         long totalViews,
         long totalLikes,
         long totalBookmarks,
+        long totalComments,
         long followerCount,
         // 최근 N일 간
         long periodViews,
@@ -21,6 +24,9 @@ public record CreatorOverviewDto(
         Double viewsChangeRate,
         Double likesChangeRate,
         Double bookmarksChangeRate,
-        Double followersChangeRate
+        Double followersChangeRate,
+
+        // 일별 콘텐츠 조회수 (최근 30일)
+        List<DailyContentViewsDto> dailyViews30d
 ) {
 }
