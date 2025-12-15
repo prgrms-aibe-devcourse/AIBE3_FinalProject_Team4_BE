@@ -6,7 +6,9 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.back.domain.shorlog.shorlog.entity.Shorlog;
 import com.back.domain.shorlog.shorlog.repository.ShorlogRepository;
 import com.back.domain.shorlog.shorlogtts.dto.TtsResponse;
+import com.back.domain.shorlog.shorlogtts.entity.ShorlogTtsUsage;
 import com.back.domain.shorlog.shorlogtts.exception.TtsErrorCase;
+import com.back.domain.shorlog.shorlogtts.repository.ShorlogTtsUsageRepository;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.repository.UserRepository;
 import com.back.global.exception.ServiceException;
@@ -33,6 +35,7 @@ public class ShorlogTtsService {
 
     private final ShorlogRepository shorlogRepository;
     private final UserRepository userRepository;
+    private final ShorlogTtsUsageRepository ttsUsageRepository;
     private final AmazonS3 amazonS3;
 
     @Value("${cloud.aws.s3.bucket}")
@@ -63,10 +66,17 @@ public class ShorlogTtsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ServiceException(TtsErrorCase.USER_NOT_FOUND));
 
+        // 이미 TTS가 생성된 경우
         if (shorlog.getTtsUrl() != null) {
-            if (shorlog.getTtsCreatorId() != null && shorlog.getTtsCreatorId().equals(userId)) {
+            // 이미 이 사용자가 토큰을 지불한 적이 있는지 확인
+            boolean hasUsed = ttsUsageRepository.existsByShorlogIdAndUserId(shorlogId, userId);
+
+            if (hasUsed) {
+                // 이미 사용한 적이 있으면 토큰 차감 없이 반환
+                log.info("[TTS] 사용자 {}가 이미 숏로그 {}의 TTS를 사용한 기록이 있음 - 토큰 차감 없음", userId, shorlogId);
                 return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
             } else {
+                // 처음 사용하는 경우 토큰 차감
                 int contentLength = shorlog.getContent().length();
                 int requiredTokens = (int) Math.ceil((double) contentLength / CHARS_PER_TOKEN);
 
@@ -76,10 +86,16 @@ public class ShorlogTtsService {
 
                 user.useTtsToken(requiredTokens);
 
+                // 사용 기록 저장
+                ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlogId, userId);
+                ttsUsageRepository.save(usage);
+
+                log.info("[TTS] 사용자 {}가 숏로그 {}의 TTS 처음 사용 - 토큰 {} 차감", userId, shorlogId, requiredTokens);
                 return TtsResponse.of(shorlog.getTtsUrl(), user.getTtsToken());
             }
         }
 
+        // TTS가 아직 생성되지 않은 경우
         int contentLength = shorlog.getContent().length();
         int requiredTokens = (int) Math.ceil((double) contentLength / CHARS_PER_TOKEN);
 
@@ -100,6 +116,11 @@ public class ShorlogTtsService {
             shorlog.updateTtsUrl(s3Url);
             shorlog.updateTtsCreatorId(userId);
 
+            // 사용 기록 저장
+            ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlogId, userId);
+            ttsUsageRepository.save(usage);
+
+            log.info("[TTS] 사용자 {}가 숏로그 {}의 TTS 생성 - 토큰 {} 차감", userId, shorlogId, requiredTokens);
             return TtsResponse.of(s3Url, user.getTtsToken());
 
         } catch (IOException e) {
