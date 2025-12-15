@@ -174,7 +174,8 @@ public class UserDeletionJdbcRepository {
         jdbcTemplate.update("DELETE FROM shorlog WHERE user_id = ?", userId);
         jdbcTemplate.update("DELETE FROM shorlog_draft WHERE user_id = ?", userId);
 
-        // 7) 로그성 데이터
+        // 7) 로그성 데이터 (조회 기록은 남기고 viewer 익명화)
+        jdbcTemplate.update("UPDATE content_view_history SET viewer_id = NULL WHERE viewer_id = ?", userId);
         jdbcTemplate.update("DELETE FROM search_history WHERE user_id = ?", userId);
         jdbcTemplate.update("DELETE FROM model_usages WHERE user_id = ?", userId);
 
