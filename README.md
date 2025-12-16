@@ -83,7 +83,7 @@ TexTok은 **“짧은 글과 깊은 글의 자연스러운 연결”**이라는 
 | **Spring Boot**         | 독립 실행형 서비스 및 빠른 설정   |
 | **Gradle (Kotlin DSL)** | 빌드/의존성 관리            |
 | **Spring Web**          | REST API 개발          |
-| **Spring WebFlux**      | 비동기/리액티브 처리          |
+| **Spring WebFlux**      | 외부 API 스트리밍 및 리액티브 연동        |
 | **Spring Data JPA**     | ORM 기반 데이터 매핑        |
 | **Hibernate**           | JPA 구현체              |
 | **QueryDSL**            | 타입 세이프 동적 쿼리         |
