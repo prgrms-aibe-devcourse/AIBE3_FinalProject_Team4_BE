@@ -69,7 +69,7 @@ public class ShorlogTtsService {
         // 이미 TTS가 생성된 경우
         if (shorlog.getTtsUrl() != null) {
             // 이미 이 사용자가 토큰을 지불한 적이 있는지 확인
-            boolean hasUsed = ttsUsageRepository.existsByShorlogIdAndUserId(shorlogId, userId);
+            boolean hasUsed = ttsUsageRepository.existsByShorlogAndUser(shorlog, user);
 
             if (hasUsed) {
                 // 이미 사용한 적이 있으면 토큰 차감 없이 반환
@@ -87,7 +87,7 @@ public class ShorlogTtsService {
                 user.useTtsToken(requiredTokens);
 
                 // 사용 기록 저장
-                ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlogId, userId);
+                ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlog, user);
                 ttsUsageRepository.save(usage);
 
                 log.info("[TTS] 사용자 {}가 숏로그 {}의 TTS 처음 사용 - 토큰 {} 차감", userId, shorlogId, requiredTokens);
@@ -117,7 +117,7 @@ public class ShorlogTtsService {
             shorlog.updateTtsCreatorId(userId);
 
             // 사용 기록 저장
-            ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlogId, userId);
+            ShorlogTtsUsage usage = ShorlogTtsUsage.create(shorlog, user);
             ttsUsageRepository.save(usage);
 
             log.info("[TTS] 사용자 {}가 숏로그 {}의 TTS 생성 - 토큰 {} 차감", userId, shorlogId, requiredTokens);
