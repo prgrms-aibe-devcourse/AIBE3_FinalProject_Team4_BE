@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface ShorlogBookmarkRepository extends JpaRepository<ShorlogBookmark, ShorlogBookmark.ShorlogBookmarkId> {
+public interface ShorlogBookmarkRepository extends JpaRepository<ShorlogBookmark, Long> {
 
     long countByShorlog(Shorlog shorlog);
 

@@ -7,23 +7,31 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
+// 단일 ID + UniqueConstraint 방식 사용
 @Entity
+@Table(name = "shorlog_like",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_shorlog_user",
+                        columnNames = {"shorlog_id", "user_id"}
+                )
+        })
 @EntityListeners(AuditingEntityListener.class)
-@IdClass(ShorlogLike.ShorlogLikeId.class) // 복합 키
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ShorlogLike {  // BaseEntity 상속 X
+public class ShorlogLike {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shorlog_id", nullable = false)
+    @JoinColumn(name = "shorlog_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Shorlog shorlog;
 
-    @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User user;
 
     @CreatedDate
@@ -35,14 +43,5 @@ public class ShorlogLike {  // BaseEntity 상속 X
         like.shorlog = shorlog;
         like.user = user;
         return like;
-    }
-
-    // 복합 키 클래스
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    public static class ShorlogLikeId implements Serializable {
-        private Long shorlog;
-        private Long user;
     }
 }

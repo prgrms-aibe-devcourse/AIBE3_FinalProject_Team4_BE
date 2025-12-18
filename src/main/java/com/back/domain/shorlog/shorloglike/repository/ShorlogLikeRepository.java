@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, ShorlogLike.ShorlogLikeId> {
+public interface ShorlogLikeRepository extends JpaRepository<ShorlogLike, Long> {
 
     long countByShorlog(Shorlog shorlog);
 
